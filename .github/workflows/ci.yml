@@ -1,0 +1,12 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Nix-first: flake check + build every package and devShell (backend + Android toolchain).
+  # Reuses the shared workflow from github:SeineEloquenz/ci.
+  nix:
+    uses: SeineEloquenz/ci/.github/workflows/nix-ci.yml@main

@@ -1,0 +1,30 @@
+# Rust
+/target
+
+# Gradle / Kotlin
+.gradle/
+build/
+**/build/
+local.properties
+.kotlin/
+captures/
+
+# Xcode / iOS
+iosApp/build/
+*.xcuserstate
+xcuserdata/
+
+# Nix / direnv
+.direnv/
+result
+result-*
+
+# SQLite (local dev databases)
+*.db
+*.db-wal
+*.db-shm
+
+# IDE
+.idea/
+*.iml
+.vscode/

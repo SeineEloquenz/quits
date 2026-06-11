@@ -1,0 +1,42 @@
+name: iOS
+
+# iOS compilation/linking needs macOS + Xcode, so it runs on a macOS runner.
+# The Compose Multiplatform app is scaffolded in a later phase; until `settings.gradle.kts`
+# exists this is manual-only and self-skips, so it never blocks CI.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "composeApp/**"
+      - "iosApp/**"
+      - "gradle/**"
+      - "settings.gradle.kts"
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Skip until the Gradle app exists
+        id: guard
+        run: |
+          if [ -f settings.gradle.kts ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false (no Gradle app yet)"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-java@v4
+        if: steps.guard.outputs.ready == 'true'
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # Android SDK isn't needed for the iOS target, so we build with Gradle directly
+      # (Xcode is preinstalled on the runner) rather than entering the Android devshell.
+      - name: Link iOS framework
+        if: steps.guard.outputs.ready == 'true'
+        run: ./gradlew :composeApp:linkReleaseFrameworkIosSimulatorArm64
