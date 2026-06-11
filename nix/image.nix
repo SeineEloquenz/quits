@@ -5,7 +5,7 @@
   ...
 }:
 
-# OCI image built straight from the Nix package — no Dockerfile. Build & load with:
+# Build & load with:
 #   nix build .#server-image && docker load < result
 dockerTools.buildLayeredImage {
   name = "quits-server";
