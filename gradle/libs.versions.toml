@@ -13,7 +13,7 @@ kotlinxSerialization = "1.11.0"
 kotlinxDatetime = "0.8.0"
 nav3 = "1.1.1"
 nav3Lifecycle = "2.10.0"
-composeKit = "v0.0.6"
+composeKit = "v0.0.7"
 ktlint = "14.2.0"
 
 # Android SDK

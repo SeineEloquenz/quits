@@ -25,7 +25,7 @@ kotlin {
 
     // iOS targets only on macOS (Kotlin/Native can't target Apple from Linux); built on macOS CI.
     if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
-        listOf(iosX64(), iosArm64(), iosSimulatorArm64()).forEach { target ->
+        listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
             target.binaries.framework {
                 baseName = "ComposeApp"
                 isStatic = true
