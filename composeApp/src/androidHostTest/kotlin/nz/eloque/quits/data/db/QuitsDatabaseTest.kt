@@ -1,10 +1,5 @@
 package nz.eloque.quits.data.db
 
-import android.content.Context
-import androidx.room.Room
-import androidx.sqlite.driver.AndroidSQLiteDriver
-import androidx.test.core.app.ApplicationProvider
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -16,21 +11,10 @@ import kotlin.test.assertNull
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class QuitsDatabaseTest {
-    private fun database(): QuitsDatabase {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        // Production uses BundledSQLiteDriver; on the host we use the framework driver that
-        // Robolectric backs with a real SQLite, avoiding the bundled native-lib (jniLibs) loader.
-        return Room
-            .inMemoryDatabaseBuilder<QuitsDatabase>(context)
-            .setDriver(AndroidSQLiteDriver())
-            .setQueryCoroutineContext(Dispatchers.IO)
-            .build()
-    }
-
     @Test
     fun sync_state_round_trips() =
         runTest {
-            val db = database()
+            val db = inMemoryDatabase()
             val dao = db.syncStateDao()
             try {
                 assertNull(dao.lastSeq("g1"))

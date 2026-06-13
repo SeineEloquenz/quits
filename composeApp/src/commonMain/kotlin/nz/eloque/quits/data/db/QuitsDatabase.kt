@@ -6,13 +6,32 @@ import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 
 @Database(
-    entities = [SyncStateEntity::class],
+    entities = [
+        SyncStateEntity::class,
+        GroupEntity::class,
+        MemberEntity::class,
+        ExpenseEntity::class,
+        ExpensePayerEntity::class,
+        ExpenseSplitEntity::class,
+        SettlementEntity::class,
+        FxRateEntity::class,
+    ],
     version = 1,
     exportSchema = true,
 )
 @ConstructedBy(QuitsDatabaseConstructor::class)
 abstract class QuitsDatabase : RoomDatabase() {
     abstract fun syncStateDao(): SyncStateDao
+
+    abstract fun groupDao(): GroupDao
+
+    abstract fun memberDao(): MemberDao
+
+    abstract fun expenseDao(): ExpenseDao
+
+    abstract fun settlementDao(): SettlementDao
+
+    abstract fun fxRateDao(): FxRateDao
 }
 
 // Room generates the actual per-platform implementation of this constructor.
