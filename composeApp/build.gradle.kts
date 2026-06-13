@@ -21,6 +21,8 @@ kotlin {
         androidResources {
             enable = true
         }
+        withHostTest {
+        }
     }
 
     // iOS targets only on macOS (Kotlin/Native can't target Apple from Linux); built on macOS CI.
@@ -43,10 +45,29 @@ kotlin {
             implementation(libs.compose.components.resources)
             implementation(libs.compose.components.ui.tooling.preview)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.compose.kit)
+        }
+        androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.mock)
+        }
+    }
+
+    // iosMain only exists when the iOS targets are configured (macOS); add the Darwin engine there.
+    if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
+        sourceSets.iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
     }
 }

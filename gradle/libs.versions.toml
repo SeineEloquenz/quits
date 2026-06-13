@@ -13,6 +13,7 @@ kotlinxSerialization = "1.11.0"
 kotlinxDatetime = "0.8.0"
 nav3 = "1.1.1"
 nav3Lifecycle = "2.10.0"
+ktor = "3.5.0"
 composeKit = "v0.0.7"
 ktlint = "14.2.0"
 
@@ -51,8 +52,17 @@ nav3-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmode
 
 # kotlinx
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+
+# Ktor (FX rate fetching + sync client)
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 
 compose-kit = { module = "com.github.SeineEloquenz.compose-kit:lib", version.ref = "composeKit" }
 
