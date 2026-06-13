@@ -22,7 +22,7 @@ val localComposeKitPath = providers.environmentVariable("LOCAL_COMPOSE_KIT").orN
 if (localComposeKitPath != null) {
     includeBuild(localComposeKitPath) {
         dependencySubstitution {
-            substitute(module("com.github.SeineEloquenz:compose-kit")).using(project(":lib"))
+            substitute(module("com.github.SeineEloquenz.compose-kit:lib")).using(project(":lib"))
         }
     }
 }
