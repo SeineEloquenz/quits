@@ -26,11 +26,13 @@ jobs:
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v6
 
-      # 1. Compile the shared framework — fast verification that commonMain + iosMain build for iOS.
-      - name: Compile shared iOS framework
-        run: ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
+      - name: Cache Kotlin/Native (~/.konan)
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: konan-${{ runner.os }}-
 
-      # 2. Generate the Xcode project and build the app — verifies the SwiftUI wrapper too.
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
