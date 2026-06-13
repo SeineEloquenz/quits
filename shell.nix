@@ -35,7 +35,7 @@ in
 {
   default = pkgs.mkShell {
     packages = [
-      # Backend (Rust/Axum dumb sync relay)
+      # Backend (Rust/Axum sync relay)
       rustToolchain
       pkgs.sqlx-cli
       pkgs.pkg-config
@@ -56,6 +56,7 @@ in
 
       # SQLite lives in a local file; sqlx builds offline against the committed `.sqlx` cache.
       DATABASE_URL = "sqlite:quits.db";
+      LOCAL_COMPOSE_KIT = "../compose-kit";
     };
 
     shellHook = ''

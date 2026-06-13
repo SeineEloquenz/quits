@@ -1,17 +1,18 @@
 name: iOS
 
-# iOS compilation/linking needs macOS + Xcode, so it runs on a macOS runner.
-# The Compose Multiplatform app is scaffolded in a later phase; until `settings.gradle.kts`
-# exists this is manual-only and self-skips, so it never blocks CI.
+# iOS needs macOS + Xcode (Kotlin/Native can't target Apple from Linux). No Mac required locally:
+# this runs on a GitHub macOS runner, and the Xcode project is generated from iosApp/project.yml
+# via XcodeGen rather than hand-maintained. compose-kit resolves from JitPack (no LOCAL_COMPOSE_KIT).
 on:
-  workflow_dispatch:
   push:
     branches: [main]
     paths:
       - "composeApp/**"
       - "iosApp/**"
       - "gradle/**"
-      - "settings.gradle.kts"
+      - "*.gradle.kts"
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,24 +20,29 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Skip until the Gradle app exists
-        id: guard
-        run: |
-          if [ -f settings.gradle.kts ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=false (no Gradle app yet)"
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - uses: actions/setup-java@v4
-        if: steps.guard.outputs.ready == 'true'
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
 
-      # Android SDK isn't needed for the iOS target, so we build with Gradle directly
-      # (Xcode is preinstalled on the runner) rather than entering the Android devshell.
-      - name: Link iOS framework
-        if: steps.guard.outputs.ready == 'true'
-        run: ./gradlew :composeApp:linkReleaseFrameworkIosSimulatorArm64
+      # 1. Compile the shared framework — fast verification that commonMain + iosMain build for iOS.
+      - name: Compile shared iOS framework
+        run: ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
+
+      # 2. Generate the Xcode project and build the app — verifies the SwiftUI wrapper too.
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: iosApp
+        run: xcodegen generate
+      - name: Build iOS app (simulator)
+        run: |
+          xcodebuild \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build

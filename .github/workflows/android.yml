@@ -1,0 +1,43 @@
+name: Android
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# CI does not set LOCAL_COMPOSE_KIT, so compose-kit resolves from its published JitPack artifact
+# (see settings.gradle.kts) — no sibling checkout needed.
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: gradle/actions/wrapper-validation@v4
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Copy CI gradle.properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Lint
+        run: ./gradlew ktlintCheck
+
+      - name: Test and assemble debug
+        run: ./gradlew :androidApp:testDebugUnitTest :androidApp:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk
+          path: androidApp/build/outputs/apk/debug

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose draws the UI; the activity theme just needs no action bar. -->
+    <style name="Theme.Quits" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

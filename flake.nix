@@ -1,5 +1,5 @@
 {
-  description = "Quits — expense-splitting app (Compose Multiplatform) + dumb sync relay (Rust/Axum)";
+  description = "Quits — expense-splitting app + sync relay";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

@@ -1,0 +1,36 @@
+# XcodeGen spec — generates iosApp.xcodeproj on the macOS CI runner (`xcodegen generate`), so the
+# Xcode project never has to be hand-maintained or opened on a Mac.
+name: iosApp
+options:
+  bundleIdPrefix: nz.eloque.quits
+  deploymentTarget:
+    iOS: "15.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+targets:
+  iosApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: iosApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: nz.eloque.quits
+        INFOPLIST_FILE: iosApp/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        # The Kotlin/Native framework is produced by the Gradle build phase below into this dir.
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-framework"
+          - "ComposeApp"
+    preBuildScripts:
+      - name: "Build Compose Multiplatform framework"
+        basedOnDependencyAnalysis: false
+        script: |
+          set -e
+          cd "$SRCROOT/.."
+          ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode

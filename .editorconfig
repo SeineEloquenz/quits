@@ -1,0 +1,5 @@
+[*.{kt,kts}]
+ktlint_standard_package-name = disabled
+ktlint_function_naming_ignore_when_annotated_with = Composable
+# Don't force short method chains (e.g. libs.versions.x.get().toInt()) onto multiple lines.
+ktlint_standard_chain-method-continuation = disabled

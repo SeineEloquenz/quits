@@ -1,0 +1,61 @@
+name: Release
+
+# Tag a release (e.g. `v0.1.0`) to build a signed app, attach it to a GitHub release, and
+# (optionally) publish to Google Play. Modeled on the fosswallet pipeline.
+#
+# Required repository secrets:
+#   KEYSTORE              – base64-encoded upload keystore (.jks)
+#   KEYSTORE_PASSWORD     – keystore password
+#   SIGNING_KEY_ALIAS     – key alias
+#   SIGNING_KEY_PASSWORD  – key password
+#   PLAY_SERVICE_ACCOUNT_JSON – Play service-account JSON (only for the Play step)
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Copy CI gradle.properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE }}" | base64 -di > "${RUNNER_TEMP}/keystore.jks"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Build signed bundle + APK
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: ./gradlew :androidApp:bundleRelease :androidApp:assembleRelease
+
+      - name: Attach APK to GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: androidApp/build/outputs/apk/release/*.apk
+
+      # Flip `if` to true once a Play Console app + service account exist.
+      - name: Publish to Google Play
+        if: ${{ false }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: nz.eloque.quits
+          releaseFiles: androidApp/build/outputs/bundle/release/*.aab
+          track: internal
+          status: completed
