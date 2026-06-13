@@ -6,6 +6,12 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
+}
+
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 kotlin {
@@ -22,6 +28,8 @@ kotlin {
             enable = true
         }
         withHostTest {
+            // Robolectric needs the merged Android resources/manifest on the host test classpath.
+            isIncludeAndroidResources = true
         }
     }
 
@@ -52,15 +60,23 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
+            implementation(libs.room.runtime)
+            implementation(libs.androidx.sqlite.bundled)
             implementation(libs.compose.kit)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.koin.android)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
+        }
+        // Room runs on the android target, whose builder needs a Context — Robolectric supplies one.
+        getByName("androidHostTest").dependencies {
+            implementation(libs.robolectric)
+            implementation(libs.androidx.test.core)
         }
     }
 
@@ -69,5 +85,14 @@ kotlin {
         sourceSets.iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
+    }
+}
+
+// Room's annotation processor must run for every Kotlin target's main compilation.
+dependencies {
+    add("kspAndroid", libs.room.compiler)
+    if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
+        add("kspIosArm64", libs.room.compiler)
+        add("kspIosSimulatorArm64", libs.room.compiler)
     }
 }
