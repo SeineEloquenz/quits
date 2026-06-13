@@ -1,4 +1,4 @@
-//! Quits — a dumb, domain-agnostic sync relay.
+//! Quits — a domain-agnostic sync relay.
 //!
 //! The relay stores **opaque records** per group and relays deltas with last-write-wins. It has no
 //! domain logic and never interprets payloads (JSON today, ciphertext under e2e later) — all
@@ -63,8 +63,8 @@ pub async fn run() {
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
-    .await
-    .expect("server error");
+        .await
+        .expect("server error");
 }
 
 fn init_tracing() {
