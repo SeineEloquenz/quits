@@ -79,7 +79,7 @@ class GroupRepositoryTest {
     }
 
     private suspend fun persist(group: Group) {
-        repo.saveGroup(group, code = "JOIN42")
+        repo.saveGroup(group)
         group.expenses.forEachIndexed { i, e -> repo.upsertExpense(group.id, e, spentAt = 100L + i) }
         group.settlements.forEach { repo.upsertSettlement(group.id, it, paidAt = 200L) }
     }
@@ -122,7 +122,7 @@ class GroupRepositoryTest {
     @Test
     fun writes_persist_display_metadata_and_dirty_sync_state() =
         runTest {
-            repo.saveGroup(sampleGroup(), code = "JOIN42")
+            repo.saveGroup(sampleGroup())
             repo.upsertExpense(
                 GroupId("g"),
                 sampleGroup().expenses.first(),

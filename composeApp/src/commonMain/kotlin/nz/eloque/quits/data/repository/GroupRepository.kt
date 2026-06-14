@@ -31,12 +31,9 @@ class GroupRepository(
 ) {
     private fun meta() = SyncMeta(updatedAt = now(), deviceId = deviceId, deleted = false, dirty = true)
 
-    suspend fun saveGroup(
-        group: Group,
-        code: String,
-    ) {
+    suspend fun saveGroup(group: Group) {
         db.groupDao().upsert(
-            GroupEntity(group.id.value, group.name, group.baseCurrency.code, code, meta()),
+            GroupEntity(group.id.value, group.name, group.baseCurrency.code, meta()),
         )
         db.memberDao().upsert(
             group.members.map { MemberEntity(it.id.value, group.id.value, it.name, color = null, meta()) },

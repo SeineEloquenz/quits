@@ -13,7 +13,6 @@ import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.util.newId
-import nz.eloque.quits.util.newJoinCode
 
 data class GroupsUiState(
     val groups: List<GroupSummary> = emptyList(),
@@ -37,7 +36,7 @@ class GroupsViewModel(
         val currency = Currency.parse(currencyCode.trim().ifEmpty { "USD" }) ?: return
         viewModelScope.launch {
             val group = Group(GroupId(newId()), trimmedName, currency, members = emptyList())
-            repo.saveGroup(group, code = newJoinCode())
+            repo.saveGroup(group)
         }
     }
 }

@@ -11,7 +11,6 @@ data class GroupEntity(
     @PrimaryKey val id: String,
     val name: String,
     val baseCurrency: String,
-    val code: String,
     @Embedded val sync: SyncMeta,
 )
 
