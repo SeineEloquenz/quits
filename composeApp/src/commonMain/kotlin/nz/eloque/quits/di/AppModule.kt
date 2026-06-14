@@ -16,12 +16,12 @@ val appModule =
         viewModelOf(::GroupsViewModel)
         viewModelOf(::SettingsViewModel)
         viewModel { params -> GroupDetailViewModel(get(), get(), params.get<GroupId>()) }
-        viewModel { params -> ExpenseEditorViewModel(get(), get(), params.get<GroupId>(), params.getOrNull<String>()) }
+        viewModel { params -> ExpenseEditorViewModel(get(), get(), get(), params.get<GroupId>(), params.getOrNull<String>()) }
     }
 
 fun initKoin(config: KoinAppDeclaration? = null) {
     startKoin {
         config?.invoke(this)
-        modules(appModule, databaseModule, platformModule, repositoryModule, syncModule)
+        modules(appModule, databaseModule, platformModule, repositoryModule, syncModule, fxModule)
     }
 }
