@@ -7,7 +7,7 @@ import androidx.room.RoomDatabaseConstructor
 
 @Database(
     entities = [
-        SyncStateEntity::class,
+        GroupSyncEntity::class,
         GroupEntity::class,
         MemberEntity::class,
         ExpenseEntity::class,
@@ -16,12 +16,12 @@ import androidx.room.RoomDatabaseConstructor
         SettlementEntity::class,
         FxRateEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @ConstructedBy(QuitsDatabaseConstructor::class)
 abstract class QuitsDatabase : RoomDatabase() {
-    abstract fun syncStateDao(): SyncStateDao
+    abstract fun groupSyncDao(): GroupSyncDao
 
     abstract fun groupDao(): GroupDao
 

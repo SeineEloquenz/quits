@@ -18,7 +18,7 @@ class EntitiesTest {
     @AfterTest fun tearDown() = db.close()
 
     private suspend fun seedGroup(id: String = "g") {
-        db.groupDao().upsert(GroupEntity(id, "Trip", "USD", "JOIN42", meta()))
+        db.groupDao().upsert(GroupEntity(id, "Trip", "USD", meta()))
     }
 
     @Test

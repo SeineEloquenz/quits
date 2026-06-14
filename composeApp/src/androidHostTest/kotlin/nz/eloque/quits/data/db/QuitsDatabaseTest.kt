@@ -12,16 +12,17 @@ import kotlin.test.assertNull
 @Config(sdk = [34])
 class QuitsDatabaseTest {
     @Test
-    fun sync_state_round_trips() =
+    fun group_sync_handle_round_trips() =
         runTest {
             val db = inMemoryDatabase()
-            val dao = db.syncStateDao()
+            val dao = db.groupSyncDao()
             try {
-                assertNull(dao.lastSeq("g1"))
-                dao.put(SyncStateEntity("g1", 42))
-                assertEquals(42, dao.lastSeq("g1"))
-                dao.put(SyncStateEntity("g1", 99))
-                assertEquals(99, dao.lastSeq("g1"))
+                assertNull(dao.byGroup("g1"))
+                dao.put(GroupSyncEntity("g1", remoteId = "r1", code = "ABC123", token = "tok", lastSeq = 0))
+                assertEquals("r1", dao.byGroup("g1")?.remoteId)
+
+                dao.setLastSeq("g1", 42)
+                assertEquals(42, dao.byGroup("g1")?.lastSeq)
             } finally {
                 db.close()
             }
