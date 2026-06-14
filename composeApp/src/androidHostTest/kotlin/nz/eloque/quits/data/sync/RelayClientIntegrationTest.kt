@@ -23,7 +23,7 @@ class RelayClientIntegrationTest {
         }
         val engine = OkHttp.create()
         try {
-            runBlocking { block(RelayClient(engine, SyncConfig(baseUrl = baseUrl))) }
+            runBlocking { block(RelayClient(engine, InMemorySyncSettings(relayUrl = baseUrl))) }
         } finally {
             engine.close()
         }

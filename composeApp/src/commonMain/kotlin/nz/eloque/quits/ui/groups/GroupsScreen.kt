@@ -9,7 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -29,7 +33,10 @@ import nz.eloque.quits.domain.GroupId
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun GroupsScreen(onOpenGroup: (GroupId) -> Unit) {
+fun GroupsScreen(
+    onOpenGroup: (GroupId) -> Unit,
+    onOpenSettings: () -> Unit,
+) {
     val viewModel = koinViewModel<GroupsViewModel>()
     val state by viewModel.state.collectAsState()
     val error by viewModel.error.collectAsState()
@@ -44,7 +51,12 @@ fun GroupsScreen(onOpenGroup: (GroupId) -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Quits", style = MaterialTheme.typography.headlineLarge)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Quits", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f))
+            IconButton(onClick = onOpenSettings) {
+                Icon(Icons.Default.Settings, contentDescription = "Settings")
+            }
+        }
         Spacer(Modifier.height(16.dp))
 
         Section(heading = "New group") {
