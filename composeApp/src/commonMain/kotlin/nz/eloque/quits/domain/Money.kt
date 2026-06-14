@@ -7,6 +7,10 @@ data class Currency(
     val code: String,
     val decimalDigits: Int,
 ) {
+    init {
+        require(isValidCode(code)) { "invalid currency code: '$code'" }
+    }
+
     companion object {
         // Currencies whose minor-unit digit count isn't the default of 2.
         private val nonDefaultDigits =
@@ -23,10 +27,20 @@ data class Currency(
                 "JOD" to 3,
             )
 
+        /** Builds a currency from [code], normalizing case; throws if it isn't a valid code. */
         fun of(code: String): Currency {
-            val c = code.uppercase()
+            val c = code.trim().uppercase()
             return Currency(c, nonDefaultDigits[c] ?: 2)
         }
+
+        /** A well-formed ISO-4217-style code: exactly three letters (e.g. USD, EUR, JPY). */
+        fun isValidCode(code: String): Boolean {
+            val c = code.trim()
+            return c.length == 3 && c.all { it.isLetter() }
+        }
+
+        /** [of] the code if it is [isValidCode], otherwise null — for validating untrusted input. */
+        fun parse(code: String): Currency? = if (isValidCode(code)) of(code) else null
     }
 }
 
@@ -81,5 +95,30 @@ data class Money(
 
     companion object {
         fun zero(currency: Currency): Money = Money(0, currency)
+
+        /**
+         * Parses a decimal string (e.g. "19.99") into minor units of [currency], or null if it is
+         * not a valid number or has more fraction digits than the currency allows.
+         */
+        fun parse(
+            input: String,
+            currency: Currency,
+        ): Money? {
+            val trimmed = input.trim()
+            if (trimmed.isEmpty()) return null
+            val negative = trimmed.startsWith("-")
+            val body = trimmed.trimStart('+', '-')
+            val parts = body.split('.')
+            if (parts.size > 2) return null
+            val wholeStr = parts[0].ifEmpty { "0" }
+            val fracStr = parts.getOrElse(1) { "" }
+            if (wholeStr.any { !it.isDigit() } || fracStr.any { !it.isDigit() }) return null
+            val digits = currency.decimalDigits
+            if (fracStr.length > digits) return null
+            val whole = wholeStr.toLongOrNull() ?: return null
+            val frac = fracStr.padEnd(digits, '0').ifEmpty { "0" }.toLong()
+            val minor = whole * pow10(digits) + frac
+            return Money(if (negative) -minor else minor, currency)
+        }
     }
 }

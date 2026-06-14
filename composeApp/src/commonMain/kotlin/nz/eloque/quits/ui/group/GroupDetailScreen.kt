@@ -1,23 +1,149 @@
 package nz.eloque.quits.ui.group
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import nz.eloque.compose_kit.components.Section
+import nz.eloque.compose_kit.input.SubmittableTextField
+import nz.eloque.quits.domain.GroupId
+import nz.eloque.quits.domain.Money
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
+
+private fun Money.display(): String = "${toDecimalString()} ${currency.code}"
 
 @Composable
 fun GroupDetailScreen(
-    name: String,
+    groupId: GroupId,
     onBack: () -> Unit,
+    onAddExpense: () -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        TextButton(onClick = onBack) { Text("← Back") }
-        Text(name, style = MaterialTheme.typography.headlineMedium)
-        Text("Expenses coming soon.")
+    val viewModel = koinViewModel<GroupDetailViewModel> { parametersOf(groupId) }
+    val state by viewModel.state.collectAsState()
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+            Text(
+                state.name.ifEmpty { "Group" },
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Section(heading = "Balances") {
+            Column(Modifier.padding(8.dp)) {
+                if (state.members.isEmpty()) {
+                    Text("Add members to start splitting.")
+                } else {
+                    state.members.forEach { member ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                            Text(member.name, Modifier.weight(1f))
+                            Text(
+                                member.net.display(),
+                                color =
+                                    when {
+                                        member.net.isPositive -> MaterialTheme.colorScheme.primary
+                                        member.net.isNegative -> MaterialTheme.colorScheme.error
+                                        else -> MaterialTheme.colorScheme.onSurface
+                                    },
+                            )
+                        }
+                    }
+                    if (state.transfers.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text("Settle up", fontWeight = FontWeight.Bold)
+                        state.transfers.forEach { row ->
+                            Row(
+                                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    "${row.from} → ${row.to}: ${row.transfer.amount.display()}",
+                                    Modifier.weight(1f),
+                                )
+                                TextButton(onClick = { viewModel.record(row.transfer) }) {
+                                    Text("Record")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Section(heading = "Members") {
+            Column(Modifier.padding(8.dp)) {
+                state.members.forEach { Text(it.name, Modifier.padding(vertical = 2.dp)) }
+                Spacer(Modifier.height(8.dp))
+                SubmittableTextField(
+                    label = "Add member",
+                    imageVector = Icons.Default.Add,
+                    onSubmit = viewModel::addMember,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Section(heading = "Expenses") {
+            Column(Modifier.padding(8.dp)) {
+                if (state.expenses.isEmpty()) {
+                    Text("No expenses yet.")
+                } else {
+                    state.expenses.forEach { expense ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                            Column(Modifier.weight(1f)) {
+                                Text(expense.title)
+                                Text(
+                                    "paid by ${expense.paidBy}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                )
+                            }
+                            Text(expense.total.display())
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Button(
+                    onClick = onAddExpense,
+                    enabled = state.members.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (state.members.isEmpty()) "Add members first" else "Add expense")
+                }
+            }
+        }
     }
 }

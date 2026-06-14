@@ -1,9 +1,17 @@
 package nz.eloque.quits.navigation
 
-sealed interface Screen {
-    data object Groups : Screen
+import androidx.navigation3.runtime.NavKey
+import kotlinx.serialization.Serializable
 
-    data class GroupDetail(
-        val name: String,
-    ) : Screen
-}
+@Serializable
+data object GroupsKey : NavKey
+
+@Serializable
+data class GroupDetailKey(
+    val groupId: String,
+) : NavKey
+
+@Serializable
+data class AddExpenseKey(
+    val groupId: String,
+) : NavKey

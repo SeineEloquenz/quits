@@ -60,6 +60,8 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
+            implementation(libs.nav3.ui)
+            implementation(libs.nav3.viewmodel)
             implementation(libs.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.compose.kit)
