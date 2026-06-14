@@ -2,8 +2,11 @@ package nz.eloque.quits.ui.group
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -61,19 +64,35 @@ class GroupDetailViewModel(
             (group?.toUiState() ?: GroupDetailUiState()).copy(shareCode = code)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupDetailUiState())
 
+    private val _syncError = MutableStateFlow<String?>(null)
+    val syncError: StateFlow<String?> = _syncError.asStateFlow()
+
     init {
         // Pull the latest on open (no-op for a local-only group).
-        viewModelScope.launch { engine.sync(groupId) }
+        viewModelScope.launch { trySync() }
     }
 
     /** Registers the group with the relay and shows its share code. */
     fun share() {
-        viewModelScope.launch { engine.share(groupId) }
+        viewModelScope.launch {
+            try {
+                engine.share(groupId)
+                _syncError.value = null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _syncError.value = "Couldn't reach the relay: ${e.message}"
+            }
+        }
     }
 
     /** Push local changes and pull remote ones. */
     fun sync() {
-        viewModelScope.launch { engine.sync(groupId) }
+        viewModelScope.launch { trySync() }
+    }
+
+    fun dismissSyncError() {
+        _syncError.value = null
     }
 
     fun addMember(name: String) {
@@ -81,7 +100,7 @@ class GroupDetailViewModel(
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
             repo.addMember(groupId, Member(MemberId(newId()), trimmed))
-            engine.sync(groupId)
+            trySync()
         }
     }
 
@@ -92,14 +111,26 @@ class GroupDetailViewModel(
                 Settlement(SettlementId(newId()), transfer.from, transfer.to, transfer.amount),
                 paidAt = nowMillis(),
             )
-            engine.sync(groupId)
+            trySync()
         }
     }
 
     fun deleteExpense(id: ExpenseId) {
         viewModelScope.launch {
             repo.deleteExpense(id)
+            trySync()
+        }
+    }
+
+    /** Syncs without letting a network failure crash the app; the local change is already saved. */
+    private suspend fun trySync() {
+        try {
             engine.sync(groupId)
+            _syncError.value = null
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _syncError.value = "Sync failed: ${e.message}"
         }
     }
 }

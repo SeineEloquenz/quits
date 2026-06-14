@@ -48,6 +48,7 @@ fun GroupDetailScreen(
 ) {
     val viewModel = koinViewModel<GroupDetailViewModel> { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
+    val syncError by viewModel.syncError.collectAsState()
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -63,6 +64,13 @@ fun GroupDetailScreen(
                 IconButton(onClick = viewModel::sync) {
                     Icon(Icons.Default.Refresh, contentDescription = "Sync")
                 }
+            }
+        }
+
+        syncError?.let {
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
+                TextButton(onClick = viewModel::dismissSyncError) { Text("Dismiss") }
             }
         }
 

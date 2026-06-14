@@ -2,6 +2,7 @@ package nz.eloque.quits.ui.groups
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,12 +58,18 @@ class GroupsViewModel(
         val trimmed = code.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
-            val id = engine.join(trimmed)
-            if (id == null) {
-                _error.value = "No group found for code \"$trimmed\""
-            } else {
-                _error.value = null
-                _joined.send(id)
+            try {
+                val id = engine.join(trimmed)
+                if (id == null) {
+                    _error.value = "No group found for code \"$trimmed\""
+                } else {
+                    _error.value = null
+                    _joined.send(id)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _error.value = "Couldn't reach the relay: ${e.message}"
             }
         }
     }
