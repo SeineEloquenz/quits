@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import nz.eloque.quits.data.repository.GroupRepository
+import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
@@ -48,6 +49,7 @@ data class ExpenseEditorUiState(
 
 class ExpenseEditorViewModel(
     private val repo: GroupRepository,
+    private val engine: SyncEngine,
     private val groupId: GroupId,
     private val expenseId: String?,
 ) : ViewModel() {
@@ -192,6 +194,7 @@ class ExpenseEditorViewModel(
 
         viewModelScope.launch {
             repo.upsertExpense(groupId, expense)
+            engine.sync(groupId)
             _state.update { it.copy(error = null) }
             _saved.send(Unit)
         }

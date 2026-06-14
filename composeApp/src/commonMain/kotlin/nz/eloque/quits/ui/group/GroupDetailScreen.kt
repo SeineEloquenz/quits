@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,6 +59,32 @@ fun GroupDetailScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.weight(1f),
             )
+            if (state.shareCode != null) {
+                IconButton(onClick = viewModel::sync) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Sync")
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Section(heading = "Sharing") {
+            Column(Modifier.padding(8.dp)) {
+                val code = state.shareCode
+                if (code == null) {
+                    Text("This group is on this device only.")
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = viewModel::share) { Text("Share group") }
+                } else {
+                    Text("Share code", style = MaterialTheme.typography.labelMedium)
+                    Text(code, style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        "Others join with this code to sync.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
         }
 
         Spacer(Modifier.height(8.dp))

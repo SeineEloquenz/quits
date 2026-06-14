@@ -13,8 +13,8 @@ import org.koin.dsl.module
 val appModule =
     module {
         viewModelOf(::GroupsViewModel)
-        viewModel { params -> GroupDetailViewModel(get(), params.get<GroupId>()) }
-        viewModel { params -> ExpenseEditorViewModel(get(), params.get<GroupId>(), params.getOrNull<String>()) }
+        viewModel { params -> GroupDetailViewModel(get(), get(), params.get<GroupId>()) }
+        viewModel { params -> ExpenseEditorViewModel(get(), get(), params.get<GroupId>(), params.getOrNull<String>()) }
     }
 
 fun initKoin(config: KoinAppDeclaration? = null) {

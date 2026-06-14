@@ -4,10 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import nz.eloque.quits.data.repository.GroupRepository
+import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.Group
@@ -47,23 +48,40 @@ data class GroupDetailUiState(
     val members: List<MemberBalance> = emptyList(),
     val transfers: List<TransferRow> = emptyList(),
     val expenses: List<ExpenseRow> = emptyList(),
+    val shareCode: String? = null,
 )
 
 class GroupDetailViewModel(
     private val repo: GroupRepository,
+    private val engine: SyncEngine,
     private val groupId: GroupId,
 ) : ViewModel() {
     val state: StateFlow<GroupDetailUiState> =
-        repo
-            .groupFlow(groupId)
-            .map { it?.toUiState() ?: GroupDetailUiState() }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupDetailUiState())
+        combine(repo.groupFlow(groupId), engine.shareCodeFlow(groupId)) { group, code ->
+            (group?.toUiState() ?: GroupDetailUiState()).copy(shareCode = code)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupDetailUiState())
+
+    init {
+        // Pull the latest on open (no-op for a local-only group).
+        viewModelScope.launch { engine.sync(groupId) }
+    }
+
+    /** Registers the group with the relay and shows its share code. */
+    fun share() {
+        viewModelScope.launch { engine.share(groupId) }
+    }
+
+    /** Push local changes and pull remote ones. */
+    fun sync() {
+        viewModelScope.launch { engine.sync(groupId) }
+    }
 
     fun addMember(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
             repo.addMember(groupId, Member(MemberId(newId()), trimmed))
+            engine.sync(groupId)
         }
     }
 
@@ -74,12 +92,14 @@ class GroupDetailViewModel(
                 Settlement(SettlementId(newId()), transfer.from, transfer.to, transfer.amount),
                 paidAt = nowMillis(),
             )
+            engine.sync(groupId)
         }
     }
 
     fun deleteExpense(id: ExpenseId) {
         viewModelScope.launch {
             repo.deleteExpense(id)
+            engine.sync(groupId)
         }
     }
 }

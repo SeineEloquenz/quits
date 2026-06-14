@@ -1,5 +1,7 @@
 package nz.eloque.quits.data.sync
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import nz.eloque.quits.data.db.GroupSyncEntity
 import nz.eloque.quits.data.db.QuitsDatabase
 import nz.eloque.quits.data.db.SyncMeta
@@ -34,6 +36,9 @@ class SyncEngine(
 
     /** Whether [localGroupId] has a relay handle (i.e. is shared/joined). */
     suspend fun isSynced(localGroupId: GroupId): Boolean = db.groupSyncDao().byGroup(localGroupId.value) != null
+
+    /** The share code for [localGroupId] as a reactive stream; null until the group is shared/joined. */
+    fun shareCodeFlow(localGroupId: GroupId): Flow<String?> = db.groupSyncDao().byGroupFlow(localGroupId.value).map { it?.code }
 
     /** Pushes local changes then pulls remote ones. No-op (false) for a local-only group. */
     suspend fun sync(localGroupId: GroupId): Boolean {
