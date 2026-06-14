@@ -6,6 +6,7 @@ import com.russhwolf.settings.NSUserDefaultsSettings
 import com.russhwolf.settings.Settings
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.darwin.Darwin
+import kotlinx.cinterop.ExperimentalForeignApi
 import nz.eloque.quits.data.db.QuitsDatabase
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -14,6 +15,7 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDefaults
 import platform.Foundation.NSUserDomainMask
 
+@OptIn(ExperimentalForeignApi::class)
 actual val platformModule: Module =
     module {
         single<RoomDatabase.Builder<QuitsDatabase>> {
