@@ -24,25 +24,27 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 /** Talks to the relay over HTTP. Payloads are JSON, base64-encoded on the wire. */
 class RelayClient(
     engine: HttpClientEngine,
-    private val config: SyncConfig,
+    private val settings: SyncSettings,
 ) : Relay {
     private val client =
         HttpClient(engine) {
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         }
 
+    private val baseUrl: String get() = settings.relayUrl.trimEnd('/')
+
     override suspend fun createGroup(): GroupHandle {
         val response: CreateGroupResponse =
             client
-                .post("${config.baseUrl}/v1/groups") {
-                    config.instanceSecret?.let { header("X-Quits-Instance", it) }
+                .post("$baseUrl/v1/groups") {
+                    settings.instanceSecret?.let { header("X-Quits-Instance", it) }
                 }.body()
         return GroupHandle(response.groupId, response.code, response.token)
     }
 
     override suspend fun joinGroup(code: String): GroupHandle? {
         val response: HttpResponse =
-            client.post("${config.baseUrl}/v1/groups/join") {
+            client.post("$baseUrl/v1/groups/join") {
                 contentType(ContentType.Application.Json)
                 setBody(JoinGroupRequest(code))
             }
@@ -58,7 +60,7 @@ class RelayClient(
     ): PushResult {
         val response: PushResponseDto =
             client
-                .post("${config.baseUrl}/v1/groups/$remoteId/changes") {
+                .post("$baseUrl/v1/groups/$remoteId/changes") {
                     bearerAuth(token)
                     contentType(ContentType.Application.Json)
                     setBody(PushRequestDto(records.map { it.toWire() }))
@@ -73,7 +75,7 @@ class RelayClient(
     ): PullResult {
         val response: PullResponseDto =
             client
-                .get("${config.baseUrl}/v1/groups/$remoteId/changes") {
+                .get("$baseUrl/v1/groups/$remoteId/changes") {
                     bearerAuth(token)
                     parameter("since", since)
                 }.body()

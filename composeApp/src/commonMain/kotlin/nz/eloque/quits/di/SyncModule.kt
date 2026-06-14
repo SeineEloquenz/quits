@@ -1,10 +1,11 @@
 package nz.eloque.quits.di
 
 import com.russhwolf.settings.Settings
+import nz.eloque.quits.data.sync.PersistentSyncSettings
 import nz.eloque.quits.data.sync.Relay
 import nz.eloque.quits.data.sync.RelayClient
-import nz.eloque.quits.data.sync.SyncConfig
 import nz.eloque.quits.data.sync.SyncEngine
+import nz.eloque.quits.data.sync.SyncSettings
 import nz.eloque.quits.util.newId
 import org.koin.dsl.module
 
@@ -21,7 +22,7 @@ private fun resolveDeviceId(settings: Settings): String =
 val syncModule =
     module {
         single { DeviceId(resolveDeviceId(get())) }
-        single { SyncConfig() }
+        single<SyncSettings> { PersistentSyncSettings(get()) }
         single<Relay> { RelayClient(get(), get()) }
         single { SyncEngine(get(), get(), get<DeviceId>().value) }
     }

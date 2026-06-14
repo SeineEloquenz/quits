@@ -19,10 +19,10 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalEncodingApi::class)
 class RelayClientTest {
-    private val config = SyncConfig(baseUrl = "https://relay.test")
+    private val settings = InMemorySyncSettings(relayUrl = "https://relay.test")
 
     private fun client(handler: MockRequestHandleScope.(HttpRequestData) -> HttpResponseData): RelayClient =
-        RelayClient(MockEngine(handler), config)
+        RelayClient(MockEngine(handler), settings)
 
     private fun MockRequestHandleScope.json(body: String): HttpResponseData =
         respond(body, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))

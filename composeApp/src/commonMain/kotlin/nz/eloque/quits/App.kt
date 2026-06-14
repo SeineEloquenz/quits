@@ -15,10 +15,12 @@ import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.navigation.ExpenseEditorKey
 import nz.eloque.quits.navigation.GroupDetailKey
 import nz.eloque.quits.navigation.GroupsKey
+import nz.eloque.quits.navigation.SettingsKey
 import nz.eloque.quits.theme.QuitsTheme
 import nz.eloque.quits.ui.expense.ExpenseEditorScreen
 import nz.eloque.quits.ui.group.GroupDetailScreen
 import nz.eloque.quits.ui.groups.GroupsScreen
+import nz.eloque.quits.ui.settings.SettingsScreen
 
 @Composable
 fun App() {
@@ -40,7 +42,13 @@ fun App() {
                 entryProvider =
                     entryProvider {
                         entry<GroupsKey> {
-                            GroupsScreen(onOpenGroup = { backStack.add(GroupDetailKey(it.value)) })
+                            GroupsScreen(
+                                onOpenGroup = { backStack.add(GroupDetailKey(it.value)) },
+                                onOpenSettings = { backStack.add(SettingsKey) },
+                            )
+                        }
+                        entry<SettingsKey> {
+                            SettingsScreen(onBack = { backStack.removeLastOrNull() })
                         }
                         entry<GroupDetailKey> { key ->
                             GroupDetailScreen(

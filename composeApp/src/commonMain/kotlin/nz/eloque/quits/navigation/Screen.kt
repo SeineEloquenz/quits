@@ -16,3 +16,6 @@ data class ExpenseEditorKey(
     val groupId: String,
     val expenseId: String? = null,
 ) : NavKey
+
+@Serializable
+data object SettingsKey : NavKey
