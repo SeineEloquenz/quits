@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,10 +32,16 @@ import org.koin.compose.viewmodel.koinViewModel
 fun GroupsScreen(onOpenGroup: (GroupId) -> Unit) {
     val viewModel = koinViewModel<GroupsViewModel>()
     val state by viewModel.state.collectAsState()
+    val error by viewModel.error.collectAsState()
 
     var name by remember { mutableStateOf("") }
     var currency by remember { mutableStateOf("USD") }
+    var joinCode by remember { mutableStateOf("") }
     val currencyValid = Currency.isValidCode(currency)
+
+    LaunchedEffect(Unit) {
+        viewModel.joined.collect { onOpenGroup(it) }
+    }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text("Quits", style = MaterialTheme.typography.headlineLarge)
@@ -70,6 +77,36 @@ fun GroupsScreen(onOpenGroup: (GroupId) -> Unit) {
                     ) {
                         Text("Create")
                     }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Section(heading = "Join group") {
+            Column(Modifier.padding(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = joinCode,
+                        onValueChange = {
+                            joinCode = it.uppercase()
+                            if (error != null) viewModel.clearError()
+                        },
+                        label = { Text("Share code") },
+                        singleLine = true,
+                        isError = error != null,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Button(
+                        onClick = { viewModel.join(joinCode) },
+                        enabled = joinCode.isNotBlank(),
+                    ) {
+                        Text("Join")
+                    }
+                }
+                error?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
