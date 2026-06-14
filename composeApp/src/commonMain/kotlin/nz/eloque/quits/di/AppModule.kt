@@ -1,7 +1,7 @@
 package nz.eloque.quits.di
 
 import nz.eloque.quits.domain.GroupId
-import nz.eloque.quits.ui.expense.AddExpenseViewModel
+import nz.eloque.quits.ui.expense.ExpenseEditorViewModel
 import nz.eloque.quits.ui.group.GroupDetailViewModel
 import nz.eloque.quits.ui.groups.GroupsViewModel
 import org.koin.core.context.startKoin
@@ -14,7 +14,7 @@ val appModule =
     module {
         viewModelOf(::GroupsViewModel)
         viewModel { params -> GroupDetailViewModel(get(), params.get<GroupId>()) }
-        viewModel { params -> AddExpenseViewModel(get(), params.get<GroupId>()) }
+        viewModel { params -> ExpenseEditorViewModel(get(), params.get<GroupId>(), params.getOrNull<String>()) }
     }
 
 fun initKoin(config: KoinAppDeclaration? = null) {

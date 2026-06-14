@@ -90,6 +90,13 @@ interface ExpenseDao {
     @Transaction
     @Query("SELECT * FROM expense WHERE id = :id")
     suspend fun byId(id: String): ExpenseWithLines?
+
+    @Query("UPDATE expense SET deleted = 1, dirty = 1, updatedAt = :updatedAt, deviceId = :deviceId WHERE id = :id")
+    suspend fun tombstone(
+        id: String,
+        updatedAt: Long,
+        deviceId: String,
+    )
 }
 
 @Dao

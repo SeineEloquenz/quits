@@ -12,6 +12,7 @@ data class GroupDetailKey(
 ) : NavKey
 
 @Serializable
-data class AddExpenseKey(
+data class ExpenseEditorKey(
     val groupId: String,
+    val expenseId: String? = null,
 ) : NavKey

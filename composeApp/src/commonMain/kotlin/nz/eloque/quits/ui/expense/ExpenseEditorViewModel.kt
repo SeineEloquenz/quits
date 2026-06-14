@@ -14,13 +14,13 @@ import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
+import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Payment
 import nz.eloque.quits.domain.Split
 import nz.eloque.quits.util.newId
-import nz.eloque.quits.util.nowMillis
 
 enum class SplitKind { EQUAL, SHARES, PERCENTAGE, EXACT }
 
@@ -29,8 +29,9 @@ data class MemberInput(
     val name: String,
 )
 
-data class AddExpenseUiState(
+data class ExpenseEditorUiState(
     val loaded: Boolean = false,
+    val editing: Boolean = false,
     val baseCurrency: Currency = Currency.of("USD"),
     val members: List<MemberInput> = emptyList(),
     val title: String = "",
@@ -45,12 +46,13 @@ data class AddExpenseUiState(
     val isForeign: Boolean get() = currency.trim().uppercase() != baseCurrency.code
 }
 
-class AddExpenseViewModel(
+class ExpenseEditorViewModel(
     private val repo: GroupRepository,
     private val groupId: GroupId,
+    private val expenseId: String?,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(AddExpenseUiState())
-    val state: StateFlow<AddExpenseUiState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(ExpenseEditorUiState())
+    val state: StateFlow<ExpenseEditorUiState> = _state.asStateFlow()
 
     private val _saved = Channel<Unit>(Channel.BUFFERED)
     val saved: Flow<Unit> = _saved.receiveAsFlow()
@@ -58,15 +60,59 @@ class AddExpenseViewModel(
     init {
         viewModelScope.launch {
             val group = repo.load(groupId) ?: return@launch
-            _state.value =
-                AddExpenseUiState(
-                    loaded = true,
-                    baseCurrency = group.baseCurrency,
-                    members = group.members.map { MemberInput(it.id.value, it.name) },
-                    currency = group.baseCurrency.code,
-                    equalSelected = group.members.map { it.id.value }.toSet(),
-                )
+            val existing = expenseId?.let { id -> group.expenses.firstOrNull { it.id.value == id } }
+            _state.value = initialState(group, existing)
         }
+    }
+
+    private fun initialState(
+        group: Group,
+        existing: Expense?,
+    ): ExpenseEditorUiState {
+        val members = group.members.map { MemberInput(it.id.value, it.name) }
+        val allIds = members.map { it.id }.toSet()
+        if (existing == null) {
+            return ExpenseEditorUiState(
+                loaded = true,
+                editing = false,
+                baseCurrency = group.baseCurrency,
+                members = members,
+                currency = group.baseCurrency.code,
+                equalSelected = allIds,
+            )
+        }
+        val paid =
+            existing.payments
+                .groupBy { it.payer }
+                .mapValues { (_, payments) -> payments.fold(Money.zero(existing.currency)) { a, p -> a + p.amount } }
+                .entries
+                .associate { (member, money) -> member.value to money.toDecimalString() }
+        val split = existing.split
+        return ExpenseEditorUiState(
+            loaded = true,
+            editing = true,
+            baseCurrency = group.baseCurrency,
+            members = members,
+            title = existing.title,
+            currency = existing.currency.code,
+            rate = existing.rateToBase.toString(),
+            paid = paid,
+            splitKind =
+                when (split) {
+                    is Split.Equal -> SplitKind.EQUAL
+                    is Split.Shares -> SplitKind.SHARES
+                    is Split.Percentage -> SplitKind.PERCENTAGE
+                    is Split.Exact -> SplitKind.EXACT
+                },
+            equalSelected = if (split is Split.Equal) split.participants.map { it.value }.toSet() else allIds,
+            splitInput =
+                when (split) {
+                    is Split.Shares -> split.shares.entries.associate { it.key.value to it.value.toString() }
+                    is Split.Percentage -> split.percent.entries.associate { it.key.value to it.value.toString() }
+                    is Split.Exact -> split.amounts.entries.associate { it.key.value to it.value.toDecimalString() }
+                    is Split.Equal -> emptyMap()
+                },
+        )
     }
 
     fun setTitle(value: String) = _state.update { it.copy(title = value) }
@@ -132,21 +178,27 @@ class AddExpenseViewModel(
 
         val expense =
             try {
-                Expense(ExpenseId(newId()), s.title.trim().ifEmpty { "Expense" }, payments, split, rate)
+                Expense(
+                    ExpenseId(expenseId ?: newId()),
+                    s.title.trim().ifEmpty { "Expense" },
+                    payments,
+                    split,
+                    rate,
+                )
             } catch (e: IllegalArgumentException) {
                 setError(e.message ?: "Invalid expense")
                 return
             }
 
         viewModelScope.launch {
-            repo.upsertExpense(groupId, expense, spentAt = nowMillis())
+            repo.upsertExpense(groupId, expense)
             _state.update { it.copy(error = null) }
             _saved.send(Unit)
         }
     }
 
     private fun buildSplit(
-        s: AddExpenseUiState,
+        s: ExpenseEditorUiState,
         currency: Currency,
     ): Split? =
         when (s.splitKind) {
