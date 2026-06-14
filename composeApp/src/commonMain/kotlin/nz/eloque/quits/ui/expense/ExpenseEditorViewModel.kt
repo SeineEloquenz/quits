@@ -3,6 +3,7 @@ package nz.eloque.quits.ui.expense
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,7 @@ import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
+import nz.eloque.quits.domain.FxRateProvider
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
@@ -44,6 +46,7 @@ data class ExpenseEditorUiState(
     val equalSelected: Set<String> = emptySet(),
     val splitInput: Map<String, String> = emptyMap(),
     val error: String? = null,
+    val fetchingRate: Boolean = false,
 ) {
     val isForeign: Boolean get() = currency.trim().uppercase() != baseCurrency.code
 }
@@ -51,9 +54,11 @@ data class ExpenseEditorUiState(
 class ExpenseEditorViewModel(
     private val repo: GroupRepository,
     private val engine: SyncEngine,
+    private val fxRateProvider: FxRateProvider,
     private val groupId: GroupId,
     private val expenseId: String?,
 ) : ViewModel() {
+    private var rateJob: Job? = null
     private val _state = MutableStateFlow(ExpenseEditorUiState())
     val state: StateFlow<ExpenseEditorUiState> = _state.asStateFlow()
 
@@ -120,7 +125,35 @@ class ExpenseEditorViewModel(
 
     fun setTitle(value: String) = _state.update { it.copy(title = value) }
 
-    fun setCurrency(value: String) = _state.update { it.copy(currency = value.uppercase()) }
+    fun setCurrency(value: String) {
+        val code = value.uppercase()
+        _state.update { it.copy(currency = code) }
+        val base = _state.value.baseCurrency
+        if (Currency.isValidCode(code) && code != base.code) {
+            fetchRate(Currency.of(code), base)
+        }
+    }
+
+    /** Fetches the live rate from the expense currency into the group base and prefills the field. */
+    private fun fetchRate(
+        from: Currency,
+        to: Currency,
+    ) {
+        rateJob?.cancel()
+        rateJob =
+            viewModelScope.launch {
+                _state.update { it.copy(fetchingRate = true) }
+                try {
+                    val rate = fxRateProvider.rate(from, to)
+                    _state.update { it.copy(rate = rate.rate.toString(), fetchingRate = false) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Live rate unavailable; keep whatever's in the field for manual entry.
+                    _state.update { it.copy(fetchingRate = false) }
+                }
+            }
+    }
 
     fun setRate(value: String) = _state.update { it.copy(rate = value) }
 

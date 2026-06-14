@@ -80,6 +80,7 @@ fun ExpenseEditorScreen(
                     label = { Text("Rate → ${state.baseCurrency.code}") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    supportingText = if (state.fetchingRate) ({ Text("Fetching live rate…") }) else null,
                     modifier = Modifier.weight(1f),
                 )
             }
