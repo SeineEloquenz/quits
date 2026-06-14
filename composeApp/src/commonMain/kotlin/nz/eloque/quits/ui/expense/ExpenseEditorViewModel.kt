@@ -2,6 +2,7 @@ package nz.eloque.quits.ui.expense
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -194,7 +195,14 @@ class ExpenseEditorViewModel(
 
         viewModelScope.launch {
             repo.upsertExpense(groupId, expense)
-            engine.sync(groupId)
+            // The expense is saved locally; a sync failure shouldn't block leaving the screen.
+            try {
+                engine.sync(groupId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Swallowed: it will sync on the next open/refresh.
+            }
             _state.update { it.copy(error = null) }
             _saved.send(Unit)
         }
