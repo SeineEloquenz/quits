@@ -1,5 +1,8 @@
 package nz.eloque.quits.data.repository
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import nz.eloque.quits.data.db.ExpenseEntity
 import nz.eloque.quits.data.db.GroupEntity
 import nz.eloque.quits.data.db.MemberEntity
@@ -10,7 +13,15 @@ import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
+import nz.eloque.quits.domain.Member
 import nz.eloque.quits.domain.Settlement
+
+/** Lightweight projection for the groups list (avoids loading each full aggregate). */
+data class GroupSummary(
+    val id: GroupId,
+    val name: String,
+    val baseCurrency: Currency,
+)
 
 class GroupRepository(
     private val db: QuitsDatabase,
@@ -28,6 +39,40 @@ class GroupRepository(
         )
         db.memberDao().upsert(
             group.members.map { MemberEntity(it.id.value, group.id.value, it.name, color = null, meta()) },
+        )
+    }
+
+    fun groupsFlow(): Flow<List<GroupSummary>> =
+        db.groupDao().allFlow().map { groups ->
+            groups.map { GroupSummary(GroupId(it.id), it.name, Currency.of(it.baseCurrency)) }
+        }
+
+    /** The full aggregate as a reactive stream; emits null while the group doesn't exist. */
+    fun groupFlow(id: GroupId): Flow<Group?> =
+        combine(
+            db.groupDao().byIdFlow(id.value),
+            db.memberDao().forGroupFlow(id.value),
+            db.expenseDao().forGroupFlow(id.value),
+            db.settlementDao().forGroupFlow(id.value),
+        ) { entity, members, expenses, settlements ->
+            entity?.let {
+                Group(
+                    GroupId(it.id),
+                    it.name,
+                    Currency.of(it.baseCurrency),
+                    members.map { member -> member.toDomain() },
+                    expenses.map { expense -> expense.toDomain() },
+                    settlements.map { settlement -> settlement.toDomain() },
+                )
+            }
+        }
+
+    suspend fun addMember(
+        groupId: GroupId,
+        member: Member,
+    ) {
+        db.memberDao().upsert(
+            listOf(MemberEntity(member.id.value, groupId.value, member.name, color = null, meta())),
         )
     }
 

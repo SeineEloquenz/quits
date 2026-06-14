@@ -6,6 +6,7 @@ import androidx.room.Query
 import androidx.room.Relation
 import androidx.room.Transaction
 import androidx.room.Upsert
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GroupDao {
@@ -18,6 +19,12 @@ interface GroupDao {
     @Query("SELECT * FROM groups WHERE deleted = 0")
     suspend fun all(): List<GroupEntity>
 
+    @Query("SELECT * FROM groups WHERE deleted = 0")
+    fun allFlow(): Flow<List<GroupEntity>>
+
+    @Query("SELECT * FROM groups WHERE id = :id")
+    fun byIdFlow(id: String): Flow<GroupEntity?>
+
     @Query("DELETE FROM groups WHERE id = :id")
     suspend fun delete(id: String)
 }
@@ -29,6 +36,9 @@ interface MemberDao {
 
     @Query("SELECT * FROM member WHERE groupId = :groupId AND deleted = 0")
     suspend fun forGroup(groupId: String): List<MemberEntity>
+
+    @Query("SELECT * FROM member WHERE groupId = :groupId AND deleted = 0")
+    fun forGroupFlow(groupId: String): Flow<List<MemberEntity>>
 }
 
 data class ExpenseWithLines(
@@ -74,6 +84,10 @@ interface ExpenseDao {
     suspend fun forGroup(groupId: String): List<ExpenseWithLines>
 
     @Transaction
+    @Query("SELECT * FROM expense WHERE groupId = :groupId AND deleted = 0")
+    fun forGroupFlow(groupId: String): Flow<List<ExpenseWithLines>>
+
+    @Transaction
     @Query("SELECT * FROM expense WHERE id = :id")
     suspend fun byId(id: String): ExpenseWithLines?
 }
@@ -85,6 +99,9 @@ interface SettlementDao {
 
     @Query("SELECT * FROM settlement WHERE groupId = :groupId AND deleted = 0")
     suspend fun forGroup(groupId: String): List<SettlementEntity>
+
+    @Query("SELECT * FROM settlement WHERE groupId = :groupId AND deleted = 0")
+    fun forGroupFlow(groupId: String): Flow<List<SettlementEntity>>
 }
 
 @Dao

@@ -1,18 +1,22 @@
 package nz.eloque.quits
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import nz.eloque.quits.navigation.Screen
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
+import nz.eloque.quits.domain.GroupId
+import nz.eloque.quits.navigation.AddExpenseKey
+import nz.eloque.quits.navigation.GroupDetailKey
+import nz.eloque.quits.navigation.GroupsKey
 import nz.eloque.quits.theme.QuitsTheme
+import nz.eloque.quits.ui.expense.AddExpenseScreen
 import nz.eloque.quits.ui.group.GroupDetailScreen
 import nz.eloque.quits.ui.groups.GroupsScreen
 
@@ -23,15 +27,37 @@ fun App() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            var screen by remember { mutableStateOf<Screen>(Screen.Groups) }
-            Box(Modifier.fillMaxSize().safeDrawingPadding()) {
-                when (val current = screen) {
-                    Screen.Groups ->
-                        GroupsScreen(onOpenGroup = { screen = Screen.GroupDetail(it) })
-                    is Screen.GroupDetail ->
-                        GroupDetailScreen(name = current.name, onBack = { screen = Screen.Groups })
-                }
-            }
+            val backStack = rememberNavBackStack(GroupsKey)
+            NavDisplay(
+                backStack = backStack,
+                modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+                onBack = { backStack.removeLastOrNull() },
+                entryDecorators =
+                    listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator(),
+                    ),
+                entryProvider =
+                    entryProvider {
+                        entry<GroupsKey> {
+                            GroupsScreen(onOpenGroup = { backStack.add(GroupDetailKey(it.value)) })
+                        }
+                        entry<GroupDetailKey> { key ->
+                            GroupDetailScreen(
+                                groupId = GroupId(key.groupId),
+                                onBack = { backStack.removeLastOrNull() },
+                                onAddExpense = { backStack.add(AddExpenseKey(key.groupId)) },
+                            )
+                        }
+                        entry<AddExpenseKey> { key ->
+                            AddExpenseScreen(
+                                groupId = GroupId(key.groupId),
+                                onDone = { backStack.removeLastOrNull() },
+                                onCancel = { backStack.removeLastOrNull() },
+                            )
+                        }
+                    },
+            )
         }
     }
 }
