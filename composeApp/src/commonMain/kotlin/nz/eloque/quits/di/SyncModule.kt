@@ -1,0 +1,27 @@
+package nz.eloque.quits.di
+
+import com.russhwolf.settings.Settings
+import nz.eloque.quits.data.sync.Relay
+import nz.eloque.quits.data.sync.RelayClient
+import nz.eloque.quits.data.sync.SyncConfig
+import nz.eloque.quits.data.sync.SyncEngine
+import nz.eloque.quits.util.newId
+import org.koin.dsl.module
+
+/** A stable, per-install device id (LWW tiebreak), generated once and persisted in settings. */
+data class DeviceId(
+    val value: String,
+)
+
+private const val DEVICE_ID_KEY = "device_id"
+
+private fun resolveDeviceId(settings: Settings): String =
+    settings.getStringOrNull(DEVICE_ID_KEY) ?: newId().also { settings.putString(DEVICE_ID_KEY, it) }
+
+val syncModule =
+    module {
+        single { DeviceId(resolveDeviceId(get())) }
+        single { SyncConfig() }
+        single<Relay> { RelayClient(get(), get()) }
+        single { SyncEngine(get(), get(), get<DeviceId>().value) }
+    }

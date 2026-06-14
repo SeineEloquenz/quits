@@ -20,6 +20,6 @@ val appModule =
 fun initKoin(config: KoinAppDeclaration? = null) {
     startKoin {
         config?.invoke(this)
-        modules(appModule, databaseModule, platformModule, repositoryModule)
+        modules(appModule, databaseModule, platformModule, repositoryModule, syncModule)
     }
 }
