@@ -14,7 +14,7 @@ val databaseModule =
         single<QuitsDatabase> {
             get<RoomDatabase.Builder<QuitsDatabase>>()
                 .setDriver(BundledSQLiteDriver())
-                .setQueryCoroutineContext(Dispatchers.IO)
+                .setQueryCoroutineContext(Dispatchers.Default)
                 .fallbackToDestructiveMigration(dropAllTables = true)
                 .build()
         }
