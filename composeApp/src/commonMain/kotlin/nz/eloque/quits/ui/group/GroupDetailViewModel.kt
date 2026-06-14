@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Member
@@ -33,6 +34,7 @@ data class TransferRow(
 )
 
 data class ExpenseRow(
+    val id: ExpenseId,
     val title: String,
     val total: Money,
     val paidBy: String,
@@ -74,6 +76,12 @@ class GroupDetailViewModel(
             )
         }
     }
+
+    fun deleteExpense(id: ExpenseId) {
+        viewModelScope.launch {
+            repo.deleteExpense(id)
+        }
+    }
 }
 
 private fun Group.toUiState(): GroupDetailUiState {
@@ -95,7 +103,7 @@ private fun Group.toUiState(): GroupDetailUiState {
                         .map { names[it.payer] ?: "?" }
                         .distinct()
                         .joinToString(", ")
-                ExpenseRow(expense.title, expense.total, paidBy)
+                ExpenseRow(expense.id, expense.title, expense.total, paidBy)
             },
     )
 }

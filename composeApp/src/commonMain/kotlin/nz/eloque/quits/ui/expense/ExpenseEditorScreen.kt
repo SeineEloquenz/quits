@@ -34,12 +34,13 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
-fun AddExpenseScreen(
+fun ExpenseEditorScreen(
     groupId: GroupId,
+    expenseId: String?,
     onDone: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    val viewModel = koinViewModel<AddExpenseViewModel> { parametersOf(groupId) }
+    val viewModel = koinViewModel<ExpenseEditorViewModel> { parametersOf(groupId, expenseId) }
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -47,7 +48,10 @@ fun AddExpenseScreen(
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Text("Add expense", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            if (state.editing) "Edit expense" else "Add expense",
+            style = MaterialTheme.typography.headlineMedium,
+        )
         Spacer(Modifier.height(12.dp))
 
         OutlinedTextField(
@@ -160,7 +164,9 @@ fun AddExpenseScreen(
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TextButton(onClick = onCancel) { Text("Cancel") }
-            Button(onClick = viewModel::save, modifier = Modifier.weight(1f)) { Text("Save expense") }
+            Button(onClick = viewModel::save, modifier = Modifier.weight(1f)) {
+                Text(if (state.editing) "Save changes" else "Save expense")
+            }
         }
     }
 }

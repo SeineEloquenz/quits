@@ -1,5 +1,6 @@
 package nz.eloque.quits.ui.group
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.components.Section
 import nz.eloque.compose_kit.input.SubmittableTextField
+import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Money
 import org.koin.compose.viewmodel.koinViewModel
@@ -40,6 +43,7 @@ fun GroupDetailScreen(
     groupId: GroupId,
     onBack: () -> Unit,
     onAddExpense: () -> Unit,
+    onEditExpense: (ExpenseId) -> Unit,
 ) {
     val viewModel = koinViewModel<GroupDetailViewModel> { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
@@ -122,7 +126,13 @@ fun GroupDetailScreen(
                     Text("No expenses yet.")
                 } else {
                     state.expenses.forEach { expense ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { onEditExpense(expense.id) }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             Column(Modifier.weight(1f)) {
                                 Text(expense.title)
                                 Text(
@@ -132,6 +142,13 @@ fun GroupDetailScreen(
                                 )
                             }
                             Text(expense.total.display())
+                            IconButton(onClick = { viewModel.deleteExpense(expense.id) }) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete ${expense.title}",
+                                    tint = MaterialTheme.colorScheme.outline,
+                                )
+                            }
                         }
                     }
                 }

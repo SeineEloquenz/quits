@@ -11,6 +11,7 @@ import nz.eloque.quits.data.db.SettlementEntity
 import nz.eloque.quits.data.db.SyncMeta
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
+import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Member
@@ -88,13 +89,18 @@ class GroupRepository(
         )
     }
 
+    /**
+     * Inserts or updates [expense]. Display-only fields ([spentAt]/[category]/[note]) are kept from
+     * the existing row when not supplied, so editing the money/split parts never drops them.
+     */
     suspend fun upsertExpense(
         groupId: GroupId,
         expense: Expense,
-        spentAt: Long,
+        spentAt: Long? = null,
         category: String? = null,
         note: String? = null,
     ) {
+        val existing = db.expenseDao().byId(expense.id.value)?.expense
         db.expenseDao().save(
             ExpenseEntity(
                 id = expense.id.value,
@@ -103,15 +109,20 @@ class GroupRepository(
                 amountMinor = expense.total.minorUnits,
                 currency = expense.currency.code,
                 rateToBase = expense.rateToBase,
-                category = category,
-                spentAt = spentAt,
-                note = note,
+                category = category ?: existing?.category,
+                spentAt = spentAt ?: existing?.spentAt ?: now(),
+                note = note ?: existing?.note,
                 splitType = splitTypeName(expense.split),
                 sync = meta(),
             ),
             payerRows(expense),
             splitRows(expense),
         )
+    }
+
+    /** Soft-deletes (tombstones) an expense so it drops out of queries and syncs as a deletion. */
+    suspend fun deleteExpense(expenseId: ExpenseId) {
+        db.expenseDao().tombstone(expenseId.value, now(), deviceId)
     }
 
     suspend fun upsertSettlement(

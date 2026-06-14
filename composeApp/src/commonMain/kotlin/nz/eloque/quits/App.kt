@@ -12,11 +12,11 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import nz.eloque.quits.domain.GroupId
-import nz.eloque.quits.navigation.AddExpenseKey
+import nz.eloque.quits.navigation.ExpenseEditorKey
 import nz.eloque.quits.navigation.GroupDetailKey
 import nz.eloque.quits.navigation.GroupsKey
 import nz.eloque.quits.theme.QuitsTheme
-import nz.eloque.quits.ui.expense.AddExpenseScreen
+import nz.eloque.quits.ui.expense.ExpenseEditorScreen
 import nz.eloque.quits.ui.group.GroupDetailScreen
 import nz.eloque.quits.ui.groups.GroupsScreen
 
@@ -46,12 +46,14 @@ fun App() {
                             GroupDetailScreen(
                                 groupId = GroupId(key.groupId),
                                 onBack = { backStack.removeLastOrNull() },
-                                onAddExpense = { backStack.add(AddExpenseKey(key.groupId)) },
+                                onAddExpense = { backStack.add(ExpenseEditorKey(key.groupId)) },
+                                onEditExpense = { backStack.add(ExpenseEditorKey(key.groupId, it.value)) },
                             )
                         }
-                        entry<AddExpenseKey> { key ->
-                            AddExpenseScreen(
+                        entry<ExpenseEditorKey> { key ->
+                            ExpenseEditorScreen(
                                 groupId = GroupId(key.groupId),
+                                expenseId = key.expenseId,
                                 onDone = { backStack.removeLastOrNull() },
                                 onCancel = { backStack.removeLastOrNull() },
                             )
