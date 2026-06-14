@@ -27,6 +27,9 @@ interface GroupDao {
 
     @Query("DELETE FROM groups WHERE id = :id")
     suspend fun delete(id: String)
+
+    @Query("UPDATE groups SET dirty = 0 WHERE id = :id")
+    suspend fun clearDirty(id: String)
 }
 
 @Dao
@@ -39,6 +42,15 @@ interface MemberDao {
 
     @Query("SELECT * FROM member WHERE groupId = :groupId AND deleted = 0")
     fun forGroupFlow(groupId: String): Flow<List<MemberEntity>>
+
+    @Query("SELECT * FROM member WHERE id = :id")
+    suspend fun byId(id: String): MemberEntity?
+
+    @Query("SELECT * FROM member WHERE groupId = :groupId AND dirty = 1")
+    suspend fun dirty(groupId: String): List<MemberEntity>
+
+    @Query("UPDATE member SET dirty = 0 WHERE id = :id")
+    suspend fun clearDirty(id: String)
 }
 
 data class ExpenseWithLines(
@@ -91,6 +103,13 @@ interface ExpenseDao {
     @Query("SELECT * FROM expense WHERE id = :id")
     suspend fun byId(id: String): ExpenseWithLines?
 
+    @Transaction
+    @Query("SELECT * FROM expense WHERE groupId = :groupId AND dirty = 1")
+    suspend fun dirty(groupId: String): List<ExpenseWithLines>
+
+    @Query("UPDATE expense SET dirty = 0 WHERE id = :id")
+    suspend fun clearDirty(id: String)
+
     @Query("UPDATE expense SET deleted = 1, dirty = 1, updatedAt = :updatedAt, deviceId = :deviceId WHERE id = :id")
     suspend fun tombstone(
         id: String,
@@ -109,6 +128,15 @@ interface SettlementDao {
 
     @Query("SELECT * FROM settlement WHERE groupId = :groupId AND deleted = 0")
     fun forGroupFlow(groupId: String): Flow<List<SettlementEntity>>
+
+    @Query("SELECT * FROM settlement WHERE id = :id")
+    suspend fun byId(id: String): SettlementEntity?
+
+    @Query("SELECT * FROM settlement WHERE groupId = :groupId AND dirty = 1")
+    suspend fun dirty(groupId: String): List<SettlementEntity>
+
+    @Query("UPDATE settlement SET dirty = 0 WHERE id = :id")
+    suspend fun clearDirty(id: String)
 }
 
 @Dao

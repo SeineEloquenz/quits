@@ -7,10 +7,9 @@ import org.koin.dsl.module
 val repositoryModule =
     module {
         single {
-            // deviceId is a fixed placeholder until sync lands (it only matters for LWW tiebreaks).
             GroupRepository(
                 db = get(),
-                deviceId = "local-device",
+                deviceId = get<DeviceId>().value,
                 now = { nowMillis() },
             )
         }

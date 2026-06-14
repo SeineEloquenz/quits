@@ -1,7 +1,12 @@
 package nz.eloque.quits.di
 
+import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.russhwolf.settings.Settings
+import com.russhwolf.settings.SharedPreferencesSettings
+import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.engine.okhttp.OkHttp
 import nz.eloque.quits.data.db.QuitsDatabase
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
@@ -16,4 +21,8 @@ actual val platformModule: Module =
                 name = context.getDatabasePath("quits.db").absolutePath,
             )
         }
+        single<Settings> {
+            SharedPreferencesSettings(androidContext().getSharedPreferences("quits", Context.MODE_PRIVATE))
+        }
+        single<HttpClientEngine> { OkHttp.create() }
     }

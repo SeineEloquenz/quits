@@ -2,11 +2,16 @@ package nz.eloque.quits.di
 
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.russhwolf.settings.NSUserDefaultsSettings
+import com.russhwolf.settings.Settings
+import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.engine.darwin.Darwin
 import nz.eloque.quits.data.db.QuitsDatabase
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
+import platform.Foundation.NSUserDefaults
 import platform.Foundation.NSUserDomainMask
 
 actual val platformModule: Module =
@@ -23,4 +28,6 @@ actual val platformModule: Module =
             val path = requireNotNull(documents?.path) { "no documents directory" } + "/quits.db"
             Room.databaseBuilder<QuitsDatabase>(name = path)
         }
+        single<Settings> { NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults) }
+        single<HttpClientEngine> { Darwin.create() }
     }

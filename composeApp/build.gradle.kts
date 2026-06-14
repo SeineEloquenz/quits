@@ -64,6 +64,7 @@ kotlin {
             implementation(libs.nav3.viewmodel)
             implementation(libs.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
+            implementation(libs.multiplatform.settings)
             implementation(libs.compose.kit)
         }
         androidMain.dependencies {
