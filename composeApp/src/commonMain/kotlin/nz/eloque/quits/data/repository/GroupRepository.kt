@@ -15,6 +15,7 @@ import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Member
+import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Settlement
 
 /** Lightweight projection for the groups list (avoids loading each full aggregate). */
@@ -72,6 +73,36 @@ class GroupRepository(
         db.memberDao().upsert(
             listOf(MemberEntity(member.id.value, groupId.value, member.name, color = null, meta())),
         )
+    }
+
+    suspend fun renameMember(
+        memberId: MemberId,
+        name: String,
+    ) {
+        val existing = db.memberDao().byId(memberId.value) ?: return
+        db.memberDao().upsert(listOf(existing.copy(name = name, sync = meta())))
+    }
+
+    /** Soft-deletes a member, unless they're still referenced by an expense or settlement. */
+    suspend fun removeMember(
+        groupId: GroupId,
+        memberId: MemberId,
+    ): Boolean {
+        val group = load(groupId) ?: return false
+        val referenced =
+            buildSet {
+                group.expenses.forEach { expense ->
+                    expense.payments.forEach { add(it.payer) }
+                    addAll(expense.shares.keys)
+                }
+                group.settlements.forEach {
+                    add(it.from)
+                    add(it.to)
+                }
+            }
+        if (memberId in referenced) return false
+        db.memberDao().tombstone(memberId.value, now(), deviceId)
+        return true
     }
 
     suspend fun load(id: GroupId): Group? {

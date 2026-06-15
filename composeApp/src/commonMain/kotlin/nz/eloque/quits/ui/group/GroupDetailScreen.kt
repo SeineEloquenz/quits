@@ -15,16 +15,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +39,7 @@ import nz.eloque.compose_kit.components.Section
 import nz.eloque.compose_kit.input.SubmittableTextField
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
+import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -49,6 +56,20 @@ fun GroupDetailScreen(
     val viewModel = koinViewModel<GroupDetailViewModel> { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
     val syncError by viewModel.syncError.collectAsState()
+
+    // (memberId, currentName) of the member being renamed, or null.
+    var renaming by remember { mutableStateOf<Pair<MemberId, String>?>(null) }
+
+    renaming?.let { (id, current) ->
+        RenameMemberDialog(
+            initial = current,
+            onDismiss = { renaming = null },
+            onConfirm = { name ->
+                viewModel.renameMember(id, name)
+                renaming = null
+            },
+        )
+    }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -143,7 +164,17 @@ fun GroupDetailScreen(
 
         Section(heading = "Members") {
             Column(Modifier.padding(8.dp)) {
-                state.members.forEach { Text(it.name, Modifier.padding(vertical = 2.dp)) }
+                state.members.forEach { member ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(member.name, Modifier.weight(1f))
+                        IconButton(onClick = { renaming = member.id to member.name }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Rename ${member.name}")
+                        }
+                        IconButton(onClick = { viewModel.removeMember(member.id) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Remove ${member.name}")
+                        }
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 SubmittableTextField(
                     label = "Add member",
@@ -198,4 +229,31 @@ fun GroupDetailScreen(
             }
         }
     }
+}
+
+@Composable
+private fun RenameMemberDialog(
+    initial: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var name by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rename member") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Name") },
+                singleLine = true,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
