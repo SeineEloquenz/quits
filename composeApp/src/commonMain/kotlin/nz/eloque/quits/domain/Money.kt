@@ -12,19 +12,34 @@ data class Currency(
     }
 
     companion object {
-        // Currencies whose minor-unit digit count isn't the default of 2.
+        // Currencies whose minor-unit digit count isn't the default of 2 (per ISO 4217).
         private val nonDefaultDigits =
             mapOf(
-                "JPY" to 0,
-                "KRW" to 0,
-                "VND" to 0,
+                // 0 decimal places
+                "BIF" to 0,
                 "CLP" to 0,
+                "DJF" to 0,
+                "GNF" to 0,
                 "ISK" to 0,
+                "JPY" to 0,
+                "KMF" to 0,
+                "KRW" to 0,
+                "PYG" to 0,
+                "RWF" to 0,
+                "UGX" to 0,
+                "VND" to 0,
+                "VUV" to 0,
+                "XAF" to 0,
+                "XOF" to 0,
+                "XPF" to 0,
+                // 3 decimal places
                 "BHD" to 3,
+                "IQD" to 3,
+                "JOD" to 3,
                 "KWD" to 3,
+                "LYD" to 3,
                 "OMR" to 3,
                 "TND" to 3,
-                "JOD" to 3,
             )
 
         /** Builds a currency from [code], normalizing case; throws if it isn't a valid code. */

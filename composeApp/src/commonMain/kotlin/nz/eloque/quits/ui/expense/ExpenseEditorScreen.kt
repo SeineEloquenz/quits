@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.components.Section
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
+import nz.eloque.quits.ui.components.CurrencyPicker
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -63,27 +64,22 @@ fun ExpenseEditorScreen(
         )
         Spacer(Modifier.height(8.dp))
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        CurrencyPicker(
+            label = "Currency",
+            selected = Currency.of(state.currency),
+            onSelected = { viewModel.setCurrency(it.code) },
+        )
+        if (state.isForeign) {
+            Spacer(Modifier.height(8.dp))
             OutlinedTextField(
-                value = state.currency,
-                onValueChange = viewModel::setCurrency,
-                label = { Text("Currency") },
+                value = state.rate,
+                onValueChange = viewModel::setRate,
+                label = { Text("Rate → ${state.baseCurrency.code}") },
                 singleLine = true,
-                isError = !Currency.isValidCode(state.currency),
-                modifier = Modifier.width(140.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                supportingText = if (state.fetchingRate) ({ Text("Fetching live rate…") }) else null,
+                modifier = Modifier.fillMaxWidth(),
             )
-            if (state.isForeign) {
-                Spacer(Modifier.width(12.dp))
-                OutlinedTextField(
-                    value = state.rate,
-                    onValueChange = viewModel::setRate,
-                    label = { Text("Rate → ${state.baseCurrency.code}") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    supportingText = if (state.fetchingRate) ({ Text("Fetching live rate…") }) else null,
-                    modifier = Modifier.weight(1f),
-                )
-            }
         }
 
         Spacer(Modifier.height(8.dp))

@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.components.Section
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
+import nz.eloque.quits.ui.components.CurrencyPicker
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -42,9 +43,8 @@ fun GroupsScreen(
     val error by viewModel.error.collectAsState()
 
     var name by remember { mutableStateOf("") }
-    var currency by remember { mutableStateOf("USD") }
+    var currency by remember { mutableStateOf(Currency.of("USD")) }
     var joinCode by remember { mutableStateOf("") }
-    val currencyValid = Currency.isValidCode(currency)
 
     LaunchedEffect(Unit) {
         viewModel.joined.collect { onOpenGroup(it) }
@@ -69,26 +69,20 @@ fun GroupsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = currency,
-                        onValueChange = { currency = it.uppercase() },
-                        label = { Text("Base currency") },
-                        singleLine = true,
-                        isError = !currencyValid,
-                        supportingText = if (!currencyValid) ({ Text("3-letter code") }) else null,
-                        modifier = Modifier.width(160.dp),
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Button(
-                        onClick = {
-                            viewModel.createGroup(name, currency)
-                            name = ""
-                        },
-                        enabled = name.isNotBlank() && currencyValid,
-                    ) {
-                        Text("Create")
-                    }
+                CurrencyPicker(
+                    label = "Base currency",
+                    selected = currency,
+                    onSelected = { currency = it },
+                )
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        viewModel.createGroup(name, currency.code)
+                        name = ""
+                    },
+                    enabled = name.isNotBlank(),
+                ) {
+                    Text("Create")
                 }
             }
         }
