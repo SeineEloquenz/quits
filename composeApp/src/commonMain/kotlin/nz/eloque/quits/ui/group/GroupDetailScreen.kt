@@ -41,6 +41,8 @@ import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
+import nz.eloque.quits.ui.components.EmptyHint
+import nz.eloque.quits.ui.components.LoadingBox
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -86,6 +88,11 @@ fun GroupDetailScreen(
                     Icon(Icons.Default.Refresh, contentDescription = "Sync")
                 }
             }
+        }
+
+        if (!state.loaded) {
+            LoadingBox(Modifier.padding(top = 48.dp))
+            return@Column
         }
 
         syncError?.let {
@@ -189,7 +196,7 @@ fun GroupDetailScreen(
         Section(heading = "Expenses") {
             Column(Modifier.padding(8.dp)) {
                 if (state.expenses.isEmpty()) {
-                    Text("No expenses yet.")
+                    EmptyHint("No expenses yet.")
                 } else {
                     state.expenses.forEach { expense ->
                         Row(

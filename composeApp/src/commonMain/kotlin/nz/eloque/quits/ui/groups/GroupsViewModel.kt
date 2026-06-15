@@ -23,6 +23,7 @@ import nz.eloque.quits.util.newId
 
 data class GroupsUiState(
     val groups: List<GroupSummary> = emptyList(),
+    val loaded: Boolean = false,
 )
 
 class GroupsViewModel(
@@ -32,7 +33,7 @@ class GroupsViewModel(
     val state: StateFlow<GroupsUiState> =
         repo
             .groupsFlow()
-            .map { GroupsUiState(it) }
+            .map { GroupsUiState(it, loaded = true) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupsUiState())
 
     private val _joined = Channel<GroupId>(Channel.BUFFERED)

@@ -31,6 +31,7 @@ import nz.eloque.compose_kit.components.Section
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.ui.components.CurrencyPicker
+import nz.eloque.quits.ui.components.LoadingBox
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -54,6 +55,11 @@ fun ExpenseEditorScreen(
             style = MaterialTheme.typography.headlineMedium,
         )
         Spacer(Modifier.height(12.dp))
+
+        if (!state.loaded) {
+            LoadingBox(Modifier.padding(top = 32.dp))
+            return@Column
+        }
 
         OutlinedTextField(
             value = state.title,
