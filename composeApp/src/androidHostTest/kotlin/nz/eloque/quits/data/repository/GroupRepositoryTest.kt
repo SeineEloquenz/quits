@@ -20,6 +20,7 @@ import org.robolectric.annotation.Config
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -144,5 +145,32 @@ class GroupRepositoryTest {
     fun load_returns_null_for_unknown_group() =
         runTest {
             assertNull(repo.load(GroupId("nope")))
+        }
+
+    @Test
+    fun rename_member_updates_the_name() =
+        runTest {
+            persist(sampleGroup())
+            repo.renameMember(a, "Alicia")
+            val loaded = repo.load(GroupId("g"))!!
+            assertEquals("Alicia", loaded.members.first { it.id == a }.name)
+        }
+
+    @Test
+    fun cannot_remove_a_referenced_member() =
+        runTest {
+            persist(sampleGroup()) // a, b, c are all in expenses
+            assertFalse(repo.removeMember(GroupId("g"), a))
+            assertTrue(repo.load(GroupId("g"))!!.members.any { it.id == a })
+        }
+
+    @Test
+    fun removes_an_unreferenced_member() =
+        runTest {
+            persist(sampleGroup())
+            val d = MemberId("d")
+            repo.addMember(GroupId("g"), Member(d, "Dave"))
+            assertTrue(repo.removeMember(GroupId("g"), d))
+            assertFalse(repo.load(GroupId("g"))!!.members.any { it.id == d })
         }
 }
