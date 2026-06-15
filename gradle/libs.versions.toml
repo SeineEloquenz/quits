@@ -20,7 +20,7 @@ ksp = "2.3.9"
 robolectric = "4.16.1"
 androidxTest = "1.7.0"
 multiplatformSettings = "1.3.0"
-composeKit = "v0.0.7"
+composeKit = "v0.0.8"
 ktlint = "14.2.0"
 
 # Android SDK
