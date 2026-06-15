@@ -104,6 +104,28 @@ class GroupDetailViewModel(
         }
     }
 
+    fun renameMember(
+        id: MemberId,
+        name: String,
+    ) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            repo.renameMember(id, trimmed)
+            trySync()
+        }
+    }
+
+    fun removeMember(id: MemberId) {
+        viewModelScope.launch {
+            if (repo.removeMember(groupId, id)) {
+                trySync()
+            } else {
+                _syncError.value = "Can't remove a member who's in an expense or settlement."
+            }
+        }
+    }
+
     fun record(transfer: Transfer) {
         viewModelScope.launch {
             repo.upsertSettlement(

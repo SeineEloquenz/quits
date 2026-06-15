@@ -51,6 +51,13 @@ interface MemberDao {
 
     @Query("UPDATE member SET dirty = 0 WHERE id = :id")
     suspend fun clearDirty(id: String)
+
+    @Query("UPDATE member SET deleted = 1, dirty = 1, updatedAt = :updatedAt, deviceId = :deviceId WHERE id = :id")
+    suspend fun tombstone(
+        id: String,
+        updatedAt: Long,
+        deviceId: String,
+    )
 }
 
 data class ExpenseWithLines(
