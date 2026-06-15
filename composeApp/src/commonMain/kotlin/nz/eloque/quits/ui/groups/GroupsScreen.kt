@@ -31,6 +31,8 @@ import nz.eloque.compose_kit.components.Section
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.ui.components.CurrencyPicker
+import nz.eloque.quits.ui.components.EmptyHint
+import nz.eloque.quits.ui.components.LoadingBox
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -120,8 +122,10 @@ fun GroupsScreen(
         Spacer(Modifier.height(8.dp))
 
         Section(heading = "Groups") {
-            if (state.groups.isEmpty()) {
-                Text("No groups yet.", Modifier.padding(16.dp))
+            if (!state.loaded) {
+                LoadingBox()
+            } else if (state.groups.isEmpty()) {
+                EmptyHint("No groups yet.\nCreate one above, or join with a code.")
             } else {
                 Column {
                     state.groups.forEach { group ->
