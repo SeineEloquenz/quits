@@ -30,8 +30,24 @@ import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.components.Section
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
+import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.action_cancel
+import nz.eloque.quits.resources.editor_label_currency
+import nz.eloque.quits.resources.editor_label_rate
+import nz.eloque.quits.resources.editor_label_title
+import nz.eloque.quits.resources.editor_paid_by
+import nz.eloque.quits.resources.editor_placeholder_amount
+import nz.eloque.quits.resources.editor_placeholder_percent
+import nz.eloque.quits.resources.editor_placeholder_shares
+import nz.eloque.quits.resources.editor_rate_fetching
+import nz.eloque.quits.resources.editor_save_changes
+import nz.eloque.quits.resources.editor_save_expense
+import nz.eloque.quits.resources.editor_split
+import nz.eloque.quits.resources.editor_title_add
+import nz.eloque.quits.resources.editor_title_edit
 import nz.eloque.quits.ui.components.CurrencyPicker
 import nz.eloque.quits.ui.components.LoadingBox
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -51,7 +67,7 @@ fun ExpenseEditorScreen(
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Text(
-            if (state.editing) "Edit expense" else "Add expense",
+            if (state.editing) stringResource(Res.string.editor_title_edit) else stringResource(Res.string.editor_title_add),
             style = MaterialTheme.typography.headlineMedium,
         )
         Spacer(Modifier.height(12.dp))
@@ -64,14 +80,14 @@ fun ExpenseEditorScreen(
         OutlinedTextField(
             value = state.title,
             onValueChange = viewModel::setTitle,
-            label = { Text("Title") },
+            label = { Text(stringResource(Res.string.editor_label_title)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(8.dp))
 
         CurrencyPicker(
-            label = "Currency",
+            label = stringResource(Res.string.editor_label_currency),
             selected = Currency.of(state.currency),
             onSelected = { viewModel.setCurrency(it.code) },
         )
@@ -81,12 +97,12 @@ fun ExpenseEditorScreen(
             OutlinedTextField(
                 value = state.rate,
                 onValueChange = viewModel::setRate,
-                label = { Text("Rate → ${state.baseCurrency.code}") },
+                label = { Text("${stringResource(Res.string.editor_label_rate)} → ${state.baseCurrency.code}") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 supportingText =
                     when {
-                        state.fetchingRate -> ({ Text("Fetching live rate…") })
+                        state.fetchingRate -> ({ Text(stringResource(Res.string.editor_rate_fetching)) })
                         notice != null -> ({ Text(notice) })
                         else -> null
                     },
@@ -96,7 +112,7 @@ fun ExpenseEditorScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        Section(heading = "Paid by") {
+        Section(heading = stringResource(Res.string.editor_paid_by)) {
             Column(Modifier.padding(8.dp)) {
                 state.members.forEach { member ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -116,7 +132,7 @@ fun ExpenseEditorScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        Section(heading = "Split") {
+        Section(heading = stringResource(Res.string.editor_split)) {
             Column(Modifier.padding(8.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SplitKind.entries.forEach { kind ->
@@ -172,18 +188,27 @@ fun ExpenseEditorScreen(
         Spacer(Modifier.height(16.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text(stringResource(Res.string.action_cancel)) }
             Button(onClick = viewModel::save, modifier = Modifier.weight(1f)) {
-                Text(if (state.editing) "Save changes" else "Save expense")
+                Text(
+                    if (state.editing) {
+                        stringResource(Res.string.editor_save_changes)
+                    } else {
+                        stringResource(
+                            Res.string.editor_save_expense,
+                        )
+                    },
+                )
             }
         }
     }
 }
 
+@Composable
 private fun splitPlaceholder(kind: SplitKind): String =
     when (kind) {
-        SplitKind.SHARES -> "shares"
-        SplitKind.PERCENTAGE -> "%"
-        SplitKind.EXACT -> "amount"
+        SplitKind.SHARES -> stringResource(Res.string.editor_placeholder_shares)
+        SplitKind.PERCENTAGE -> stringResource(Res.string.editor_placeholder_percent)
+        SplitKind.EXACT -> stringResource(Res.string.editor_placeholder_amount)
         SplitKind.EQUAL -> ""
     }

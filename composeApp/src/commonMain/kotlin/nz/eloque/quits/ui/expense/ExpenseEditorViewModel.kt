@@ -25,8 +25,25 @@ import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Payment
 import nz.eloque.quits.domain.Split
+import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.editor_expense_fallback_title
+import nz.eloque.quits.resources.error_currency_code
+import nz.eloque.quits.resources.error_invalid_amount
+import nz.eloque.quits.resources.error_invalid_expense
+import nz.eloque.quits.resources.error_invalid_paid
+import nz.eloque.quits.resources.error_invalid_percent
+import nz.eloque.quits.resources.error_invalid_rate
+import nz.eloque.quits.resources.error_invalid_share
+import nz.eloque.quits.resources.error_invalid_split
+import nz.eloque.quits.resources.error_no_exact
+import nz.eloque.quits.resources.error_no_participant
+import nz.eloque.quits.resources.error_no_payer
+import nz.eloque.quits.resources.error_no_share
+import nz.eloque.quits.resources.rate_cached
+import nz.eloque.quits.resources.rate_fetch_failed
 import nz.eloque.quits.util.formatDate
 import nz.eloque.quits.util.newId
+import org.jetbrains.compose.resources.getString
 
 enum class SplitKind { EQUAL, SHARES, PERCENTAGE, EXACT }
 
@@ -38,10 +55,10 @@ data class MemberInput(
 data class ExpenseEditorUiState(
     val loaded: Boolean = false,
     val editing: Boolean = false,
-    val baseCurrency: Currency = Currency.of("USD"),
+    val baseCurrency: Currency = Currency.of("EUR"),
     val members: List<MemberInput> = emptyList(),
     val title: String = "",
-    val currency: String = "USD",
+    val currency: String = "EUR",
     val rate: String = "1.0",
     val paid: Map<String, String> = emptyMap(),
     val splitKind: SplitKind = SplitKind.EQUAL,
@@ -155,7 +172,7 @@ class ExpenseEditorViewModel(
                             rateNotice =
                                 when (result) {
                                     is RateResult.Live -> null
-                                    is RateResult.Cached -> "Offline — using cached rate from ${formatDate(result.asOf)}"
+                                    is RateResult.Cached -> getString(Res.string.rate_cached, formatDate(result.asOf))
                                 },
                         )
                     }
@@ -164,7 +181,7 @@ class ExpenseEditorViewModel(
                 } catch (e: Exception) {
                     // No live or cached rate; fall back to manual entry.
                     _state.update {
-                        it.copy(fetchingRate = false, rateNotice = "Couldn't fetch a rate — enter it manually.")
+                        it.copy(fetchingRate = false, rateNotice = getString(Res.string.rate_fetch_failed))
                     }
                 }
             }
@@ -191,57 +208,57 @@ class ExpenseEditorViewModel(
     ) = _state.update { it.copy(splitInput = it.splitInput + (memberId to value)) }
 
     fun save() {
-        val s = _state.value
-        val currency = Currency.parse(s.currency.trim().ifEmpty { s.baseCurrency.code })
-        if (currency == null) {
-            setError("Currency must be a 3-letter code")
-            return
-        }
-        val rate = if (currency == s.baseCurrency) 1.0 else s.rate.trim().toDoubleOrNull()
-        if (rate == null || rate <= 0.0) {
-            setError("Enter a valid exchange rate to ${s.baseCurrency.code}")
-            return
-        }
-
-        val payments = mutableListOf<Payment>()
-        for (member in s.members) {
-            val text = s.paid[member.id].orEmpty().trim()
-            if (text.isEmpty()) continue
-            val money = Money.parse(text, currency)
-            if (money == null || !money.isPositive) {
-                setError("Invalid paid amount for ${member.name}")
-                return
-            }
-            payments += Payment(MemberId(member.id), money)
-        }
-        if (payments.isEmpty()) {
-            setError("Enter who paid and how much")
-            return
-        }
-
-        val split =
-            try {
-                buildSplit(s, currency) ?: return
-            } catch (e: IllegalArgumentException) {
-                setError(e.message ?: "Invalid split")
-                return
-            }
-
-        val expense =
-            try {
-                Expense(
-                    ExpenseId(expenseId ?: newId()),
-                    s.title.trim().ifEmpty { "Expense" },
-                    payments,
-                    split,
-                    rate,
-                )
-            } catch (e: IllegalArgumentException) {
-                setError(e.message ?: "Invalid expense")
-                return
-            }
-
         viewModelScope.launch {
+            val s = _state.value
+            val currency = Currency.parse(s.currency.trim().ifEmpty { s.baseCurrency.code })
+            if (currency == null) {
+                setError(getString(Res.string.error_currency_code))
+                return@launch
+            }
+            val rate = if (currency == s.baseCurrency) 1.0 else s.rate.trim().toDoubleOrNull()
+            if (rate == null || rate <= 0.0) {
+                setError(getString(Res.string.error_invalid_rate, s.baseCurrency.code))
+                return@launch
+            }
+
+            val payments = mutableListOf<Payment>()
+            for (member in s.members) {
+                val text = s.paid[member.id].orEmpty().trim()
+                if (text.isEmpty()) continue
+                val money = Money.parse(text, currency)
+                if (money == null || !money.isPositive) {
+                    setError(getString(Res.string.error_invalid_paid, member.name))
+                    return@launch
+                }
+                payments += Payment(MemberId(member.id), money)
+            }
+            if (payments.isEmpty()) {
+                setError(getString(Res.string.error_no_payer))
+                return@launch
+            }
+
+            val split =
+                try {
+                    buildSplit(s, currency) ?: return@launch
+                } catch (e: IllegalArgumentException) {
+                    setError(e.message ?: getString(Res.string.error_invalid_split))
+                    return@launch
+                }
+
+            val expense =
+                try {
+                    Expense(
+                        ExpenseId(expenseId ?: newId()),
+                        s.title.trim().ifEmpty { getString(Res.string.editor_expense_fallback_title) },
+                        payments,
+                        split,
+                        rate,
+                    )
+                } catch (e: IllegalArgumentException) {
+                    setError(e.message ?: getString(Res.string.error_invalid_expense))
+                    return@launch
+                }
+
             repo.upsertExpense(groupId, expense)
             // The expense is saved locally; a sync failure shouldn't block leaving the screen.
             try {
@@ -256,7 +273,7 @@ class ExpenseEditorViewModel(
         }
     }
 
-    private fun buildSplit(
+    private suspend fun buildSplit(
         s: ExpenseEditorUiState,
         currency: Currency,
     ): Split? =
@@ -264,7 +281,7 @@ class ExpenseEditorViewModel(
             SplitKind.EQUAL -> {
                 val participants = s.members.filter { it.id in s.equalSelected }.map { MemberId(it.id) }
                 if (participants.isEmpty()) {
-                    setError("Select at least one participant")
+                    setError(getString(Res.string.error_no_participant))
                     null
                 } else {
                     Split.Equal(participants)
@@ -277,13 +294,13 @@ class ExpenseEditorViewModel(
                     if (text.isEmpty()) continue
                     val weight = text.toLongOrNull()
                     if (weight == null || weight < 0) {
-                        setError("Invalid share for ${member.name}")
+                        setError(getString(Res.string.error_invalid_share, member.name))
                         return null
                     }
                     if (weight > 0) map[MemberId(member.id)] = weight
                 }
                 if (map.isEmpty()) {
-                    setError("Enter at least one share")
+                    setError(getString(Res.string.error_no_share))
                     null
                 } else {
                     Split.Shares(map)
@@ -296,7 +313,7 @@ class ExpenseEditorViewModel(
                     if (text.isEmpty()) continue
                     val percent = text.toIntOrNull()
                     if (percent == null || percent < 0) {
-                        setError("Invalid percent for ${member.name}")
+                        setError(getString(Res.string.error_invalid_percent, member.name))
                         return null
                     }
                     if (percent > 0) map[MemberId(member.id)] = percent
@@ -310,13 +327,13 @@ class ExpenseEditorViewModel(
                     if (text.isEmpty()) continue
                     val money = Money.parse(text, currency)
                     if (money == null) {
-                        setError("Invalid amount for ${member.name}")
+                        setError(getString(Res.string.error_invalid_amount, member.name))
                         return null
                     }
                     map[MemberId(member.id)] = money
                 }
                 if (map.isEmpty()) {
-                    setError("Enter exact amounts")
+                    setError(getString(Res.string.error_no_exact))
                     null
                 } else {
                     Split.Exact(map)

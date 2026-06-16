@@ -21,8 +21,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.components.Section
+import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.action_reset
+import nz.eloque.quits.resources.settings_relay_hint
+import nz.eloque.quits.resources.settings_relay_url
+import nz.eloque.quits.resources.settings_saved
+import nz.eloque.quits.resources.settings_sync
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -40,27 +48,27 @@ fun SettingsScreen(onBack: () -> Unit) {
 
         Spacer(Modifier.height(8.dp))
 
-        Section(heading = "Sync") {
+        Section(heading = stringResource(Res.string.settings_sync)) {
             Column(Modifier.padding(8.dp)) {
                 OutlinedTextField(
                     value = state.relayUrl,
                     onValueChange = viewModel::setRelayUrl,
-                    label = { Text("Relay URL") },
+                    label = { Text(stringResource(Res.string.settings_relay_url)) },
                     singleLine = true,
                     isError = state.relayUrl.isBlank(),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    "The sync server. Default: ${viewModel.defaultRelayUrl} (works from the Android emulator).",
+                    stringResource(Res.string.settings_relay_hint, viewModel.defaultRelayUrl),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Button(onClick = viewModel::save, enabled = state.relayUrl.isNotBlank()) {
-                        Text("Save")
+                        Text(stringResource(Res.string.settings_saved))
                     }
-                    TextButton(onClick = viewModel::resetToDefault) { Text("Reset") }
+                    TextButton(onClick = viewModel::resetToDefault) { Text(stringResource(Res.string.action_reset)) }
                     if (state.saved) {
                         Text("Saved", color = MaterialTheme.colorScheme.primary)
                     }

@@ -22,8 +22,13 @@ import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Settlement
 import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.domain.Transfer
+import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.error_member_in_use
+import nz.eloque.quits.resources.error_relay_unreachable
+import nz.eloque.quits.resources.error_sync_failed
 import nz.eloque.quits.util.newId
 import nz.eloque.quits.util.nowMillis
+import org.jetbrains.compose.resources.getString
 
 data class MemberBalance(
     val id: MemberId,
@@ -83,7 +88,7 @@ class GroupDetailViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _syncStatus.value = SyncStatus.Failed("Couldn't reach the relay: ${e.message}")
+                _syncStatus.value = SyncStatus.Failed(getString(Res.string.error_relay_unreachable, e.message ?: ""))
             }
         }
     }
@@ -123,7 +128,7 @@ class GroupDetailViewModel(
             if (repo.removeMember(groupId, id)) {
                 trySync()
             } else {
-                _syncStatus.value = SyncStatus.Failed("Can't remove a member who's in an expense or settlement.")
+                _syncStatus.value = SyncStatus.Failed(getString(Res.string.error_member_in_use))
             }
         }
     }
@@ -155,7 +160,7 @@ class GroupDetailViewModel(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            _syncStatus.value = SyncStatus.Failed("Sync failed: ${e.message}")
+            _syncStatus.value = SyncStatus.Failed(getString(Res.string.error_sync_failed, e.message ?: ""))
         }
     }
 }

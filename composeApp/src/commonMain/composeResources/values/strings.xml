@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Quits</string>
+
+    <!-- Generic actions / labels -->
+    <string name="action_create">Create</string>
+    <string name="action_join">Join</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_record">Record</string>
+    <string name="label_name">Name</string>
+    <string name="label_share_code">Share code</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_settings">Settings</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_sync">Sync</string>
+    <string name="cd_rename">Rename %1$s</string>
+    <string name="cd_remove">Remove %1$s</string>
+    <string name="cd_delete">Delete %1$s</string>
+
+    <!-- Groups list -->
+    <string name="groups_new_group">New group</string>
+    <string name="groups_base_currency">Base currency</string>
+    <string name="groups_join_group">Join group</string>
+    <string name="groups_heading">Groups</string>
+    <string name="groups_empty">No groups yet.\nCreate one above, or join with a code.</string>
+    <string name="groups_join_not_found">No group found for code \"%1$s\"</string>
+
+    <!-- Group detail -->
+    <string name="group_fallback_name">Group</string>
+    <string name="detail_sharing">Sharing</string>
+    <string name="detail_local_only">This group is on this device only.</string>
+    <string name="detail_share_group">Share group</string>
+    <string name="detail_share_hint">Others join with this code to sync.</string>
+    <string name="detail_last_synced">Last synced %1$s</string>
+    <string name="detail_not_synced">Not synced yet</string>
+    <string name="detail_balances">Balances</string>
+    <string name="detail_add_members_hint">Add members to start splitting.</string>
+    <string name="detail_settle_up">Settle up</string>
+    <string name="detail_transfer_row">%1$s → %2$s: %3$s</string>
+    <string name="detail_members">Members</string>
+    <string name="detail_add_member">Add member</string>
+    <string name="detail_expenses">Expenses</string>
+    <string name="detail_expenses_empty">No expenses yet.</string>
+    <string name="detail_paid_by">paid by %1$s</string>
+    <string name="detail_add_members_first">Add members first</string>
+    <string name="detail_add_expense">Add expense</string>
+    <string name="dialog_rename_title">Rename member</string>
+
+    <!-- Expense editor -->
+    <string name="editor_title_add">Add expense</string>
+    <string name="editor_title_edit">Edit expense</string>
+    <string name="editor_label_title">Title</string>
+    <string name="editor_label_currency">Currency</string>
+    <string name="editor_label_rate">Rate → %1$s</string>
+    <string name="editor_rate_fetching">Fetching live rate…</string>
+    <string name="editor_paid_by">Paid by</string>
+    <string name="editor_split">Split</string>
+    <string name="editor_split_equal">Equal</string>
+    <string name="editor_split_shares">Shares</string>
+    <string name="editor_split_percentage">Percentage</string>
+    <string name="editor_split_exact">Exact</string>
+    <string name="editor_placeholder_shares">shares</string>
+    <string name="editor_placeholder_percent">%</string>
+    <string name="editor_placeholder_amount">amount</string>
+    <string name="editor_save_changes">Save changes</string>
+    <string name="editor_save_expense">Save expense</string>
+    <string name="editor_expense_fallback_title">Expense</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_sync">Sync</string>
+    <string name="settings_relay_url">Relay URL</string>
+    <string name="settings_relay_hint">The sync server. Default: %1$s (works from the Android emulator).</string>
+    <string name="settings_saved">Saved</string>
+
+    <!-- Currency picker -->
+    <string name="search_currency">Search currency</string>
+
+    <!-- Errors / notices -->
+    <string name="error_relay_unreachable">Couldn\'t reach the relay: %1$s</string>
+    <string name="error_member_in_use">Can\'t remove a member who\'s in an expense or settlement.</string>
+    <string name="error_sync_failed">Sync failed: %1$s</string>
+    <string name="rate_cached">Offline — using cached rate from %1$s</string>
+    <string name="rate_fetch_failed">Couldn\'t fetch a rate — enter it manually.</string>
+    <string name="error_currency_code">Currency must be a 3-letter code</string>
+    <string name="error_invalid_rate">Enter a valid exchange rate to %1$s</string>
+    <string name="error_invalid_paid">Invalid paid amount for %1$s</string>
+    <string name="error_no_payer">Enter who paid and how much</string>
+    <string name="error_invalid_split">Invalid split</string>
+    <string name="error_invalid_expense">Invalid expense</string>
+    <string name="error_no_participant">Select at least one participant</string>
+    <string name="error_invalid_share">Invalid share for %1$s</string>
+    <string name="error_no_share">Enter at least one share</string>
+    <string name="error_invalid_percent">Invalid percent for %1$s</string>
+    <string name="error_invalid_amount">Invalid amount for %1$s</string>
+    <string name="error_no_exact">Enter exact amounts</string>
+</resources>

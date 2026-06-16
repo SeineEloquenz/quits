@@ -34,9 +34,22 @@ import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.components.Section
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
+import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.action_create
+import nz.eloque.quits.resources.action_join
+import nz.eloque.quits.resources.app_name
+import nz.eloque.quits.resources.cd_settings
+import nz.eloque.quits.resources.groups_base_currency
+import nz.eloque.quits.resources.groups_empty
+import nz.eloque.quits.resources.groups_heading
+import nz.eloque.quits.resources.groups_join_group
+import nz.eloque.quits.resources.groups_new_group
+import nz.eloque.quits.resources.label_name
+import nz.eloque.quits.resources.label_share_code
 import nz.eloque.quits.ui.components.CurrencyPicker
 import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.LoadingBox
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,25 +78,25 @@ fun GroupsScreen(
     ) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Quits", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f))
+                Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f))
                 IconButton(onClick = onOpenSettings) {
-                    Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    Icon(Icons.Default.Settings, contentDescription = stringResource(Res.string.cd_settings))
                 }
             }
             Spacer(Modifier.height(16.dp))
 
-            Section(heading = "New group") {
+            Section(heading = stringResource(Res.string.groups_new_group)) {
                 Column(Modifier.padding(8.dp)) {
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Name") },
+                        label = { Text(stringResource(Res.string.label_name)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(8.dp))
                     CurrencyPicker(
-                        label = "Base currency",
+                        label = stringResource(Res.string.groups_base_currency),
                         selected = currency,
                         onSelected = { currency = it },
                     )
@@ -95,14 +108,14 @@ fun GroupsScreen(
                         },
                         enabled = name.isNotBlank(),
                     ) {
-                        Text("Create")
+                        Text(stringResource(Res.string.action_create))
                     }
                 }
             }
 
             Spacer(Modifier.height(8.dp))
 
-            Section(heading = "Join group") {
+            Section(heading = stringResource(Res.string.groups_join_group)) {
                 Column(Modifier.padding(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(
@@ -111,7 +124,7 @@ fun GroupsScreen(
                                 joinCode = it.uppercase()
                                 if (error != null) viewModel.clearError()
                             },
-                            label = { Text("Share code") },
+                            label = { Text(stringResource(Res.string.label_share_code)) },
                             singleLine = true,
                             isError = error != null,
                             modifier = Modifier.weight(1f),
@@ -121,7 +134,7 @@ fun GroupsScreen(
                             onClick = { viewModel.join(joinCode) },
                             enabled = joinCode.isNotBlank(),
                         ) {
-                            Text("Join")
+                            Text(stringResource(Res.string.action_join))
                         }
                     }
                     error?.let {
@@ -132,11 +145,11 @@ fun GroupsScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            Section(heading = "Groups") {
+            Section(heading = stringResource(Res.string.groups_heading)) {
                 if (!state.loaded) {
                     LoadingBox()
                 } else if (state.groups.isEmpty()) {
-                    EmptyHint("No groups yet.\nCreate one above, or join with a code.")
+                    EmptyHint(stringResource(Res.string.groups_empty))
                 } else {
                     Column {
                         state.groups.forEach { group ->

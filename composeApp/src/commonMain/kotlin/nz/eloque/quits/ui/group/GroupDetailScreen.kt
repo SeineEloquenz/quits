@@ -45,9 +45,30 @@ import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
+import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.action_record
+import nz.eloque.quits.resources.cd_back
+import nz.eloque.quits.resources.cd_remove
+import nz.eloque.quits.resources.cd_rename
+import nz.eloque.quits.resources.cd_sync
+import nz.eloque.quits.resources.detail_add_member
+import nz.eloque.quits.resources.detail_add_members_hint
+import nz.eloque.quits.resources.detail_balances
+import nz.eloque.quits.resources.detail_last_synced
+import nz.eloque.quits.resources.detail_local_only
+import nz.eloque.quits.resources.detail_members
+import nz.eloque.quits.resources.detail_not_synced
+import nz.eloque.quits.resources.detail_settle_up
+import nz.eloque.quits.resources.detail_share_group
+import nz.eloque.quits.resources.detail_share_hint
+import nz.eloque.quits.resources.detail_sharing
+import nz.eloque.quits.resources.detail_transfer_row
+import nz.eloque.quits.resources.group_fallback_name
+import nz.eloque.quits.resources.label_share_code
 import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.util.formatDateTime
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -87,10 +108,10 @@ fun GroupDetailScreen(
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.cd_back))
                 }
                 Text(
-                    state.name.ifEmpty { "Group" },
+                    state.name.ifEmpty { stringResource(Res.string.group_fallback_name) },
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.weight(1f),
                 )
@@ -99,7 +120,7 @@ fun GroupDetailScreen(
                         CircularProgressIndicator(Modifier.padding(12.dp).size(20.dp), strokeWidth = 2.dp)
                     } else {
                         IconButton(onClick = viewModel::sync) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Sync")
+                            Icon(Icons.Default.Refresh, contentDescription = stringResource(Res.string.cd_sync))
                         }
                     }
                 }
@@ -119,23 +140,25 @@ fun GroupDetailScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            Section(heading = "Sharing") {
+            Section(heading = stringResource(Res.string.detail_sharing)) {
                 Column(Modifier.padding(8.dp)) {
                     val code = state.shareCode
                     if (code == null) {
-                        Text("This group is on this device only.")
+                        Text(stringResource(Res.string.detail_local_only))
                         Spacer(Modifier.height(8.dp))
-                        Button(onClick = viewModel::share) { Text("Share group") }
+                        Button(onClick = viewModel::share) { Text(stringResource(Res.string.detail_share_group)) }
                     } else {
-                        Text("Share code", style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(Res.string.label_share_code), style = MaterialTheme.typography.labelMedium)
                         Text(code, style = MaterialTheme.typography.headlineSmall)
                         Text(
-                            "Others join with this code to sync.",
+                            stringResource(Res.string.detail_share_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.outline,
                         )
                         Text(
-                            state.lastSyncedAt?.let { "Last synced ${formatDateTime(it)}" } ?: "Not synced yet",
+                            state.lastSyncedAt
+                                ?.let { stringResource(Res.string.detail_last_synced, formatDateTime(it)) }
+                                ?: stringResource(Res.string.detail_not_synced),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.outline,
                         )
@@ -145,10 +168,10 @@ fun GroupDetailScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            Section(heading = "Balances") {
+            Section(heading = stringResource(Res.string.detail_balances)) {
                 Column(Modifier.padding(8.dp)) {
                     if (state.members.isEmpty()) {
-                        Text("Add members to start splitting.")
+                        Text(stringResource(Res.string.detail_add_members_hint))
                     } else {
                         state.members.forEach { member ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -166,7 +189,7 @@ fun GroupDetailScreen(
                         }
                         if (state.transfers.isNotEmpty()) {
                             Spacer(Modifier.height(8.dp))
-                            Text("Settle up", fontWeight = FontWeight.Bold)
+                            Text(stringResource(Res.string.detail_settle_up), fontWeight = FontWeight.Bold)
                             state.transfers.forEach { row ->
                                 Row(
                                     Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -174,11 +197,16 @@ fun GroupDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Text(
-                                        "${row.from} → ${row.to}: ${row.transfer.amount.display()}",
+                                        stringResource(
+                                            Res.string.detail_transfer_row,
+                                            row.from,
+                                            row.to,
+                                            row.transfer.amount.display(),
+                                        ),
                                         Modifier.weight(1f),
                                     )
                                     TextButton(onClick = { viewModel.record(row.transfer) }) {
-                                        Text("Record")
+                                        Text(stringResource(Res.string.action_record))
                                     }
                                 }
                             }
@@ -189,22 +217,22 @@ fun GroupDetailScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            Section(heading = "Members") {
+            Section(heading = stringResource(Res.string.detail_members)) {
                 Column(Modifier.padding(8.dp)) {
                     state.members.forEach { member ->
                         Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(member.name, Modifier.weight(1f))
                             IconButton(onClick = { renaming = member.id to member.name }) {
-                                Icon(Icons.Default.Edit, contentDescription = "Rename ${member.name}")
+                                Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.cd_rename, member.name))
                             }
                             IconButton(onClick = { viewModel.removeMember(member.id) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Remove ${member.name}")
+                                Icon(Icons.Default.Delete, contentDescription = stringResource(Res.string.cd_remove, member.name))
                             }
                         }
                     }
                     Spacer(Modifier.height(8.dp))
                     SubmittableTextField(
-                        label = "Add member",
+                        label = stringResource(Res.string.detail_add_member),
                         imageVector = Icons.Default.Add,
                         onSubmit = viewModel::addMember,
                     )

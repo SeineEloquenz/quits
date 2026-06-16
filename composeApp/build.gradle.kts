@@ -14,6 +14,12 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "nz.eloque.quits.resources"
+    generateResClass = always
+}
+
 kotlin {
     android {
         namespace = "nz.eloque.quits.shared"
