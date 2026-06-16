@@ -9,14 +9,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -35,6 +39,7 @@ import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.LoadingBox
 import org.koin.compose.viewmodel.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupsScreen(
     onOpenGroup: (GroupId) -> Unit,
@@ -43,6 +48,7 @@ fun GroupsScreen(
     val viewModel = koinViewModel<GroupsViewModel>()
     val state by viewModel.state.collectAsState()
     val error by viewModel.error.collectAsState()
+    val refreshing by viewModel.refreshing.collectAsState()
 
     var name by remember { mutableStateOf("") }
     var currency by remember { mutableStateOf(Currency.of("USD")) }
@@ -52,91 +58,97 @@ fun GroupsScreen(
         viewModel.joined.collect { onOpenGroup(it) }
     }
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Quits", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f))
-            IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Default.Settings, contentDescription = "Settings")
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-
-        Section(heading = "New group") {
-            Column(Modifier.padding(8.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(8.dp))
-                CurrencyPicker(
-                    label = "Base currency",
-                    selected = currency,
-                    onSelected = { currency = it },
-                )
-                Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        viewModel.createGroup(name, currency.code)
-                        name = ""
-                    },
-                    enabled = name.isNotBlank(),
-                ) {
-                    Text("Create")
+    PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = viewModel::refresh,
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Quits", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f))
+                IconButton(onClick = onOpenSettings) {
+                    Icon(Icons.Default.Settings, contentDescription = "Settings")
                 }
             }
-        }
+            Spacer(Modifier.height(16.dp))
 
-        Spacer(Modifier.height(8.dp))
-
-        Section(heading = "Join group") {
-            Column(Modifier.padding(8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            Section(heading = "New group") {
+                Column(Modifier.padding(8.dp)) {
                     OutlinedTextField(
-                        value = joinCode,
-                        onValueChange = {
-                            joinCode = it.uppercase()
-                            if (error != null) viewModel.clearError()
-                        },
-                        label = { Text("Share code") },
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Name") },
                         singleLine = true,
-                        isError = error != null,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.height(8.dp))
+                    CurrencyPicker(
+                        label = "Base currency",
+                        selected = currency,
+                        onSelected = { currency = it },
+                    )
+                    Spacer(Modifier.height(8.dp))
                     Button(
-                        onClick = { viewModel.join(joinCode) },
-                        enabled = joinCode.isNotBlank(),
+                        onClick = {
+                            viewModel.createGroup(name, currency.code)
+                            name = ""
+                        },
+                        enabled = name.isNotBlank(),
                     ) {
-                        Text("Join")
+                        Text("Create")
                     }
                 }
-                error?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Section(heading = "Join group") {
+                Column(Modifier.padding(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = joinCode,
+                            onValueChange = {
+                                joinCode = it.uppercase()
+                                if (error != null) viewModel.clearError()
+                            },
+                            label = { Text("Share code") },
+                            singleLine = true,
+                            isError = error != null,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Button(
+                            onClick = { viewModel.join(joinCode) },
+                            enabled = joinCode.isNotBlank(),
+                        ) {
+                            Text("Join")
+                        }
+                    }
+                    error?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
-        }
 
-        Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 
-        Section(heading = "Groups") {
-            if (!state.loaded) {
-                LoadingBox()
-            } else if (state.groups.isEmpty()) {
-                EmptyHint("No groups yet.\nCreate one above, or join with a code.")
-            } else {
-                Column {
-                    state.groups.forEach { group ->
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable { onOpenGroup(group.id) }
-                                .padding(16.dp),
-                        ) {
-                            Text(group.name, Modifier.weight(1f))
-                            Text(group.baseCurrency.code, color = MaterialTheme.colorScheme.outline)
+            Section(heading = "Groups") {
+                if (!state.loaded) {
+                    LoadingBox()
+                } else if (state.groups.isEmpty()) {
+                    EmptyHint("No groups yet.\nCreate one above, or join with a code.")
+                } else {
+                    Column {
+                        state.groups.forEach { group ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onOpenGroup(group.id) }
+                                    .padding(16.dp),
+                            ) {
+                                Text(group.name, Modifier.weight(1f))
+                                Text(group.baseCurrency.code, color = MaterialTheme.colorScheme.outline)
+                            }
                         }
                     }
                 }

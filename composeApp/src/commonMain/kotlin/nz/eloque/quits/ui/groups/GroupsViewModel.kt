@@ -42,6 +42,26 @@ class GroupsViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val _refreshing = MutableStateFlow(false)
+    val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
+
+    init {
+        // Pull updates for every shared group when the list opens.
+        refresh()
+    }
+
+    /** Syncs all shared groups; drives the pull-to-refresh indicator. Failures are swallowed. */
+    fun refresh() {
+        viewModelScope.launch {
+            _refreshing.value = true
+            try {
+                engine.syncAll()
+            } finally {
+                _refreshing.value = false
+            }
+        }
+    }
+
     fun createGroup(
         name: String,
         currencyCode: String,

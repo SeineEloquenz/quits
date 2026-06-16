@@ -21,12 +21,14 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,6 +53,7 @@ import org.koin.core.parameter.parametersOf
 
 private fun Money.display(): String = "${toDecimalString()} ${currency.code}"
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupDetailScreen(
     groupId: GroupId,
@@ -76,174 +79,180 @@ fun GroupDetailScreen(
         )
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-            }
-            Text(
-                state.name.ifEmpty { "Group" },
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.weight(1f),
-            )
-            if (state.shareCode != null) {
-                if (syncStatus == SyncStatus.Syncing) {
-                    CircularProgressIndicator(Modifier.padding(12.dp).size(20.dp), strokeWidth = 2.dp)
-                } else {
-                    IconButton(onClick = viewModel::sync) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Sync")
-                    }
+    PullToRefreshBox(
+        isRefreshing = state.shareCode != null && syncStatus == SyncStatus.Syncing,
+        onRefresh = viewModel::sync,
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
-            }
-        }
-
-        if (!state.loaded) {
-            LoadingBox(Modifier.padding(top = 48.dp))
-            return@Column
-        }
-
-        (syncStatus as? SyncStatus.Failed)?.let { failed ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(failed.message, color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
-                TextButton(onClick = viewModel::dismissError) { Text("Dismiss") }
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        Section(heading = "Sharing") {
-            Column(Modifier.padding(8.dp)) {
-                val code = state.shareCode
-                if (code == null) {
-                    Text("This group is on this device only.")
-                    Spacer(Modifier.height(8.dp))
-                    Button(onClick = viewModel::share) { Text("Share group") }
-                } else {
-                    Text("Share code", style = MaterialTheme.typography.labelMedium)
-                    Text(code, style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        "Others join with this code to sync.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                    Text(
-                        state.lastSyncedAt?.let { "Last synced ${formatDateTime(it)}" } ?: "Not synced yet",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        Section(heading = "Balances") {
-            Column(Modifier.padding(8.dp)) {
-                if (state.members.isEmpty()) {
-                    Text("Add members to start splitting.")
-                } else {
-                    state.members.forEach { member ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Text(member.name, Modifier.weight(1f))
-                            Text(
-                                member.net.display(),
-                                color =
-                                    when {
-                                        member.net.isPositive -> MaterialTheme.colorScheme.primary
-                                        member.net.isNegative -> MaterialTheme.colorScheme.error
-                                        else -> MaterialTheme.colorScheme.onSurface
-                                    },
-                            )
+                Text(
+                    state.name.ifEmpty { "Group" },
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                if (state.shareCode != null) {
+                    if (syncStatus == SyncStatus.Syncing) {
+                        CircularProgressIndicator(Modifier.padding(12.dp).size(20.dp), strokeWidth = 2.dp)
+                    } else {
+                        IconButton(onClick = viewModel::sync) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Sync")
                         }
                     }
-                    if (state.transfers.isNotEmpty()) {
+                }
+            }
+
+            if (!state.loaded) {
+                LoadingBox(Modifier.padding(top = 48.dp))
+                return@Column
+            }
+
+            (syncStatus as? SyncStatus.Failed)?.let { failed ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(failed.message, color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
+                    TextButton(onClick = viewModel::dismissError) { Text("Dismiss") }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Section(heading = "Sharing") {
+                Column(Modifier.padding(8.dp)) {
+                    val code = state.shareCode
+                    if (code == null) {
+                        Text("This group is on this device only.")
                         Spacer(Modifier.height(8.dp))
-                        Text("Settle up", fontWeight = FontWeight.Bold)
-                        state.transfers.forEach { row ->
-                            Row(
-                                Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
+                        Button(onClick = viewModel::share) { Text("Share group") }
+                    } else {
+                        Text("Share code", style = MaterialTheme.typography.labelMedium)
+                        Text(code, style = MaterialTheme.typography.headlineSmall)
+                        Text(
+                            "Others join with this code to sync.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                        Text(
+                            state.lastSyncedAt?.let { "Last synced ${formatDateTime(it)}" } ?: "Not synced yet",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Section(heading = "Balances") {
+                Column(Modifier.padding(8.dp)) {
+                    if (state.members.isEmpty()) {
+                        Text("Add members to start splitting.")
+                    } else {
+                        state.members.forEach { member ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text(member.name, Modifier.weight(1f))
                                 Text(
-                                    "${row.from} → ${row.to}: ${row.transfer.amount.display()}",
-                                    Modifier.weight(1f),
+                                    member.net.display(),
+                                    color =
+                                        when {
+                                            member.net.isPositive -> MaterialTheme.colorScheme.primary
+                                            member.net.isNegative -> MaterialTheme.colorScheme.error
+                                            else -> MaterialTheme.colorScheme.onSurface
+                                        },
                                 )
-                                TextButton(onClick = { viewModel.record(row.transfer) }) {
-                                    Text("Record")
+                            }
+                        }
+                        if (state.transfers.isNotEmpty()) {
+                            Spacer(Modifier.height(8.dp))
+                            Text("Settle up", fontWeight = FontWeight.Bold)
+                            state.transfers.forEach { row ->
+                                Row(
+                                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        "${row.from} → ${row.to}: ${row.transfer.amount.display()}",
+                                        Modifier.weight(1f),
+                                    )
+                                    TextButton(onClick = { viewModel.record(row.transfer) }) {
+                                        Text("Record")
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
 
-        Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 
-        Section(heading = "Members") {
-            Column(Modifier.padding(8.dp)) {
-                state.members.forEach { member ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(member.name, Modifier.weight(1f))
-                        IconButton(onClick = { renaming = member.id to member.name }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Rename ${member.name}")
-                        }
-                        IconButton(onClick = { viewModel.removeMember(member.id) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Remove ${member.name}")
+            Section(heading = "Members") {
+                Column(Modifier.padding(8.dp)) {
+                    state.members.forEach { member ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(member.name, Modifier.weight(1f))
+                            IconButton(onClick = { renaming = member.id to member.name }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Rename ${member.name}")
+                            }
+                            IconButton(onClick = { viewModel.removeMember(member.id) }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Remove ${member.name}")
+                            }
                         }
                     }
+                    Spacer(Modifier.height(8.dp))
+                    SubmittableTextField(
+                        label = "Add member",
+                        imageVector = Icons.Default.Add,
+                        onSubmit = viewModel::addMember,
+                    )
                 }
-                Spacer(Modifier.height(8.dp))
-                SubmittableTextField(
-                    label = "Add member",
-                    imageVector = Icons.Default.Add,
-                    onSubmit = viewModel::addMember,
-                )
             }
-        }
 
-        Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 
-        Section(heading = "Expenses") {
-            Column(Modifier.padding(8.dp)) {
-                if (state.expenses.isEmpty()) {
-                    EmptyHint("No expenses yet.")
-                } else {
-                    state.expenses.forEach { expense ->
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable { onEditExpense(expense.id) }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(expense.title)
-                                Text(
-                                    "paid by ${expense.paidBy}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.outline,
-                                )
-                            }
-                            Text(expense.total.display())
-                            IconButton(onClick = { viewModel.deleteExpense(expense.id) }) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "Delete ${expense.title}",
-                                    tint = MaterialTheme.colorScheme.outline,
-                                )
+            Section(heading = "Expenses") {
+                Column(Modifier.padding(8.dp)) {
+                    if (state.expenses.isEmpty()) {
+                        EmptyHint("No expenses yet.")
+                    } else {
+                        state.expenses.forEach { expense ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onEditExpense(expense.id) }
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(expense.title)
+                                    Text(
+                                        "paid by ${expense.paidBy}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                                Text(expense.total.display())
+                                IconButton(onClick = { viewModel.deleteExpense(expense.id) }) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete ${expense.title}",
+                                        tint = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
                             }
                         }
                     }
-                }
-                Spacer(Modifier.height(12.dp))
-                Button(
-                    onClick = onAddExpense,
-                    enabled = state.members.isNotEmpty(),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(if (state.members.isEmpty()) "Add members first" else "Add expense")
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = onAddExpense,
+                        enabled = state.members.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (state.members.isEmpty()) "Add members first" else "Add expense")
+                    }
                 }
             }
         }
