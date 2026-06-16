@@ -12,6 +12,7 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -40,32 +41,37 @@ class CachingFxRateProviderTest {
     }
 
     @Test
-    fun caches_each_successful_fetch() =
+    fun live_fetch_is_marked_live_and_cached() =
         runTest {
             val delegate = FakeProvider(0.9)
             val caching = CachingFxRateProvider(delegate, db.fxRateDao(), now = { 100 })
 
-            assertEquals(0.9, caching.rate(usd, eur).rate)
+            val result = caching.fetch(usd, eur)
+            assertIs<RateResult.Live>(result)
+            assertEquals(0.9, result.rate.rate)
             assertEquals(0.9, db.fxRateDao().get("USD", "EUR")?.rate)
             assertEquals(100, db.fxRateDao().get("USD", "EUR")?.asOf)
         }
 
     @Test
-    fun falls_back_to_cache_when_offline() =
+    fun falls_back_to_cache_when_offline_with_timestamp() =
         runTest {
             val delegate = FakeProvider(0.9)
             val caching = CachingFxRateProvider(delegate, db.fxRateDao(), now = { 100 })
-            caching.rate(usd, eur) // primes the cache
+            caching.fetch(usd, eur) // primes the cache at asOf=100
 
             delegate.rate = null // go "offline"
-            assertEquals(0.9, caching.rate(usd, eur).rate) // served from cache, no throw
+            val result = caching.fetch(usd, eur)
+            assertIs<RateResult.Cached>(result)
+            assertEquals(0.9, result.rate.rate)
+            assertEquals(100, result.asOf)
         }
 
     @Test
     fun throws_when_offline_with_no_cache() =
         runTest {
             val caching = CachingFxRateProvider(FakeProvider(null), db.fxRateDao(), now = { 100 })
-            assertFailsWith<IllegalStateException> { caching.rate(usd, eur) }
+            assertFailsWith<IllegalStateException> { caching.fetch(usd, eur) }
         }
 
     @Test
@@ -73,7 +79,9 @@ class CachingFxRateProviderTest {
         runTest {
             val delegate = FakeProvider(null) // would throw if called
             val caching = CachingFxRateProvider(delegate, db.fxRateDao(), now = { 100 })
-            assertEquals(1.0, caching.rate(usd, usd).rate)
+            val result = caching.fetch(usd, usd)
+            assertIs<RateResult.Live>(result)
+            assertEquals(1.0, result.rate.rate)
             assertEquals(0, delegate.calls)
         }
 }

@@ -77,13 +77,19 @@ fun ExpenseEditorScreen(
         )
         if (state.isForeign) {
             Spacer(Modifier.height(8.dp))
+            val notice = state.rateNotice
             OutlinedTextField(
                 value = state.rate,
                 onValueChange = viewModel::setRate,
                 label = { Text("Rate → ${state.baseCurrency.code}") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                supportingText = if (state.fetchingRate) ({ Text("Fetching live rate…") }) else null,
+                supportingText =
+                    when {
+                        state.fetchingRate -> ({ Text("Fetching live rate…") })
+                        notice != null -> ({ Text(notice) })
+                        else -> null
+                    },
                 modifier = Modifier.fillMaxWidth(),
             )
         }

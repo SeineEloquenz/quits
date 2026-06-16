@@ -12,12 +12,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import nz.eloque.quits.data.fx.FxRates
+import nz.eloque.quits.data.fx.RateResult
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
-import nz.eloque.quits.domain.FxRateProvider
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
@@ -25,6 +28,8 @@ import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Payment
 import nz.eloque.quits.domain.Split
 import nz.eloque.quits.util.newId
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 enum class SplitKind { EQUAL, SHARES, PERCENTAGE, EXACT }
 
@@ -47,6 +52,7 @@ data class ExpenseEditorUiState(
     val splitInput: Map<String, String> = emptyMap(),
     val error: String? = null,
     val fetchingRate: Boolean = false,
+    val rateNotice: String? = null,
 ) {
     val isForeign: Boolean get() = currency.trim().uppercase() != baseCurrency.code
 }
@@ -54,7 +60,7 @@ data class ExpenseEditorUiState(
 class ExpenseEditorViewModel(
     private val repo: GroupRepository,
     private val engine: SyncEngine,
-    private val fxRateProvider: FxRateProvider,
+    private val fxRates: FxRates,
     private val groupId: GroupId,
     private val expenseId: String?,
 ) : ViewModel() {
@@ -142,18 +148,38 @@ class ExpenseEditorViewModel(
         rateJob?.cancel()
         rateJob =
             viewModelScope.launch {
-                _state.update { it.copy(fetchingRate = true) }
+                _state.update { it.copy(fetchingRate = true, rateNotice = null) }
                 try {
-                    val rate = fxRateProvider.rate(from, to)
-                    _state.update { it.copy(rate = rate.rate.toString(), fetchingRate = false) }
+                    val result = fxRates.fetch(from, to)
+                    _state.update {
+                        it.copy(
+                            rate = result.rate.rate.toString(),
+                            fetchingRate = false,
+                            rateNotice =
+                                when (result) {
+                                    is RateResult.Live -> null
+                                    is RateResult.Cached -> "Offline — using cached rate from ${formatDate(result.asOf)}"
+                                },
+                        )
+                    }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    // Live rate unavailable; keep whatever's in the field for manual entry.
-                    _state.update { it.copy(fetchingRate = false) }
+                    // No live or cached rate; fall back to manual entry.
+                    _state.update {
+                        it.copy(fetchingRate = false, rateNotice = "Couldn't fetch a rate — enter it manually.")
+                    }
                 }
             }
     }
+
+    @OptIn(ExperimentalTime::class)
+    private fun formatDate(epochMillis: Long): String =
+        Instant
+            .fromEpochMilliseconds(epochMillis)
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+            .date
+            .toString()
 
     fun setRate(value: String) = _state.update { it.copy(rate = value) }
 
