@@ -20,6 +20,7 @@ ksp = "2.3.9"
 robolectric = "4.16.1"
 androidxTest = "1.7.0"
 multiplatformSettings = "1.3.0"
+androidxWork = "2.11.2"
 composeKit = "v0.0.8"
 ktlint = "14.2.0"
 
@@ -77,6 +78,9 @@ androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.r
 
 # multiplatform-settings (persisted deviceId + prefs)
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
+
+# WorkManager (Android background sync)
+androidx-work-runtime = { module = "androidx.work:work-runtime", version.ref = "androidxWork" }
 
 # Host-side Android test runtime (Room execution tests on the JVM)
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }

@@ -13,6 +13,9 @@ interface GroupSyncDao {
     @Query("SELECT * FROM group_sync WHERE groupId = :groupId")
     suspend fun byGroup(groupId: String): GroupSyncEntity?
 
+    @Query("SELECT * FROM group_sync")
+    suspend fun all(): List<GroupSyncEntity>
+
     @Query("SELECT * FROM group_sync WHERE groupId = :groupId")
     fun byGroupFlow(groupId: String): Flow<GroupSyncEntity?>
 
@@ -20,5 +23,11 @@ interface GroupSyncDao {
     suspend fun setLastSeq(
         groupId: String,
         lastSeq: Long,
+    )
+
+    @Query("UPDATE group_sync SET lastSyncedAt = :timestamp WHERE groupId = :groupId")
+    suspend fun setLastSyncedAt(
+        groupId: String,
+        timestamp: Long,
     )
 }

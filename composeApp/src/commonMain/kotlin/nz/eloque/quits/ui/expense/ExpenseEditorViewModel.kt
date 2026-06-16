@@ -12,8 +12,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import nz.eloque.quits.data.fx.FxRates
 import nz.eloque.quits.data.fx.RateResult
 import nz.eloque.quits.data.repository.GroupRepository
@@ -27,9 +25,8 @@ import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Payment
 import nz.eloque.quits.domain.Split
+import nz.eloque.quits.util.formatDate
 import nz.eloque.quits.util.newId
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 enum class SplitKind { EQUAL, SHARES, PERCENTAGE, EXACT }
 
@@ -172,14 +169,6 @@ class ExpenseEditorViewModel(
                 }
             }
     }
-
-    @OptIn(ExperimentalTime::class)
-    private fun formatDate(epochMillis: Long): String =
-        Instant
-            .fromEpochMilliseconds(epochMillis)
-            .toLocalDateTime(TimeZone.currentSystemDefault())
-            .date
-            .toString()
 
     fun setRate(value: String) = _state.update { it.copy(rate = value) }
 

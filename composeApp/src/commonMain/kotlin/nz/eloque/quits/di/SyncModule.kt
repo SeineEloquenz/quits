@@ -7,6 +7,7 @@ import nz.eloque.quits.data.sync.RelayClient
 import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.data.sync.SyncSettings
 import nz.eloque.quits.util.newId
+import nz.eloque.quits.util.nowMillis
 import org.koin.dsl.module
 
 /** A stable, per-install device id (LWW tiebreak), generated once and persisted in settings. */
@@ -24,5 +25,5 @@ val syncModule =
         single { DeviceId(resolveDeviceId(get())) }
         single<SyncSettings> { PersistentSyncSettings(get()) }
         single<Relay> { RelayClient(get(), get()) }
-        single { SyncEngine(get(), get(), get<DeviceId>().value) }
+        single { SyncEngine(get(), get(), get<DeviceId>().value, now = { nowMillis() }) }
     }

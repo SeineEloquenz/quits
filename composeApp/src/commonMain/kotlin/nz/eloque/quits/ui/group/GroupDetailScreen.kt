@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +45,7 @@ import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
 import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.LoadingBox
+import nz.eloque.quits.util.formatDateTime
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -57,7 +60,7 @@ fun GroupDetailScreen(
 ) {
     val viewModel = koinViewModel<GroupDetailViewModel> { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
-    val syncError by viewModel.syncError.collectAsState()
+    val syncStatus by viewModel.syncStatus.collectAsState()
 
     // (memberId, currentName) of the member being renamed, or null.
     var renaming by remember { mutableStateOf<Pair<MemberId, String>?>(null) }
@@ -84,8 +87,12 @@ fun GroupDetailScreen(
                 modifier = Modifier.weight(1f),
             )
             if (state.shareCode != null) {
-                IconButton(onClick = viewModel::sync) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Sync")
+                if (syncStatus == SyncStatus.Syncing) {
+                    CircularProgressIndicator(Modifier.padding(12.dp).size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    IconButton(onClick = viewModel::sync) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Sync")
+                    }
                 }
             }
         }
@@ -95,10 +102,10 @@ fun GroupDetailScreen(
             return@Column
         }
 
-        syncError?.let {
+        (syncStatus as? SyncStatus.Failed)?.let { failed ->
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
-                TextButton(onClick = viewModel::dismissSyncError) { Text("Dismiss") }
+                Text(failed.message, color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
+                TextButton(onClick = viewModel::dismissError) { Text("Dismiss") }
             }
         }
 
@@ -116,6 +123,11 @@ fun GroupDetailScreen(
                     Text(code, style = MaterialTheme.typography.headlineSmall)
                     Text(
                         "Others join with this code to sync.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    Text(
+                        state.lastSyncedAt?.let { "Last synced ${formatDateTime(it)}" } ?: "Not synced yet",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )

@@ -52,6 +52,7 @@ data class GroupDetailUiState(
     val transfers: List<TransferRow> = emptyList(),
     val expenses: List<ExpenseRow> = emptyList(),
     val shareCode: String? = null,
+    val lastSyncedAt: Long? = null,
 )
 
 class GroupDetailViewModel(
@@ -60,12 +61,12 @@ class GroupDetailViewModel(
     private val groupId: GroupId,
 ) : ViewModel() {
     val state: StateFlow<GroupDetailUiState> =
-        combine(repo.groupFlow(groupId), engine.shareCodeFlow(groupId)) { group, code ->
-            (group?.toUiState() ?: GroupDetailUiState()).copy(shareCode = code)
+        combine(repo.groupFlow(groupId), engine.syncInfoFlow(groupId)) { group, info ->
+            (group?.toUiState() ?: GroupDetailUiState()).copy(shareCode = info.code, lastSyncedAt = info.lastSyncedAt)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupDetailUiState())
 
-    private val _syncError = MutableStateFlow<String?>(null)
-    val syncError: StateFlow<String?> = _syncError.asStateFlow()
+    private val _syncStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
+    val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
 
     init {
         // Pull the latest on open (no-op for a local-only group).
@@ -75,13 +76,14 @@ class GroupDetailViewModel(
     /** Registers the group with the relay and shows its share code. */
     fun share() {
         viewModelScope.launch {
+            _syncStatus.value = SyncStatus.Syncing
             try {
                 engine.share(groupId)
-                _syncError.value = null
+                _syncStatus.value = SyncStatus.Idle
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _syncError.value = "Couldn't reach the relay: ${e.message}"
+                _syncStatus.value = SyncStatus.Failed("Couldn't reach the relay: ${e.message}")
             }
         }
     }
@@ -91,8 +93,8 @@ class GroupDetailViewModel(
         viewModelScope.launch { trySync() }
     }
 
-    fun dismissSyncError() {
-        _syncError.value = null
+    fun dismissError() {
+        if (_syncStatus.value is SyncStatus.Failed) _syncStatus.value = SyncStatus.Idle
     }
 
     fun addMember(name: String) {
@@ -121,7 +123,7 @@ class GroupDetailViewModel(
             if (repo.removeMember(groupId, id)) {
                 trySync()
             } else {
-                _syncError.value = "Can't remove a member who's in an expense or settlement."
+                _syncStatus.value = SyncStatus.Failed("Can't remove a member who's in an expense or settlement.")
             }
         }
     }
@@ -146,15 +148,26 @@ class GroupDetailViewModel(
 
     /** Syncs without letting a network failure crash the app; the local change is already saved. */
     private suspend fun trySync() {
+        _syncStatus.value = SyncStatus.Syncing
         try {
             engine.sync(groupId)
-            _syncError.value = null
+            _syncStatus.value = SyncStatus.Idle
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            _syncError.value = "Sync failed: ${e.message}"
+            _syncStatus.value = SyncStatus.Failed("Sync failed: ${e.message}")
         }
     }
+}
+
+sealed interface SyncStatus {
+    data object Idle : SyncStatus
+
+    data object Syncing : SyncStatus
+
+    data class Failed(
+        val message: String,
+    ) : SyncStatus
 }
 
 private fun Group.toUiState(): GroupDetailUiState {

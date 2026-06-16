@@ -1,5 +1,6 @@
 package nz.eloque.quits.data.sync
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import nz.eloque.quits.data.db.GroupSyncEntity
@@ -15,6 +16,7 @@ class SyncEngine(
     private val db: QuitsDatabase,
     private val relay: Relay,
     private val deviceId: String,
+    private val now: () -> Long = { 0L },
 ) {
     /** Registers a local group with the relay and pushes its current state. Returns the share handle. */
     suspend fun share(localGroupId: GroupId): GroupHandle {
@@ -37,14 +39,33 @@ class SyncEngine(
     /** Whether [localGroupId] has a relay handle (i.e. is shared/joined). */
     suspend fun isSynced(localGroupId: GroupId): Boolean = db.groupSyncDao().byGroup(localGroupId.value) != null
 
-    /** The share code for [localGroupId] as a reactive stream; null until the group is shared/joined. */
-    fun shareCodeFlow(localGroupId: GroupId): Flow<String?> = db.groupSyncDao().byGroupFlow(localGroupId.value).map { it?.code }
+    /** Reactive sync info (share code + last-synced time) for [localGroupId]; null fields until shared. */
+    fun syncInfoFlow(localGroupId: GroupId): Flow<SyncInfo> =
+        db.groupSyncDao().byGroupFlow(localGroupId.value).map {
+            SyncInfo(code = it?.code, lastSyncedAt = it?.lastSyncedAt?.takeIf { ts -> ts > 0 })
+        }
+
+    /** Syncs every shared group; returns false if any group failed (so the worker can retry). */
+    suspend fun syncAll(): Boolean {
+        var ok = true
+        db.groupSyncDao().all().forEach { handle ->
+            try {
+                sync(GroupId(handle.groupId))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                ok = false
+            }
+        }
+        return ok
+    }
 
     /** Pushes local changes then pulls remote ones. No-op (false) for a local-only group. */
     suspend fun sync(localGroupId: GroupId): Boolean {
         val handle = db.groupSyncDao().byGroup(localGroupId.value) ?: return false
         push(localGroupId.value, handle)
         pull(localGroupId.value)
+        db.groupSyncDao().setLastSyncedAt(localGroupId.value, now())
         return true
     }
 

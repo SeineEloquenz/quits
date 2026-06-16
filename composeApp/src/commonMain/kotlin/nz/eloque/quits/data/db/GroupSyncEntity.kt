@@ -14,4 +14,6 @@ data class GroupSyncEntity(
     val code: String,
     val token: String,
     val lastSeq: Long = 0,
+    /** When this device last completed a sync of the group (epoch millis); 0 = never. */
+    val lastSyncedAt: Long = 0,
 )

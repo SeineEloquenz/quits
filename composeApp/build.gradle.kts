@@ -71,6 +71,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
+            implementation(libs.androidx.work.runtime)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
