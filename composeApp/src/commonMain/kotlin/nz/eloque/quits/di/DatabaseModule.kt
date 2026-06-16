@@ -15,7 +15,6 @@ val databaseModule =
             get<RoomDatabase.Builder<QuitsDatabase>>()
                 .setDriver(BundledSQLiteDriver())
                 .setQueryCoroutineContext(Dispatchers.Default)
-                .fallbackToDestructiveMigration(dropAllTables = true)
                 .build()
         }
         single { get<QuitsDatabase>().groupSyncDao() }
