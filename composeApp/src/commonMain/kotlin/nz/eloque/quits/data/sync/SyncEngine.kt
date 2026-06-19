@@ -86,10 +86,16 @@ class SyncEngine(
         if (records.isEmpty()) return
 
         val applied = relay.push(handle.remoteId, handle.token, records).applied.toSet()
-        if (group != null && RecordMapper.GROUP_RECORD_ID in applied) db.groupDao().clearDirty(gid)
-        members.filter { it.id in applied }.forEach { db.memberDao().clearDirty(it.id) }
-        expenses.filter { it.expense.id in applied }.forEach { db.expenseDao().clearDirty(it.expense.id) }
-        settlements.filter { it.id in applied }.forEach { db.settlementDao().clearDirty(it.id) }
+        // Clear dirty keyed on the pushed (updatedAt, deviceId): if the row was edited again during
+        // the round-trip its clock moved, the guarded update no-ops, and the edit stays pending.
+        if (group != null && RecordMapper.GROUP_RECORD_ID in applied) {
+            db.groupDao().clearDirty(gid, group.sync.updatedAt, group.sync.deviceId)
+        }
+        members.filter { it.id in applied }.forEach { db.memberDao().clearDirty(it.id, it.sync.updatedAt, it.sync.deviceId) }
+        expenses.filter { it.expense.id in applied }.forEach {
+            db.expenseDao().clearDirty(it.expense.id, it.expense.sync.updatedAt, it.expense.sync.deviceId)
+        }
+        settlements.filter { it.id in applied }.forEach { db.settlementDao().clearDirty(it.id, it.sync.updatedAt, it.sync.deviceId) }
     }
 
     private suspend fun pull(gid: String) {

@@ -28,8 +28,13 @@ interface GroupDao {
     @Query("DELETE FROM groups WHERE id = :id")
     suspend fun delete(id: String)
 
-    @Query("UPDATE groups SET dirty = 0 WHERE id = :id")
-    suspend fun clearDirty(id: String)
+    /** Clears dirty only if the row is unchanged since it was pushed, so a concurrent edit survives. */
+    @Query("UPDATE groups SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt AND deviceId = :deviceId")
+    suspend fun clearDirty(
+        id: String,
+        updatedAt: Long,
+        deviceId: String,
+    )
 }
 
 @Dao
@@ -56,8 +61,13 @@ interface MemberDao {
     @Query("SELECT * FROM member WHERE groupId = :groupId AND dirty = 1")
     suspend fun dirty(groupId: String): List<MemberEntity>
 
-    @Query("UPDATE member SET dirty = 0 WHERE id = :id")
-    suspend fun clearDirty(id: String)
+    /** Clears dirty only if the row is unchanged since it was pushed, so a concurrent edit survives. */
+    @Query("UPDATE member SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt AND deviceId = :deviceId")
+    suspend fun clearDirty(
+        id: String,
+        updatedAt: Long,
+        deviceId: String,
+    )
 
     @Query("UPDATE member SET deleted = 1, dirty = 1, updatedAt = :updatedAt, deviceId = :deviceId WHERE id = :id")
     suspend fun tombstone(
@@ -121,8 +131,13 @@ interface ExpenseDao {
     @Query("SELECT * FROM expense WHERE groupId = :groupId AND dirty = 1")
     suspend fun dirty(groupId: String): List<ExpenseWithLines>
 
-    @Query("UPDATE expense SET dirty = 0 WHERE id = :id")
-    suspend fun clearDirty(id: String)
+    /** Clears dirty only if the row is unchanged since it was pushed, so a concurrent edit survives. */
+    @Query("UPDATE expense SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt AND deviceId = :deviceId")
+    suspend fun clearDirty(
+        id: String,
+        updatedAt: Long,
+        deviceId: String,
+    )
 
     @Query("UPDATE expense SET deleted = 1, dirty = 1, updatedAt = :updatedAt, deviceId = :deviceId WHERE id = :id")
     suspend fun tombstone(
@@ -149,8 +164,13 @@ interface SettlementDao {
     @Query("SELECT * FROM settlement WHERE groupId = :groupId AND dirty = 1")
     suspend fun dirty(groupId: String): List<SettlementEntity>
 
-    @Query("UPDATE settlement SET dirty = 0 WHERE id = :id")
-    suspend fun clearDirty(id: String)
+    /** Clears dirty only if the row is unchanged since it was pushed, so a concurrent edit survives. */
+    @Query("UPDATE settlement SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt AND deviceId = :deviceId")
+    suspend fun clearDirty(
+        id: String,
+        updatedAt: Long,
+        deviceId: String,
+    )
 }
 
 @Dao
