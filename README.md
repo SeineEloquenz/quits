@@ -37,11 +37,6 @@ cargo test
 nix build .#server-image           # OCI image: docker load < result
 ```
 
-## Status
-
-Phase 1 (scaffold) — Nix flake, Cargo workspace, `/health`, CI. See the implementation plan for
-the roadmap; each phase ends in a buildable, verifiable state.
-
 ## License
 
 AGPL-3.0-or-later.
