@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Quits</string>
+
+    <!-- Generic actions / labels -->
+    <string name="action_create">Erstellen</string>
+    <string name="action_join">Beitreten</string>
+    <string name="action_save">Speichern</string>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="action_reset">Zurücksetzen</string>
+    <string name="action_record">Verbuchen</string>
+    <string name="action_dismiss">Schließen</string>
+    <string name="label_name">Name</string>
+    <string name="label_share_code">Freigabecode</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_settings">Einstellungen</string>
+    <string name="cd_back">Zurück</string>
+    <string name="cd_sync">Synchronisieren</string>
+    <string name="cd_rename">%1$s umbenennen</string>
+    <string name="cd_remove">%1$s entfernen</string>
+    <string name="cd_delete">%1$s löschen</string>
+
+    <!-- Groups list -->
+    <string name="groups_new_group">Neue Gruppe</string>
+    <string name="groups_base_currency">Basiswährung</string>
+    <string name="groups_join_group">Gruppe beitreten</string>
+    <string name="groups_heading">Gruppen</string>
+    <string name="groups_empty">Noch keine Gruppen.\nErstelle oben eine oder tritt mit einem Code bei.</string>
+    <string name="groups_join_not_found">Keine Gruppe für Code \"%1$s\" gefunden</string>
+
+    <!-- Group detail -->
+    <string name="group_fallback_name">Gruppe</string>
+    <string name="detail_sharing">Freigabe</string>
+    <string name="detail_local_only">Diese Gruppe ist nur lokal.</string>
+    <string name="detail_share_group">Gruppe freigeben</string>
+    <string name="detail_share_hint">Andere treten mit diesem Code der Gruppe bei.</string>
+    <string name="detail_last_synced">Zuletzt synchronisiert %1$s</string>
+    <string name="detail_not_synced">Noch nicht synchronisiert</string>
+    <string name="detail_balances">Salden</string>
+    <string name="detail_add_members_hint">Füge Mitglieder hinzu, um aufzuteilen.</string>
+    <string name="detail_settle_up">Ausgleichen</string>
+    <string name="detail_transfer_row">%1$s → %2$s: %3$s</string>
+    <string name="detail_members">Mitglieder</string>
+    <string name="detail_add_member">Mitglied hinzufügen</string>
+    <string name="detail_expenses">Ausgaben</string>
+    <string name="detail_expenses_empty">Noch keine Ausgaben.</string>
+    <string name="detail_paid_by">bezahlt von %1$s</string>
+    <string name="detail_add_members_first">Erst Mitglieder hinzufügen</string>
+    <string name="detail_add_expense">Ausgabe hinzufügen</string>
+    <string name="dialog_rename_title">Mitglied umbenennen</string>
+
+    <!-- Expense editor -->
+    <string name="editor_title_add">Ausgabe hinzufügen</string>
+    <string name="editor_title_edit">Ausgabe bearbeiten</string>
+    <string name="editor_label_title">Titel</string>
+    <string name="editor_label_currency">Währung</string>
+    <string name="editor_label_rate">Kurs → %1$s</string>
+    <string name="editor_rate_fetching">Live-Kurs wird abgerufen…</string>
+    <string name="editor_paid_by">Bezahlt von</string>
+    <string name="editor_split">Aufteilung</string>
+    <string name="editor_split_equal">Gleich</string>
+    <string name="editor_split_shares">Anteile</string>
+    <string name="editor_split_percentage">Prozent</string>
+    <string name="editor_split_exact">Exakt</string>
+    <string name="editor_placeholder_shares">Anteile</string>
+    <string name="editor_placeholder_percent">%</string>
+    <string name="editor_placeholder_amount">Betrag</string>
+    <string name="editor_save_changes">Änderungen speichern</string>
+    <string name="editor_save_expense">Ausgabe speichern</string>
+    <string name="editor_expense_fallback_title">Ausgabe</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_sync">Synchronisierung</string>
+    <string name="settings_relay_url">Relay-URL</string>
+    <string name="settings_relay_hint">Der Sync-Server. Standard: %1$s (funktioniert vom Android-Emulator).</string>
+    <string name="settings_saved">Gespeichert</string>
+
+    <!-- Currency picker -->
+    <string name="search_currency">Währung suchen</string>
+
+    <!-- Errors / notices -->
+    <string name="error_relay_unreachable">Relay nicht erreichbar: %1$s</string>
+    <string name="error_member_in_use">Ein Mitglied, das an einer Ausgabe oder einem Ausgleich beteiligt ist, kann nicht entfernt werden.</string>
+    <string name="error_sync_failed">Synchronisierung fehlgeschlagen: %1$s</string>
+    <string name="rate_cached">Offline - zwischengespeicherter Kurs vom %1$s wird verwendet</string>
+    <string name="rate_fetch_failed">Kurs konnte nicht abgerufen werden - bitte manuell eingeben.</string>
+    <string name="error_currency_code">Währung muss ein 3-Buchstaben-Code sein</string>
+    <string name="error_invalid_rate">Gib einen gültigen Wechselkurs zu %1$s ein</string>
+    <string name="error_invalid_paid">Ungültiger gezahlter Betrag für %1$s</string>
+    <string name="error_no_payer">Gib ein, wer wie viel bezahlt hat</string>
+    <string name="error_invalid_split">Ungültige Aufteilung</string>
+    <string name="error_invalid_expense">Ungültige Ausgabe</string>
+    <string name="error_no_participant">Wähle mindestens eine Person aus</string>
+    <string name="error_invalid_share">Ungültiger Anteil für %1$s</string>
+    <string name="error_no_share">Gib mindestens einen Anteil ein</string>
+    <string name="error_invalid_percent">Ungültiger Prozentsatz für %1$s</string>
+    <string name="error_invalid_amount">Ungültiger Betrag für %1$s</string>
+    <string name="error_no_exact">Gib exakte Beträge ein</string>
+</resources>

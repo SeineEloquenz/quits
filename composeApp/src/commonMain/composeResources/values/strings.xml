@@ -85,7 +85,7 @@
     <string name="error_member_in_use">Can\'t remove a member who\'s in an expense or settlement.</string>
     <string name="error_sync_failed">Sync failed: %1$s</string>
     <string name="rate_cached">Offline — using cached rate from %1$s</string>
-    <string name="rate_fetch_failed">Couldn\'t fetch a rate — enter it manually.</string>
+    <string name="rate_fetch_failed">Couldn\'t fetch a rate - enter it manually.</string>
     <string name="error_currency_code">Currency must be a 3-letter code</string>
     <string name="error_invalid_rate">Enter a valid exchange rate to %1$s</string>
     <string name="error_invalid_paid">Invalid paid amount for %1$s</string>
