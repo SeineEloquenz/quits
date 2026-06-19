@@ -19,6 +19,9 @@ pub enum AppError {
     #[error("not found")]
     NotFound,
 
+    #[error("internal error: {0}")]
+    Internal(String),
+
     #[error(transparent)]
     Database(#[from] sqlx::Error),
 }
@@ -30,6 +33,11 @@ impl IntoResponse for AppError {
             AppError::Unauthorized => StatusCode::UNAUTHORIZED,
             AppError::Forbidden => StatusCode::FORBIDDEN,
             AppError::NotFound => StatusCode::NOT_FOUND,
+            AppError::Internal(e) => {
+                // Internal details are logged, never returned to the client.
+                tracing::error!("internal error: {e}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
             AppError::Database(e) => {
                 // Internal details are logged, never returned to the client.
                 tracing::error!("database error: {e}");
@@ -38,7 +46,7 @@ impl IntoResponse for AppError {
         };
 
         let message = match &self {
-            AppError::Database(_) => "internal error".to_string(),
+            AppError::Database(_) | AppError::Internal(_) => "internal error".to_string(),
             other => other.to_string(),
         };
 

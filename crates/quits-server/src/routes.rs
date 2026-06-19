@@ -140,8 +140,13 @@ pub async fn create_group(
 
     let id = Uuid::new_v4().to_string();
     let created_at = now_ms() as i64;
+
+    // Retry on the (astronomically unlikely) chance of a share-code collision, regenerating the
+    // code each time. `code` always holds the value that was actually inserted on success.
+    const MAX_CODE_ATTEMPTS: usize = 5;
     let mut code = generate_code();
-    for attempt in 0..3 {
+    let mut inserted = false;
+    for _ in 0..MAX_CODE_ATTEMPTS {
         match sqlx::query("INSERT INTO groups (id, code, created_at) VALUES (?, ?, ?)")
             .bind(&id)
             .bind(&code)
@@ -149,12 +154,20 @@ pub async fn create_group(
             .execute(&state.db)
             .await
         {
-            Ok(_) => break,
-            Err(sqlx::Error::Database(e)) if e.is_unique_violation() && attempt < 4 => {
+            Ok(_) => {
+                inserted = true;
+                break;
+            }
+            Err(sqlx::Error::Database(e)) if e.is_unique_violation() => {
                 code = generate_code();
             }
             Err(e) => return Err(e.into()),
         }
+    }
+    if !inserted {
+        return Err(AppError::Internal(
+            "could not allocate a unique group code".into(),
+        ));
     }
 
     let token = issue_token(
