@@ -68,6 +68,30 @@ class GroupTest {
     }
 
     @Test
+    fun foreign_expense_balances_net_to_zero_despite_rounding() {
+        // 100.00 EUR paid by A, split equally A/B/C; base USD at 1.1. Converting the three 33.3x
+        // shares one by one wouldn't sum to the converted total, yet the group must net to zero.
+        val expense =
+            Expense(
+                ExpenseId("e"),
+                "Dinner",
+                listOf(Payment(a, Money(10000, EUR))),
+                Split.Equal(listOf(a, b, c)),
+                rateToBase = 1.1,
+            )
+        val balances = Group(GroupId("g"), "g", USD, members, listOf(expense)).balances()
+        assertEquals(0L, balances.net.values.sumOf { it.minorUnits })
+
+        // Settling the suggested transfers clears everyone exactly.
+        val net = balances.net.mapValues { it.value.minorUnits }.toMutableMap()
+        for (t in balances.simplify()) {
+            net[t.from] = net.getValue(t.from) + t.amount.minorUnits
+            net[t.to] = net.getValue(t.to) - t.amount.minorUnits
+        }
+        assertTrue(net.values.all { it == 0L })
+    }
+
+    @Test
     fun references_reports_members_used_by_expenses_or_settlements() {
         val group =
             Group(

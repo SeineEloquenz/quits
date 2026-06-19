@@ -74,7 +74,7 @@ sealed interface Split {
  * the largest fractional remainders so the parts sum exactly to [total]. Deterministic: ties break
  * by member id, so every device computes identical shares.
  */
-private fun distribute(
+internal fun distribute(
     total: Money,
     members: List<MemberId>,
     weights: List<Long>,

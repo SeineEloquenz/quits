@@ -54,26 +54,41 @@ class Group(
             }
     }
 
-    /** Net balance per member, converting every amount to [baseCurrency] via its captured rate. */
+    /**
+     * Net balance per member in [baseCurrency]. Each expense (and each settlement) is converted as a
+     * single unit, then its converted total is split across payers and across share-holders by the
+     * same largest-remainder method the split uses. Both sides therefore sum to exactly the converted
+     * total and cancel, so the group nets to zero even across currencies where per-amount rounding
+     * otherwise would not.
+     */
     fun balances(): Balances {
         val net = members.associate { it.id to 0L }.toMutableMap()
 
-        fun add(
+        fun credit(
             member: MemberId,
-            amount: Money,
-            rateToBase: Double,
+            minorUnits: Long,
         ) {
-            val converted = ExchangeRate(amount.currency, baseCurrency, rateToBase).convert(amount)
-            net[member] = (net[member] ?: 0L) + converted.minorUnits
+            net[member] = (net[member] ?: 0L) + minorUnits
         }
 
         for (expense in expenses) {
-            expense.payments.forEach { add(it.payer, it.amount, expense.rateToBase) }
-            expense.shares.forEach { (member, share) -> add(member, -share, expense.rateToBase) }
+            val baseTotal = ExchangeRate(expense.currency, baseCurrency, expense.rateToBase).convert(expense.total)
+            if (!baseTotal.isPositive) continue // nothing to allocate; both sides would be zero
+            val paidByMember = expense.payments.groupBy { it.payer }.mapValues { (_, ps) -> ps.sumOf { it.amount.minorUnits } }
+            val payers = paidByMember.keys.toList()
+            distribute(baseTotal, payers, payers.map { paidByMember.getValue(it) })
+                .forEach { (member, share) -> credit(member, share.minorUnits) }
+            val owers = expense.shares.keys.toList()
+            distribute(baseTotal, owers, owers.map { expense.shares.getValue(it).minorUnits })
+                .forEach { (member, share) -> credit(member, -share.minorUnits) }
         }
         for (settlement in settlements) {
-            add(settlement.from, settlement.amount, settlement.rateToBase)
-            add(settlement.to, -settlement.amount, settlement.rateToBase)
+            val converted =
+                ExchangeRate(settlement.amount.currency, baseCurrency, settlement.rateToBase)
+                    .convert(settlement.amount)
+                    .minorUnits
+            credit(settlement.from, converted)
+            credit(settlement.to, -converted)
         }
 
         return Balances(baseCurrency, net.mapValues { Money(it.value, baseCurrency) })
