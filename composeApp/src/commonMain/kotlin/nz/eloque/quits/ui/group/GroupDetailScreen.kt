@@ -46,24 +46,35 @@ import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
 import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.action_cancel
+import nz.eloque.quits.resources.action_dismiss
 import nz.eloque.quits.resources.action_record
+import nz.eloque.quits.resources.action_save
 import nz.eloque.quits.resources.cd_back
+import nz.eloque.quits.resources.cd_delete
 import nz.eloque.quits.resources.cd_remove
 import nz.eloque.quits.resources.cd_rename
 import nz.eloque.quits.resources.cd_sync
+import nz.eloque.quits.resources.detail_add_expense
 import nz.eloque.quits.resources.detail_add_member
+import nz.eloque.quits.resources.detail_add_members_first
 import nz.eloque.quits.resources.detail_add_members_hint
 import nz.eloque.quits.resources.detail_balances
+import nz.eloque.quits.resources.detail_expenses
+import nz.eloque.quits.resources.detail_expenses_empty
 import nz.eloque.quits.resources.detail_last_synced
 import nz.eloque.quits.resources.detail_local_only
 import nz.eloque.quits.resources.detail_members
 import nz.eloque.quits.resources.detail_not_synced
+import nz.eloque.quits.resources.detail_paid_by
 import nz.eloque.quits.resources.detail_settle_up
 import nz.eloque.quits.resources.detail_share_group
 import nz.eloque.quits.resources.detail_share_hint
 import nz.eloque.quits.resources.detail_sharing
 import nz.eloque.quits.resources.detail_transfer_row
+import nz.eloque.quits.resources.dialog_rename_title
 import nz.eloque.quits.resources.group_fallback_name
+import nz.eloque.quits.resources.label_name
 import nz.eloque.quits.resources.label_share_code
 import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.LoadingBox
@@ -134,7 +145,7 @@ fun GroupDetailScreen(
             (syncStatus as? SyncStatus.Failed)?.let { failed ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(failed.message, color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
-                    TextButton(onClick = viewModel::dismissError) { Text("Dismiss") }
+                    TextButton(onClick = viewModel::dismissError) { Text(stringResource(Res.string.action_dismiss)) }
                 }
             }
 
@@ -241,10 +252,10 @@ fun GroupDetailScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            Section(heading = "Expenses") {
+            Section(heading = stringResource(Res.string.detail_expenses)) {
                 Column(Modifier.padding(8.dp)) {
                     if (state.expenses.isEmpty()) {
-                        EmptyHint("No expenses yet.")
+                        EmptyHint(stringResource(Res.string.detail_expenses_empty))
                     } else {
                         state.expenses.forEach { expense ->
                             Row(
@@ -257,7 +268,7 @@ fun GroupDetailScreen(
                                 Column(Modifier.weight(1f)) {
                                     Text(expense.title)
                                     Text(
-                                        "paid by ${expense.paidBy}",
+                                        stringResource(Res.string.detail_paid_by, expense.paidBy),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.outline,
                                     )
@@ -266,7 +277,7 @@ fun GroupDetailScreen(
                                 IconButton(onClick = { viewModel.deleteExpense(expense.id) }) {
                                     Icon(
                                         Icons.Default.Delete,
-                                        contentDescription = "Delete ${expense.title}",
+                                        contentDescription = stringResource(Res.string.cd_delete, expense.title),
                                         tint = MaterialTheme.colorScheme.outline,
                                     )
                                 }
@@ -279,7 +290,13 @@ fun GroupDetailScreen(
                         enabled = state.members.isNotEmpty(),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(if (state.members.isEmpty()) "Add members first" else "Add expense")
+                        Text(
+                            if (state.members.isEmpty()) {
+                                stringResource(Res.string.detail_add_members_first)
+                            } else {
+                                stringResource(Res.string.detail_add_expense)
+                            },
+                        )
                     }
                 }
             }
@@ -296,20 +313,20 @@ private fun RenameMemberDialog(
     var name by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Rename member") },
+        title = { Text(stringResource(Res.string.dialog_rename_title)) },
         text = {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Name") },
+                label = { Text(stringResource(Res.string.label_name)) },
                 singleLine = true,
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) { Text("Save") }
+            TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) { Text(stringResource(Res.string.action_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
         },
     )
 }

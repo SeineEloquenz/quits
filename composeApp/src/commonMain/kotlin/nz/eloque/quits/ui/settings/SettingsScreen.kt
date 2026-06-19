@@ -21,15 +21,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.components.Section
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_reset
+import nz.eloque.quits.resources.action_save
+import nz.eloque.quits.resources.cd_back
 import nz.eloque.quits.resources.settings_relay_hint
 import nz.eloque.quits.resources.settings_relay_url
 import nz.eloque.quits.resources.settings_saved
 import nz.eloque.quits.resources.settings_sync
+import nz.eloque.quits.resources.settings_title
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -41,9 +43,9 @@ fun SettingsScreen(onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.cd_back))
             }
-            Text("Settings", style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(Res.string.settings_title), style = MaterialTheme.typography.headlineMedium)
         }
 
         Spacer(Modifier.height(8.dp))
@@ -66,11 +68,11 @@ fun SettingsScreen(onBack: () -> Unit) {
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Button(onClick = viewModel::save, enabled = state.relayUrl.isNotBlank()) {
-                        Text(stringResource(Res.string.settings_saved))
+                        Text(stringResource(Res.string.action_save))
                     }
                     TextButton(onClick = viewModel::resetToDefault) { Text(stringResource(Res.string.action_reset)) }
                     if (state.saved) {
-                        Text("Saved", color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(Res.string.settings_saved), color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }

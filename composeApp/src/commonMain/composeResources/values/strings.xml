@@ -9,6 +9,7 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_reset">Reset</string>
     <string name="action_record">Record</string>
+    <string name="action_dismiss">Dismiss</string>
     <string name="label_name">Name</string>
     <string name="label_share_code">Share code</string>
 

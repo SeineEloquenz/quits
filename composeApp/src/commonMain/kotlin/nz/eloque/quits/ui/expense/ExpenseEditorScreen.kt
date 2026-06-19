@@ -43,6 +43,10 @@ import nz.eloque.quits.resources.editor_rate_fetching
 import nz.eloque.quits.resources.editor_save_changes
 import nz.eloque.quits.resources.editor_save_expense
 import nz.eloque.quits.resources.editor_split
+import nz.eloque.quits.resources.editor_split_equal
+import nz.eloque.quits.resources.editor_split_exact
+import nz.eloque.quits.resources.editor_split_percentage
+import nz.eloque.quits.resources.editor_split_shares
 import nz.eloque.quits.resources.editor_title_add
 import nz.eloque.quits.resources.editor_title_edit
 import nz.eloque.quits.ui.components.CurrencyPicker
@@ -97,7 +101,7 @@ fun ExpenseEditorScreen(
             OutlinedTextField(
                 value = state.rate,
                 onValueChange = viewModel::setRate,
-                label = { Text("${stringResource(Res.string.editor_label_rate)} → ${state.baseCurrency.code}") },
+                label = { Text(stringResource(Res.string.editor_label_rate, state.baseCurrency.code)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 supportingText =
@@ -139,7 +143,7 @@ fun ExpenseEditorScreen(
                         FilterChip(
                             selected = state.splitKind == kind,
                             onClick = { viewModel.setKind(kind) },
-                            label = { Text(kind.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                            label = { Text(splitLabel(kind)) },
                         )
                     }
                 }
@@ -203,6 +207,15 @@ fun ExpenseEditorScreen(
         }
     }
 }
+
+@Composable
+private fun splitLabel(kind: SplitKind): String =
+    when (kind) {
+        SplitKind.EQUAL -> stringResource(Res.string.editor_split_equal)
+        SplitKind.SHARES -> stringResource(Res.string.editor_split_shares)
+        SplitKind.PERCENTAGE -> stringResource(Res.string.editor_split_percentage)
+        SplitKind.EXACT -> stringResource(Res.string.editor_split_exact)
+    }
 
 @Composable
 private fun splitPlaceholder(kind: SplitKind): String =
