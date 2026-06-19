@@ -43,6 +43,13 @@ interface MemberDao {
     @Query("SELECT * FROM member WHERE groupId = :groupId AND deleted = 0")
     fun forGroupFlow(groupId: String): Flow<List<MemberEntity>>
 
+    /** Includes tombstoned members; callers keep only those still referenced by live records. */
+    @Query("SELECT * FROM member WHERE groupId = :groupId")
+    suspend fun forGroupWithDeleted(groupId: String): List<MemberEntity>
+
+    @Query("SELECT * FROM member WHERE groupId = :groupId")
+    fun forGroupWithDeletedFlow(groupId: String): Flow<List<MemberEntity>>
+
     @Query("SELECT * FROM member WHERE id = :id")
     suspend fun byId(id: String): MemberEntity?
 

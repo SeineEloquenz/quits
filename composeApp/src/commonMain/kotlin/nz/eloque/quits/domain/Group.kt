@@ -30,9 +30,29 @@ class Group(
     }
 
     /** Whether [member] is referenced by any expense (payer/share) or settlement. */
-    fun references(member: MemberId): Boolean =
-        expenses.any { expense -> expense.payments.any { it.payer == member } || member in expense.shares.keys } ||
-            settlements.any { it.from == member || it.to == member }
+    fun references(member: MemberId): Boolean = member in referencedMemberIds(expenses, settlements)
+
+    companion object {
+        /**
+         * Member ids referenced by any of [expenses] or [settlements] (as a payer, a share holder, or
+         * a settlement party). Lets a reconstructed aggregate keep a member that has been tombstoned
+         * but is still tied to live financial records, instead of failing its referential invariant.
+         */
+        fun referencedMemberIds(
+            expenses: List<Expense>,
+            settlements: List<Settlement>,
+        ): Set<MemberId> =
+            buildSet {
+                expenses.forEach { expense ->
+                    expense.payments.forEach { add(it.payer) }
+                    addAll(expense.shares.keys)
+                }
+                settlements.forEach {
+                    add(it.from)
+                    add(it.to)
+                }
+            }
+    }
 
     /** Net balance per member, converting every amount to [baseCurrency] via its captured rate. */
     fun balances(): Balances {

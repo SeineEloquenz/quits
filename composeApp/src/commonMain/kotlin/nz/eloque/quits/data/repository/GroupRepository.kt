@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import nz.eloque.quits.data.db.ExpenseEntity
+import nz.eloque.quits.data.db.ExpenseWithLines
 import nz.eloque.quits.data.db.GroupEntity
 import nz.eloque.quits.data.db.MemberEntity
 import nz.eloque.quits.data.db.QuitsDatabase
@@ -50,21 +51,40 @@ class GroupRepository(
     fun groupFlow(id: GroupId): Flow<Group?> =
         combine(
             db.groupDao().byIdFlow(id.value),
-            db.memberDao().forGroupFlow(id.value),
+            db.memberDao().forGroupWithDeletedFlow(id.value),
             db.expenseDao().forGroupFlow(id.value),
             db.settlementDao().forGroupFlow(id.value),
         ) { entity, members, expenses, settlements ->
-            entity?.let {
-                Group(
-                    GroupId(it.id),
-                    it.name,
-                    Currency.of(it.baseCurrency),
-                    members.map { member -> member.toDomain() },
-                    expenses.map { expense -> expense.toDomain() },
-                    settlements.map { settlement -> settlement.toDomain() },
-                )
-            }
+            entity?.let { assemble(it, members, expenses, settlements) }
         }
+
+    /**
+     * Reconstructs the aggregate, keeping any tombstoned member still tied to a live expense or
+     * settlement so the [Group]'s referential invariant holds even after a concurrent delete-vs-use
+     * across devices.
+     */
+    private fun assemble(
+        entity: GroupEntity,
+        memberEntities: List<MemberEntity>,
+        expenseEntities: List<ExpenseWithLines>,
+        settlementEntities: List<SettlementEntity>,
+    ): Group {
+        val expenses = expenseEntities.map { it.toDomain() }
+        val settlements = settlementEntities.map { it.toDomain() }
+        val referenced = Group.referencedMemberIds(expenses, settlements)
+        val members =
+            memberEntities
+                .filter { !it.sync.deleted || MemberId(it.id) in referenced }
+                .map { it.toDomain() }
+        return Group(
+            GroupId(entity.id),
+            entity.name,
+            Currency.of(entity.baseCurrency),
+            members,
+            expenses,
+            settlements,
+        )
+    }
 
     suspend fun addMember(
         groupId: GroupId,
@@ -96,13 +116,11 @@ class GroupRepository(
 
     suspend fun load(id: GroupId): Group? {
         val entity = db.groupDao().byId(id.value) ?: return null
-        return Group(
-            GroupId(entity.id),
-            entity.name,
-            Currency.of(entity.baseCurrency),
-            db.memberDao().forGroup(id.value).map { it.toDomain() },
-            db.expenseDao().forGroup(id.value).map { it.toDomain() },
-            db.settlementDao().forGroup(id.value).map { it.toDomain() },
+        return assemble(
+            entity,
+            db.memberDao().forGroupWithDeleted(id.value),
+            db.expenseDao().forGroup(id.value),
+            db.settlementDao().forGroup(id.value),
         )
     }
 
