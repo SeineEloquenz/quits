@@ -11,7 +11,6 @@ val repositoryModule =
                 db = get(),
                 deviceId = get<DeviceId>().value,
                 now = { nowMillis() },
-                scheduler = get(),
             )
         }
     }

@@ -4,9 +4,7 @@ import android.content.Context
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -31,7 +29,6 @@ class SyncWorker(
 
     companion object {
         private const val PERIODIC = "quits-sync-periodic"
-        private const val ONE_TIME = "quits-sync-now"
 
         private val networkConstraint = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
@@ -41,14 +38,6 @@ class SyncWorker(
                     .setConstraints(networkConstraint)
                     .build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(PERIODIC, ExistingPeriodicWorkPolicy.KEEP, request)
-        }
-
-        fun requestNow(context: Context) {
-            val request =
-                OneTimeWorkRequestBuilder<SyncWorker>()
-                    .setConstraints(networkConstraint)
-                    .build()
-            WorkManager.getInstance(context).enqueueUniqueWork(ONE_TIME, ExistingWorkPolicy.REPLACE, request)
         }
     }
 }

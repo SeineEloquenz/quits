@@ -96,6 +96,7 @@ data class ExpenseSplitEntity(
     val expenseId: String,
     val memberId: String,
     val shareMinor: Long,
+    /** Split spec, read per the expense's splitType: share count for SHARES, percent for PERCENTAGE, null otherwise. */
     val weight: Double? = null,
 )
 

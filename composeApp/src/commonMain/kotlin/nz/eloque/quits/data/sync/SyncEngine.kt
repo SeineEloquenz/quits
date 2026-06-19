@@ -73,12 +73,16 @@ class SyncEngine(
         gid: String,
         handle: GroupSyncEntity,
     ) {
-        val records = mutableListOf<SyncRecord>()
         val group = db.groupDao().byId(gid)
+        val members = db.memberDao().dirty(gid)
+        val expenses = db.expenseDao().dirty(gid)
+        val settlements = db.settlementDao().dirty(gid)
+
+        val records = mutableListOf<SyncRecord>()
         if (group != null && group.sync.dirty) records += RecordMapper.record(group)
-        val members = db.memberDao().dirty(gid).also { it.forEach { m -> records += RecordMapper.record(m) } }
-        val expenses = db.expenseDao().dirty(gid).also { it.forEach { e -> records += RecordMapper.record(e) } }
-        val settlements = db.settlementDao().dirty(gid).also { it.forEach { s -> records += RecordMapper.record(s) } }
+        records += members.map { RecordMapper.record(it) }
+        records += expenses.map { RecordMapper.record(it) }
+        records += settlements.map { RecordMapper.record(it) }
         if (records.isEmpty()) return
 
         val applied = relay.push(handle.remoteId, handle.token, records).applied.toSet()

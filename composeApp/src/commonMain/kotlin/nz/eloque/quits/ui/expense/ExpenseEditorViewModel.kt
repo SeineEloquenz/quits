@@ -28,6 +28,7 @@ import nz.eloque.quits.domain.Split
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.editor_expense_fallback_title
 import nz.eloque.quits.resources.error_currency_code
+import nz.eloque.quits.resources.error_exact_sum
 import nz.eloque.quits.resources.error_invalid_amount
 import nz.eloque.quits.resources.error_invalid_expense
 import nz.eloque.quits.resources.error_invalid_paid
@@ -39,6 +40,7 @@ import nz.eloque.quits.resources.error_no_exact
 import nz.eloque.quits.resources.error_no_participant
 import nz.eloque.quits.resources.error_no_payer
 import nz.eloque.quits.resources.error_no_share
+import nz.eloque.quits.resources.error_percent_sum
 import nz.eloque.quits.resources.rate_cached
 import nz.eloque.quits.resources.rate_fetch_failed
 import nz.eloque.quits.util.formatDate
@@ -237,11 +239,12 @@ class ExpenseEditorViewModel(
                 return@launch
             }
 
+            val total = payments.fold(Money.zero(currency)) { acc, p -> acc + p.amount }
             val split =
                 try {
-                    buildSplit(s, currency) ?: return@launch
+                    buildSplit(s, currency, total) ?: return@launch
                 } catch (e: IllegalArgumentException) {
-                    setError(e.message ?: getString(Res.string.error_invalid_split))
+                    setError(getString(Res.string.error_invalid_split))
                     return@launch
                 }
 
@@ -255,7 +258,7 @@ class ExpenseEditorViewModel(
                         rate,
                     )
                 } catch (e: IllegalArgumentException) {
-                    setError(e.message ?: getString(Res.string.error_invalid_expense))
+                    setError(getString(Res.string.error_invalid_expense))
                     return@launch
                 }
 
@@ -276,6 +279,7 @@ class ExpenseEditorViewModel(
     private suspend fun buildSplit(
         s: ExpenseEditorUiState,
         currency: Currency,
+        total: Money,
     ): Split? =
         when (s.splitKind) {
             SplitKind.EQUAL -> {
@@ -318,7 +322,12 @@ class ExpenseEditorViewModel(
                     }
                     if (percent > 0) map[MemberId(member.id)] = percent
                 }
-                Split.Percentage(map)
+                if (map.values.sum() != 100) {
+                    setError(getString(Res.string.error_percent_sum))
+                    null
+                } else {
+                    Split.Percentage(map)
+                }
             }
             SplitKind.EXACT -> {
                 val map = mutableMapOf<MemberId, Money>()
@@ -334,6 +343,9 @@ class ExpenseEditorViewModel(
                 }
                 if (map.isEmpty()) {
                     setError(getString(Res.string.error_no_exact))
+                    null
+                } else if (map.values.fold(Money.zero(currency)) { acc, m -> acc + m } != total) {
+                    setError(getString(Res.string.error_exact_sum))
                     null
                 } else {
                     Split.Exact(map)

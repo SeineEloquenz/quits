@@ -98,4 +98,6 @@
     <string name="error_invalid_percent">Ungültiger Prozentsatz für %1$s</string>
     <string name="error_invalid_amount">Ungültiger Betrag für %1$s</string>
     <string name="error_no_exact">Gib exakte Beträge ein</string>
+    <string name="error_percent_sum">Prozentsätze müssen zusammen 100 ergeben</string>
+    <string name="error_exact_sum">Exakte Beträge müssen zusammen den Gesamtbetrag ergeben</string>
 </resources>

@@ -98,4 +98,6 @@
     <string name="error_invalid_percent">Invalid percent for %1$s</string>
     <string name="error_invalid_amount">Invalid amount for %1$s</string>
     <string name="error_no_exact">Enter exact amounts</string>
+    <string name="error_percent_sum">Percentages must add up to 100</string>
+    <string name="error_exact_sum">Exact amounts must add up to the total</string>
 </resources>

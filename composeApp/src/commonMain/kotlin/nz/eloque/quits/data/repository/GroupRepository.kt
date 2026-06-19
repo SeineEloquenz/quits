@@ -9,8 +9,6 @@ import nz.eloque.quits.data.db.MemberEntity
 import nz.eloque.quits.data.db.QuitsDatabase
 import nz.eloque.quits.data.db.SettlementEntity
 import nz.eloque.quits.data.db.SyncMeta
-import nz.eloque.quits.data.sync.NoopSyncScheduler
-import nz.eloque.quits.data.sync.SyncScheduler
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
@@ -31,7 +29,6 @@ class GroupRepository(
     private val db: QuitsDatabase,
     private val deviceId: String,
     private val now: () -> Long,
-    private val scheduler: SyncScheduler = NoopSyncScheduler,
 ) {
     private fun meta() = SyncMeta(updatedAt = now(), deviceId = deviceId, deleted = false, dirty = true)
 
@@ -42,7 +39,6 @@ class GroupRepository(
         db.memberDao().upsert(
             group.members.map { MemberEntity(it.id.value, group.id.value, it.name, color = null, meta()) },
         )
-        scheduler.requestSync()
     }
 
     fun groupsFlow(): Flow<List<GroupSummary>> =
@@ -77,7 +73,6 @@ class GroupRepository(
         db.memberDao().upsert(
             listOf(MemberEntity(member.id.value, groupId.value, member.name, color = null, meta())),
         )
-        scheduler.requestSync()
     }
 
     suspend fun renameMember(
@@ -86,7 +81,6 @@ class GroupRepository(
     ) {
         val existing = db.memberDao().byId(memberId.value) ?: return
         db.memberDao().upsert(listOf(existing.copy(name = name, sync = meta())))
-        scheduler.requestSync()
     }
 
     /** Soft-deletes a member, unless they're still referenced by an expense or settlement. */
@@ -95,20 +89,8 @@ class GroupRepository(
         memberId: MemberId,
     ): Boolean {
         val group = load(groupId) ?: return false
-        val referenced =
-            buildSet {
-                group.expenses.forEach { expense ->
-                    expense.payments.forEach { add(it.payer) }
-                    addAll(expense.shares.keys)
-                }
-                group.settlements.forEach {
-                    add(it.from)
-                    add(it.to)
-                }
-            }
-        if (memberId in referenced) return false
+        if (group.references(memberId)) return false
         db.memberDao().tombstone(memberId.value, now(), deviceId)
-        scheduler.requestSync()
         return true
     }
 
@@ -153,13 +135,11 @@ class GroupRepository(
             payerRows(expense),
             splitRows(expense),
         )
-        scheduler.requestSync()
     }
 
     /** Soft-deletes (tombstones) an expense so it drops out of queries and syncs as a deletion. */
     suspend fun deleteExpense(expenseId: ExpenseId) {
         db.expenseDao().tombstone(expenseId.value, now(), deviceId)
-        scheduler.requestSync()
     }
 
     suspend fun upsertSettlement(
@@ -182,6 +162,5 @@ class GroupRepository(
                 sync = meta(),
             ),
         )
-        scheduler.requestSync()
     }
 }

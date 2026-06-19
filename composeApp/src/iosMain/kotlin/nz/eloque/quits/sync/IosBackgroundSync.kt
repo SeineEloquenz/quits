@@ -6,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import nz.eloque.quits.data.sync.SyncEngine
-import nz.eloque.quits.data.sync.SyncScheduler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import platform.BackgroundTasks.BGAppRefreshTask
@@ -50,9 +49,4 @@ object IosBackgroundSync : KoinComponent {
             }
         task.expirationHandler = { job.cancel() }
     }
-}
-
-/** Best-effort: iOS can't run on demand, so an edit just (re)schedules the next background refresh. */
-class IosSyncScheduler : SyncScheduler {
-    override fun requestSync() = IosBackgroundSync.schedule()
 }

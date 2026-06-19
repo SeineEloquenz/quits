@@ -29,6 +29,11 @@ class Group(
         }
     }
 
+    /** Whether [member] is referenced by any expense (payer/share) or settlement. */
+    fun references(member: MemberId): Boolean =
+        expenses.any { expense -> expense.payments.any { it.payer == member } || member in expense.shares.keys } ||
+            settlements.any { it.from == member || it.to == member }
+
     /** Net balance per member, converting every amount to [baseCurrency] via its captured rate. */
     fun balances(): Balances {
         val net = members.associate { it.id to 0L }.toMutableMap()

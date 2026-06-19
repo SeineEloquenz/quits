@@ -3,6 +3,7 @@ package nz.eloque.quits.domain
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GroupTest {
@@ -64,6 +65,29 @@ class GroupTest {
         val balances = group.balances()
         assertEquals(usd(5500), balances.of(a))
         assertEquals(usd(-5500), balances.of(b))
+    }
+
+    @Test
+    fun references_reports_members_used_by_expenses_or_settlements() {
+        val group =
+            Group(
+                GroupId("g"),
+                "Trip",
+                USD,
+                members,
+                listOf(
+                    Expense(ExpenseId("e1"), "Dinner", listOf(Payment(a, usd(3000))), Split.Equal(listOf(a, b))),
+                ),
+                listOf(Settlement(SettlementId("s1"), b, c, usd(500))),
+            )
+        // a pays, b shares and settles, c receives the settlement → all referenced.
+        assertTrue(group.references(a))
+        assertTrue(group.references(b))
+        assertTrue(group.references(c))
+        // an unreferenced member is removable.
+        val d = mid("d")
+        val withSpare = Group(GroupId("g"), "Trip", USD, members + Member(d, "D"), group.expenses, group.settlements)
+        assertFalse(withSpare.references(d))
     }
 
     @Test
