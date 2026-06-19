@@ -131,12 +131,12 @@ class SyncEngine(
         }
     }
 
-    /** Same rule the relay uses: newer wins; ties broken by the larger device id. */
+    /** Same rule the relay uses: newer wins; ties broken by the strictly larger device id. */
     private fun wins(
         local: SyncMeta?,
         record: SyncRecord,
     ): Boolean =
         local == null ||
             record.updatedAt > local.updatedAt ||
-            (record.updatedAt == local.updatedAt && record.deviceId >= local.deviceId)
+            (record.updatedAt == local.updatedAt && record.deviceId > local.deviceId)
 }
