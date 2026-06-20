@@ -2,7 +2,7 @@ name: iOS
 
 # iOS needs macOS + Xcode (Kotlin/Native can't target Apple from Linux). No Mac required locally:
 # this runs on a GitHub macOS runner, and the Xcode project is generated from iosApp/project.yml
-# via XcodeGen rather than hand-maintained. compose-kit resolves from JitPack (no LOCAL_COMPOSE_KIT).
+# via XcodeGen rather than hand-maintained. compose-kit resolves from its static Maven repo
 on:
   push:
     branches: [main]
