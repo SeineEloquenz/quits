@@ -59,6 +59,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                         imageVector = Icons.Default.Check,
                         initialValue = state.instanceSecret,
                         clearOnSubmit = false,
+                        hidden = true,
                         onSubmit = viewModel::applyInstanceSecret,
                     )
                 }
