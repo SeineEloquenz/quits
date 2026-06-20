@@ -14,7 +14,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -27,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import nz.eloque.compose_kit.chip.ChipSelector
 import nz.eloque.compose_kit.components.Section
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
@@ -138,15 +138,14 @@ fun ExpenseEditorScreen(
 
         Section(heading = stringResource(Res.string.editor_split)) {
             Column(Modifier.padding(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SplitKind.entries.forEach { kind ->
-                        FilterChip(
-                            selected = state.splitKind == kind,
-                            onClick = { viewModel.setKind(kind) },
-                            label = { Text(splitLabel(kind)) },
-                        )
-                    }
-                }
+                val splitLabels = SplitKind.entries.associateWith { splitLabel(it) }
+                ChipSelector(
+                    options = SplitKind.entries,
+                    selectedOptions = listOf(state.splitKind),
+                    onOptionSelected = viewModel::setKind,
+                    onOptionDeselected = {},
+                    optionLabel = { splitLabels.getValue(it) },
+                )
                 Spacer(Modifier.height(8.dp))
 
                 state.members.forEach { member ->

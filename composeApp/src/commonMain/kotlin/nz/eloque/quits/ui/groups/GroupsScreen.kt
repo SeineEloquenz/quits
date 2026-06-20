@@ -1,6 +1,7 @@
 package nz.eloque.quits.ui.groups
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.components.Section
+import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.resources.Res
@@ -159,7 +161,9 @@ fun GroupsScreen(
                                     .clickable { onOpenGroup(group.id) }
                                     .padding(16.dp),
                             ) {
-                                Text(group.name, Modifier.weight(1f))
+                                Box(Modifier.weight(1f)) {
+                                    AbbreviatingText(group.name, maxLines = 1)
+                                }
                                 Text(group.baseCurrency.code, color = MaterialTheme.colorScheme.outline)
                             }
                         }

@@ -2,6 +2,7 @@ package nz.eloque.quits.ui.group
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.components.Section
+import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.input.SubmittableTextField
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
@@ -121,11 +123,13 @@ fun GroupDetailScreen(
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.cd_back))
                 }
-                Text(
-                    state.name.ifEmpty { stringResource(Res.string.group_fallback_name) },
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.weight(1f),
-                )
+                Box(Modifier.weight(1f)) {
+                    AbbreviatingText(
+                        state.name.ifEmpty { stringResource(Res.string.group_fallback_name) },
+                        style = MaterialTheme.typography.headlineMedium,
+                        maxLines = 1,
+                    )
+                }
                 if (state.shareCode != null) {
                     if (syncStatus == SyncStatus.Syncing) {
                         CircularProgressIndicator(Modifier.padding(12.dp).size(20.dp), strokeWidth = 2.dp)
@@ -266,7 +270,7 @@ fun GroupDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(expense.title)
+                                    AbbreviatingText(expense.title, maxLines = 1)
                                     Text(
                                         stringResource(Res.string.detail_paid_by, expense.paidBy),
                                         style = MaterialTheme.typography.bodySmall,
