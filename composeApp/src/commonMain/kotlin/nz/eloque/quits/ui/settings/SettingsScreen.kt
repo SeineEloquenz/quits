@@ -1,7 +1,9 @@
 package nz.eloque.quits.ui.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -21,6 +23,8 @@ import nz.eloque.compose_kit.input.SubmittableTextField
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.cd_back
+import nz.eloque.quits.resources.settings_instance_secret
+import nz.eloque.quits.resources.settings_instance_secret_hint
 import nz.eloque.quits.resources.settings_relay_hint
 import nz.eloque.quits.resources.settings_relay_url
 import nz.eloque.quits.resources.settings_sync
@@ -53,11 +57,13 @@ fun SettingsScreen(onBack: () -> Unit) {
                         clearOnSubmit = false,
                         onSubmit = viewModel::applyRelayUrl,
                     )
-                    Text(
-                        stringResource(Res.string.settings_relay_hint, viewModel.defaultRelayUrl),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(horizontal = 8.dp),
+                    Spacer(Modifier.height(16.dp))
+                    SubmittableTextField(
+                        label = stringResource(Res.string.settings_instance_secret),
+                        imageVector = Icons.Default.Check,
+                        initialValue = state.instanceSecret,
+                        clearOnSubmit = false,
+                        onSubmit = viewModel::applyInstanceSecret,
                     )
                 }
             }

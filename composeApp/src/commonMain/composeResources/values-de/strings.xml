@@ -78,7 +78,7 @@
     <string name="settings_title">Einstellungen</string>
     <string name="settings_sync">Synchronisierung</string>
     <string name="settings_relay_url">Relay-URL</string>
-    <string name="settings_relay_hint">Der Sync-Server. Standard: %1$s (funktioniert vom Android-Emulator).</string>
+    <string name="settings_instance_secret">Relay-Passwort (optional)</string>
     <string name="settings_saved">Gespeichert</string>
 
     <!-- Currency picker -->
