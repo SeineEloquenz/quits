@@ -9,7 +9,6 @@ import nz.eloque.quits.data.sync.SyncSettings
 
 data class SettingsUiState(
     val relayUrl: String = "",
-    val saved: Boolean = false,
 )
 
 class SettingsViewModel(
@@ -20,17 +19,11 @@ class SettingsViewModel(
     private val _state = MutableStateFlow(SettingsUiState(relayUrl = settings.relayUrl))
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
-    fun setRelayUrl(value: String) = _state.update { it.copy(relayUrl = value, saved = false) }
-
-    fun save() {
-        val value = _state.value.relayUrl.trim()
-        if (value.isEmpty()) return
-        settings.relayUrl = value
-        _state.update { it.copy(relayUrl = value, saved = true) }
-    }
-
-    fun resetToDefault() {
-        settings.relayUrl = defaultRelayUrl
-        _state.update { it.copy(relayUrl = defaultRelayUrl, saved = true) }
+    /** Persists immediately; blank input is ignored. */
+    fun applyRelayUrl(value: String) {
+        val trimmed = value.trim()
+        if (trimmed.isEmpty()) return
+        settings.relayUrl = trimmed
+        _state.update { it.copy(relayUrl = trimmed) }
     }
 }

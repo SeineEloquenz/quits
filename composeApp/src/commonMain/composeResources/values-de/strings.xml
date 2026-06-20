@@ -20,6 +20,8 @@
     <string name="cd_rename">%1$s umbenennen</string>
     <string name="cd_remove">%1$s entfernen</string>
     <string name="cd_delete">%1$s löschen</string>
+    <string name="cd_menu">Gruppenmenü öffnen</string>
+    <string name="cd_more">Weitere Optionen</string>
 
     <!-- Groups list -->
     <string name="groups_new_group">Neue Gruppe</string>
@@ -69,6 +71,8 @@
     <string name="editor_save_changes">Änderungen speichern</string>
     <string name="editor_save_expense">Ausgabe speichern</string>
     <string name="editor_expense_fallback_title">Ausgabe</string>
+    <string name="editor_remaining">Noch zuzuordnen: %1$s</string>
+    <string name="editor_remaining_done">Alles zugeordnet</string>
 
     <!-- Settings -->
     <string name="settings_title">Einstellungen</string>

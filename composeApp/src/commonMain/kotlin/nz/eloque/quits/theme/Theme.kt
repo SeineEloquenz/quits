@@ -1,18 +1,13 @@
 package nz.eloque.quits.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-
-private val LightColors = lightColorScheme()
-private val DarkColors = darkColorScheme()
+import nz.eloque.compose_kit.theme.AppTheme
+import nz.eloque.compose_kit.theme.dynamicColorSchemeOrNull
 
 @Composable
 fun QuitsTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors,
-        content = content,
-    )
+    val dark = isSystemInDarkTheme()
+    val colorScheme = dynamicColorSchemeOrNull(dark) ?: if (dark) DarkColors else LightColors
+    AppTheme(colorScheme = colorScheme, content = content)
 }

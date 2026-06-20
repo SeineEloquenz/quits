@@ -3,19 +3,18 @@ package nz.eloque.quits.ui.groups
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.repository.GroupSummary
 import nz.eloque.quits.data.sync.SyncEngine
+import nz.eloque.quits.data.sync.SyncSettings
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
@@ -33,6 +32,7 @@ data class GroupsUiState(
 class GroupsViewModel(
     private val repo: GroupRepository,
     private val engine: SyncEngine,
+    private val settings: SyncSettings,
 ) : ViewModel() {
     val state: StateFlow<GroupsUiState> =
         repo
@@ -40,8 +40,20 @@ class GroupsViewModel(
             .map { GroupsUiState(it, loaded = true) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupsUiState())
 
-    private val _joined = Channel<GroupId>(Channel.BUFFERED)
-    val joined: Flow<GroupId> = _joined.receiveAsFlow()
+    private val selectedGroupId = MutableStateFlow(settings.activeGroupId?.let { GroupId(it) })
+
+    /**
+     * The group the home screen should show: the persisted selection when it still exists,
+     * otherwise the first group, or null while loading / when there are none.
+     */
+    val activeGroup: StateFlow<GroupId?> =
+        combine(state, selectedGroupId) { s, active ->
+            when {
+                !s.loaded -> null
+                active != null && s.groups.any { it.id == active } -> active
+                else -> s.groups.firstOrNull()?.id
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -50,8 +62,13 @@ class GroupsViewModel(
     val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
 
     init {
-        // Pull updates for every shared group when the list opens.
+        // Pull updates for every shared group when the app opens.
         refresh()
+    }
+
+    fun setActiveGroup(id: GroupId) {
+        settings.activeGroupId = id.value
+        selectedGroupId.value = id
     }
 
     /** Syncs all shared groups; drives the pull-to-refresh indicator. Failures are swallowed. */
@@ -74,8 +91,9 @@ class GroupsViewModel(
         if (trimmedName.isEmpty()) return
         val currency = Currency.parse(currencyCode.trim().ifEmpty { "USD" }) ?: return
         viewModelScope.launch {
-            val group = Group(GroupId(newId()), trimmedName, currency, members = emptyList())
-            repo.saveGroup(group)
+            val id = GroupId(newId())
+            repo.saveGroup(Group(id, trimmedName, currency, members = emptyList()))
+            setActiveGroup(id)
         }
     }
 
@@ -89,7 +107,7 @@ class GroupsViewModel(
                     _error.value = getString(Res.string.groups_join_not_found, trimmed)
                 } else {
                     _error.value = null
-                    _joined.send(id)
+                    setActiveGroup(id)
                 }
             } catch (e: CancellationException) {
                 throw e

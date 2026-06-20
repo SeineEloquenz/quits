@@ -18,13 +18,11 @@ import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.navigation.ExpenseEditorKey
-import nz.eloque.quits.navigation.GroupDetailKey
-import nz.eloque.quits.navigation.GroupsKey
+import nz.eloque.quits.navigation.HomeKey
 import nz.eloque.quits.navigation.SettingsKey
 import nz.eloque.quits.theme.QuitsTheme
 import nz.eloque.quits.ui.expense.ExpenseEditorScreen
-import nz.eloque.quits.ui.group.GroupDetailScreen
-import nz.eloque.quits.ui.groups.GroupsScreen
+import nz.eloque.quits.ui.home.HomeScreen
 import nz.eloque.quits.ui.settings.SettingsScreen
 
 private val navSavedStateConfiguration =
@@ -32,8 +30,7 @@ private val navSavedStateConfiguration =
         serializersModule =
             SerializersModule {
                 polymorphic(NavKey::class) {
-                    subclass(GroupsKey::class)
-                    subclass(GroupDetailKey::class)
+                    subclass(HomeKey::class)
                     subclass(ExpenseEditorKey::class)
                     subclass(SettingsKey::class)
                 }
@@ -47,7 +44,7 @@ fun App() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            val backStack = rememberNavBackStack(navSavedStateConfiguration, GroupsKey)
+            val backStack = rememberNavBackStack(navSavedStateConfiguration, HomeKey)
             NavDisplay(
                 backStack = backStack,
                 modifier = Modifier.fillMaxSize().safeDrawingPadding(),
@@ -59,22 +56,17 @@ fun App() {
                     ),
                 entryProvider =
                     entryProvider {
-                        entry<GroupsKey> {
-                            GroupsScreen(
-                                onOpenGroup = { backStack.add(GroupDetailKey(it.value)) },
+                        entry<HomeKey> {
+                            HomeScreen(
                                 onOpenSettings = { backStack.add(SettingsKey) },
+                                onAddExpense = { backStack.add(ExpenseEditorKey(it.value)) },
+                                onEditExpense = { group, expense ->
+                                    backStack.add(ExpenseEditorKey(group.value, expense.value))
+                                },
                             )
                         }
                         entry<SettingsKey> {
                             SettingsScreen(onBack = { backStack.removeLastOrNull() })
-                        }
-                        entry<GroupDetailKey> { key ->
-                            GroupDetailScreen(
-                                groupId = GroupId(key.groupId),
-                                onBack = { backStack.removeLastOrNull() },
-                                onAddExpense = { backStack.add(ExpenseEditorKey(key.groupId)) },
-                                onEditExpense = { backStack.add(ExpenseEditorKey(key.groupId, it.value)) },
-                            )
                         }
                         entry<ExpenseEditorKey> { key ->
                             ExpenseEditorScreen(

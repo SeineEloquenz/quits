@@ -4,12 +4,7 @@ import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
 @Serializable
-data object GroupsKey : NavKey
-
-@Serializable
-data class GroupDetailKey(
-    val groupId: String,
-) : NavKey
+data object HomeKey : NavKey
 
 @Serializable
 data class ExpenseEditorKey(

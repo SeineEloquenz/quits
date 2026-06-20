@@ -10,6 +10,9 @@ interface SyncSettings {
     var relayUrl: String
     var instanceSecret: String?
 
+    /** Id of the group the home screen last showed, so launch reopens it. */
+    var activeGroupId: String?
+
     companion object {
         // Android emulator -> dev host loopback. Override on a physical device.
         const val DEFAULT_RELAY_URL = "http://10.0.2.2:8080"
@@ -19,6 +22,7 @@ interface SyncSettings {
 class InMemorySyncSettings(
     override var relayUrl: String = SyncSettings.DEFAULT_RELAY_URL,
     override var instanceSecret: String? = null,
+    override var activeGroupId: String? = null,
 ) : SyncSettings
 
 /** Settings persisted via multiplatform-settings (SharedPreferences / NSUserDefaults). */
@@ -35,8 +39,15 @@ class PersistentSyncSettings(
             if (value.isNullOrBlank()) settings.remove(KEY_INSTANCE_SECRET) else settings.putString(KEY_INSTANCE_SECRET, value)
         }
 
+    override var activeGroupId: String?
+        get() = settings.getStringOrNull(KEY_ACTIVE_GROUP)?.ifBlank { null }
+        set(value) {
+            if (value.isNullOrBlank()) settings.remove(KEY_ACTIVE_GROUP) else settings.putString(KEY_ACTIVE_GROUP, value)
+        }
+
     private companion object {
         const val KEY_RELAY_URL = "relay_url"
         const val KEY_INSTANCE_SECRET = "instance_secret"
+        const val KEY_ACTIVE_GROUP = "active_group_id"
     }
 }

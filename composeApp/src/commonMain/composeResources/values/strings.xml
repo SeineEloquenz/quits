@@ -20,6 +20,8 @@
     <string name="cd_rename">Rename %1$s</string>
     <string name="cd_remove">Remove %1$s</string>
     <string name="cd_delete">Delete %1$s</string>
+    <string name="cd_menu">Open groups menu</string>
+    <string name="cd_more">More options</string>
 
     <!-- Groups list -->
     <string name="groups_new_group">New group</string>
@@ -69,6 +71,8 @@
     <string name="editor_save_changes">Save changes</string>
     <string name="editor_save_expense">Save expense</string>
     <string name="editor_expense_fallback_title">Expense</string>
+    <string name="editor_remaining">Remaining to assign: %1$s</string>
+    <string name="editor_remaining_done">All assigned</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
