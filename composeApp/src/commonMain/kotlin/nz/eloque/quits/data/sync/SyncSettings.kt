@@ -15,7 +15,7 @@ interface SyncSettings {
 
     companion object {
         // Android emulator -> dev host loopback. Override on a physical device.
-        const val DEFAULT_RELAY_URL = "http://10.0.2.2:8080"
+        const val DEFAULT_RELAY_URL = "https://quits.eloque.nz"
     }
 }
 
