@@ -44,6 +44,11 @@
         }
       );
 
+      nixosModules = {
+        quits-server = ./nix/module.nix;
+        default = self.nixosModules.quits-server;
+      };
+
       apps = forAllSystems (system: {
         default = {
           type = "app";

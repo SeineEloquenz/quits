@@ -37,6 +37,35 @@ cargo test
 nix build .#server-image           # OCI image: docker load < result
 ```
 
+#### Deploying on NixOS
+
+The flake exports `nixosModules.quits-server`..
+
+```nix
+{
+  inputs.quits.url = "github:SeineEloquenz/quits";
+
+  outputs = { nixpkgs, quits, ... }: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      modules = [
+        quits.nixosModules.quits-server
+        {
+          services.quits-server = {
+            enable = true;
+            host = "0.0.0.0";        # default 127.0.0.1
+            port = 8080;
+            openFirewall = true;
+            # Keep secrets out of the Nix store (managed by sops/agenix/etc).
+            # Set at least QUITS_JWT_SECRET so tokens survive restarts.
+            environmentFile = "/run/secrets/quits-server.env";
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
 ## License
 
 AGPL-3.0-or-later.
