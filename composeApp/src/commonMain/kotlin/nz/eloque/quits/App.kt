@@ -16,6 +16,8 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
+import nz.eloque.compose_kit.navigation.slideBackward
+import nz.eloque.compose_kit.navigation.slideForward
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.navigation.ExpenseEditorKey
 import nz.eloque.quits.navigation.HomeKey
@@ -49,6 +51,9 @@ fun App() {
                 backStack = backStack,
                 modifier = Modifier.fillMaxSize().safeDrawingPadding(),
                 onBack = { backStack.removeLastOrNull() },
+                transitionSpec = { slideForward() },
+                popTransitionSpec = { slideBackward() },
+                predictivePopTransitionSpec = { slideBackward() },
                 entryDecorators =
                     listOf(
                         rememberSaveableStateHolderNavEntryDecorator(),
