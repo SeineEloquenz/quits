@@ -2,7 +2,6 @@ package nz.eloque.quits.ui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import nz.eloque.compose_kit.input.SearchablePickerField
 import nz.eloque.quits.domain.Currencies
 import nz.eloque.quits.domain.Currency
