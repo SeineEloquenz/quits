@@ -3,7 +3,7 @@ package nz.eloque.quits
 import nz.eloque.quits.di.initKoin
 import nz.eloque.quits.sync.IosBackgroundSync
 
-fun initApp() {
+fun startApp() {
     initKoin()
     IosBackgroundSync.register()
 }

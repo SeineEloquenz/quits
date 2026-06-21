@@ -7,7 +7,7 @@ struct iOSApp: App {
 
     init() {
         // Starts Koin and registers the BGTaskScheduler launch handler (must run during launch).
-        BootstrapKt.initApp()
+        BootstrapKt.startApp()
     }
 
     var body: some Scene {
