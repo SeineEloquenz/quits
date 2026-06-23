@@ -1,7 +1,7 @@
 package nz.eloque.quits.data.db
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import androidx.room3.Entity
+import androidx.room3.PrimaryKey
 
 /**
  * The sync handle for a local group: the relay-assigned [remoteId], the share [code], the bearer

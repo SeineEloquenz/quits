@@ -14,8 +14,8 @@ kotlinxDatetime = "0.8.0"
 nav3 = "1.1.1"
 nav3Lifecycle = "2.10.0"
 ktor = "3.5.0"
-room = "2.8.4"
-sqlite = "2.6.2"
+room = "3.0.0-rc01"
+sqlite = "2.7.0-rc01"
 ksp = "2.3.9"
 robolectric = "4.16.1"
 androidxTest = "1.7.0"
@@ -67,9 +67,9 @@ ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "kto
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 
-# Room (KMP persistence) + bundled SQLite driver
-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+# Room (KMP persistence) + SQLite drivers (bundled for native/JVM, web worker for wasmJs)
+room-runtime = { module = "androidx.room3:room3-runtime", version.ref = "room" }
+room-compiler = { module = "androidx.room3:room3-compiler", version.ref = "room" }
 androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
 
 # multiplatform-settings (persisted deviceId + prefs)
@@ -92,5 +92,5 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-room = { id = "androidx.room", version.ref = "room" }
+room = { id = "androidx.room3", version.ref = "room" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }

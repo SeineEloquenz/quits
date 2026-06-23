@@ -1,19 +1,21 @@
 package nz.eloque.quits.di
 
-import androidx.room.RoomDatabase
-import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import androidx.room3.RoomDatabase
+import androidx.sqlite.SQLiteDriver
 import kotlinx.coroutines.Dispatchers
 import nz.eloque.quits.data.db.QuitsDatabase
 import org.koin.dsl.module
 
 /**
- * Builds [QuitsDatabase] from the platform-provided [RoomDatabase.Builder] (see [platformModule]).
+ * Builds [QuitsDatabase] from the platform-provided [RoomDatabase.Builder] and [SQLiteDriver]
+ * (see [platformModule]). The driver differs per platform: bundled SQLite on Android/iOS, the
+ * Web Worker / OPFS driver on web.
  */
 val databaseModule =
     module {
         single<QuitsDatabase> {
             get<RoomDatabase.Builder<QuitsDatabase>>()
-                .setDriver(BundledSQLiteDriver())
+                .setDriver(get<SQLiteDriver>())
                 .setQueryCoroutineContext(Dispatchers.Default)
                 .build()
         }

@@ -10,7 +10,7 @@ plugins {
     alias(libs.plugins.room)
 }
 
-room {
+room3 {
     schemaDirectory("$projectDir/schemas")
 }
 
@@ -70,7 +70,6 @@ kotlin {
             implementation(libs.nav3.ui)
             implementation(libs.nav3.viewmodel)
             implementation(libs.room.runtime)
-            implementation(libs.androidx.sqlite.bundled)
             implementation(libs.multiplatform.settings)
             implementation(libs.compose.kit)
         }
@@ -78,6 +77,7 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
             implementation(libs.androidx.work.runtime)
+            implementation(libs.androidx.sqlite.bundled)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -95,6 +95,7 @@ kotlin {
     if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
         sourceSets.iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.androidx.sqlite.bundled)
         }
     }
 }
