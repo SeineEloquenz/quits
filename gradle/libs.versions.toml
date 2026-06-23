@@ -21,7 +21,7 @@ robolectric = "4.16.1"
 androidxTest = "1.7.0"
 multiplatformSettings = "1.3.0"
 androidxWork = "2.11.2"
-composeKit = "0.1.2"
+composeKit = "0.2.0"
 ktlint = "14.2.0"
 
 # Android SDK
@@ -65,15 +65,20 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 
 # Room (KMP persistence) + SQLite drivers (bundled for native/JVM, web worker for wasmJs)
 room-runtime = { module = "androidx.room3:room3-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room3:room3-compiler", version.ref = "room" }
 androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
+androidx-sqlite-web = { module = "androidx.sqlite:sqlite-web", version.ref = "sqlite" }
 
 # multiplatform-settings (persisted deviceId + prefs)
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
+
+# Web (wasmJs) — browser APIs (Worker, document) for the SQLite web worker driver
+kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version = "0.3" }
 
 # WorkManager (Android background sync)
 androidx-work-runtime = { module = "androidx.work:work-runtime", version.ref = "androidxWork" }

@@ -41,11 +41,13 @@
           inherit server;
           default = server;
           server-image = pkgs.callPackage ./nix/image.nix { inherit server; };
+          web = import ./nix/web.nix { inherit system nixpkgs; };
         }
       );
 
       nixosModules = {
         quits-server = ./nix/module.nix;
+        quits-web = ./nix/web-module.nix;
         default = self.nixosModules.quits-server;
       };
 
@@ -53,6 +55,12 @@
         default = {
           type = "app";
           program = "${self.packages.${system}.server}/bin/quits-server";
+        };
+        # `nix run .#update-web-deps` regenerates nix/web-deps.json. Exposed as an app because the
+        # updateScript's output is the script file itself (no $out/bin), which `nix run` can't find.
+        update-web-deps = {
+          type = "app";
+          program = "${self.packages.${system}.web.updateScript}";
         };
       });
 

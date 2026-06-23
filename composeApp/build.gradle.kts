@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -49,6 +50,13 @@ kotlin {
         }
     }
 
+    // Web target: Compose for the browser via Kotlin/Wasm.
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        binaries.executable()
+    }
+
     sourceSets {
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -79,6 +87,11 @@ kotlin {
             implementation(libs.androidx.work.runtime)
             implementation(libs.androidx.sqlite.bundled)
         }
+        wasmJsMain.dependencies {
+            implementation(libs.ktor.client.js)
+            implementation(libs.kotlinx.browser)
+            implementation(project(":sqliteWebWorker"))
+        }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
@@ -103,6 +116,7 @@ kotlin {
 // Room's annotation processor must run for every Kotlin target's main compilation.
 dependencies {
     add("kspAndroid", libs.room.compiler)
+    add("kspWasmJs", libs.room.compiler)
     if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
         add("kspIosArm64", libs.room.compiler)
         add("kspIosSimulatorArm64", libs.room.compiler)

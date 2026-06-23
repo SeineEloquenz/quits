@@ -1,0 +1,8 @@
+{
+  "name": "quits-sqlite-worker",
+  "version": "0.0.0",
+  "license": "AGPL-3.0-or-later",
+  "dependencies": {
+    "@sqlite.org/sqlite-wasm": "^3.50.1-build1"
+  }
+}
