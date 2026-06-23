@@ -15,6 +15,7 @@ use axum::routing::{get, post};
 use sqlx::sqlite::SqlitePoolOptions;
 use tokio::net::TcpListener;
 use tokio::signal;
+use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::config::Config;
@@ -42,6 +43,7 @@ pub fn router(state: AppState) -> Router {
             get(routes::get_changes).post(routes::post_changes),
         )
         .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive())
         .with_state(state)
 }
 
