@@ -44,20 +44,22 @@ in
         root = "${cfg.package}";
 
         locations."/" = {
-          # Single-page Compose app: fall back to index.html.
           tryFiles = "$uri $uri/ /index.html";
-          extraConfig = ''
-              # Hashed JS/Wasm assets are immutable; index.html must stay fresh.
-              location = /index.html { add_header Cache-Control "no-cache"; }
-              location ~* \.(js|wasm|mjs)$ { add_header Cache-Control "public, max-age=31536000, immutable"; }
 
-            # SQLite-WASM's OPFS backend needs a cross-origin-isolated context (SharedArrayBuffer).
-            # The web client talks to the relay cross-origin (the relay sends permissive CORS), so no
-            # API proxy is configured here — web host and relay host are independent.
-            add_header Cross-Origin-Opener-Policy same-origin always;
-            add_header Cross-Origin-Embedder-Policy require-corp always;
+          extraConfig = ''
+            add_header Cross-Origin-Opener-Policy "same-origin" always;
+            add_header Cross-Origin-Embedder-Policy "require-corp" always;
+            add_header Cross-Origin-Resource-Policy "same-origin" always;
           '';
         };
+
+        locations."= /index.html".extraConfig = ''
+          add_header Cache-Control "no-cache";
+        '';
+
+        locations."~* \\.(js|wasm|mjs)$".extraConfig = ''
+          add_header Cache-Control "public, max-age=31536000, immutable";
+        '';
       };
     };
   };
