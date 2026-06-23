@@ -1,8 +1,10 @@
 package nz.eloque.quits.di
 
 import android.content.Context
-import androidx.room.Room
-import androidx.room.RoomDatabase
+import androidx.room3.Room
+import androidx.room3.RoomDatabase
+import androidx.sqlite.SQLiteDriver
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
 import io.ktor.client.engine.HttpClientEngine
@@ -21,6 +23,7 @@ actual val platformModule: Module =
                 name = context.getDatabasePath("quits.db").absolutePath,
             )
         }
+        single<SQLiteDriver> { BundledSQLiteDriver() }
         single<Settings> {
             SharedPreferencesSettings(androidContext().getSharedPreferences("quits", Context.MODE_PRIVATE))
         }

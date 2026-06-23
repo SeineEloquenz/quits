@@ -1,0 +1,42 @@
+name: Web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "composeApp/**"
+      - "sqliteWebWorker/**"
+      - "gradle/**"
+      - "*.gradle.kts"
+  pull_request:
+  workflow_dispatch:
+
+# CI does not set LOCAL_COMPOSE_KIT, so compose-kit resolves from its published artifact (which must
+# expose a wasmJs target — see settings.gradle.kts and compose-kit's build).
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Copy CI gradle.properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Lint
+        run: ./gradlew ktlintCheck
+
+      - name: Build browser distribution
+        run: ./gradlew :composeApp:wasmJsBrowserDistribution
+
+      - name: Upload web bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: web
+          path: composeApp/build/dist/wasmJs/productionExecutable

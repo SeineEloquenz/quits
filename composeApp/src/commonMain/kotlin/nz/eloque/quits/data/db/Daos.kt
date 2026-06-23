@@ -1,11 +1,11 @@
 package nz.eloque.quits.data.db
 
-import androidx.room.Dao
-import androidx.room.Embedded
-import androidx.room.Query
-import androidx.room.Relation
-import androidx.room.Transaction
-import androidx.room.Upsert
+import androidx.room3.Dao
+import androidx.room3.Embedded
+import androidx.room3.Query
+import androidx.room3.Relation
+import androidx.room3.Transaction
+import androidx.room3.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -79,9 +79,9 @@ interface MemberDao {
 
 data class ExpenseWithLines(
     @Embedded val expense: ExpenseEntity,
-    @Relation(parentColumn = "id", entityColumn = "expenseId")
+    @Relation(parentColumns = ["id"], entityColumns = ["expenseId"])
     val payers: List<ExpensePayerEntity>,
-    @Relation(parentColumn = "id", entityColumn = "expenseId")
+    @Relation(parentColumns = ["id"], entityColumns = ["expenseId"])
     val splits: List<ExpenseSplitEntity>,
 )
 

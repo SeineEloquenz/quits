@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -10,7 +11,7 @@ plugins {
     alias(libs.plugins.room)
 }
 
-room {
+room3 {
     schemaDirectory("$projectDir/schemas")
 }
 
@@ -49,6 +50,13 @@ kotlin {
         }
     }
 
+    // Web target: Compose for the browser via Kotlin/Wasm.
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        binaries.executable()
+    }
+
     sourceSets {
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -70,7 +78,6 @@ kotlin {
             implementation(libs.nav3.ui)
             implementation(libs.nav3.viewmodel)
             implementation(libs.room.runtime)
-            implementation(libs.androidx.sqlite.bundled)
             implementation(libs.multiplatform.settings)
             implementation(libs.compose.kit)
         }
@@ -78,6 +85,12 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
             implementation(libs.androidx.work.runtime)
+            implementation(libs.androidx.sqlite.bundled)
+        }
+        wasmJsMain.dependencies {
+            implementation(libs.ktor.client.js)
+            implementation(libs.kotlinx.browser)
+            implementation(project(":sqliteWebWorker"))
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -95,6 +108,7 @@ kotlin {
     if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
         sourceSets.iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.androidx.sqlite.bundled)
         }
     }
 }
@@ -102,6 +116,7 @@ kotlin {
 // Room's annotation processor must run for every Kotlin target's main compilation.
 dependencies {
     add("kspAndroid", libs.room.compiler)
+    add("kspWasmJs", libs.room.compiler)
     if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
         add("kspIosArm64", libs.room.compiler)
         add("kspIosSimulatorArm64", libs.room.compiler)

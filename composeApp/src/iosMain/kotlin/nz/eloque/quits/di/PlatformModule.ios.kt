@@ -1,7 +1,9 @@
 package nz.eloque.quits.di
 
-import androidx.room.Room
-import androidx.room.RoomDatabase
+import androidx.room3.Room
+import androidx.room3.RoomDatabase
+import androidx.sqlite.SQLiteDriver
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.russhwolf.settings.NSUserDefaultsSettings
 import com.russhwolf.settings.Settings
 import io.ktor.client.engine.HttpClientEngine
@@ -30,6 +32,7 @@ actual val platformModule: Module =
             val path = requireNotNull(documents?.path) { "no documents directory" } + "/quits.db"
             Room.databaseBuilder<QuitsDatabase>(name = path)
         }
+        single<SQLiteDriver> { BundledSQLiteDriver() }
         single<Settings> { NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults) }
         single<HttpClientEngine> { Darwin.create() }
     }

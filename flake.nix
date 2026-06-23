@@ -46,6 +46,7 @@
 
       nixosModules = {
         quits-server = ./nix/module.nix;
+        quits-web = ./nix/web-module.nix;
         default = self.nixosModules.quits-server;
       };
 

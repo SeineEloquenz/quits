@@ -3,7 +3,8 @@
 Split expenses with friends — custom fractions, multiple payers, multiple currencies — that stay
 in sync across devices. No account required: create a group, share a code/link, done.
 
-- **App:** Compose Multiplatform (Android + iOS), offline-first, local Room database.
+- **App:** Compose Multiplatform (Android, iOS, and web via Kotlin/Wasm), offline-first, local
+  Room database (OPFS on the web).
 - **Backend:** Rust/Axum sync relay. It stores **opaque records** per group
   and relays deltas; it has **no domain logic** and cannot read your data — groundwork for
   end-to-end encryption. All money/split/balance/FX logic lives in the app.
@@ -58,6 +59,52 @@ The flake exports `nixosModules.quits-server`..
             # Keep secrets out of the Nix store (managed by sops/agenix/etc).
             # Set at least QUITS_JWT_SECRET so tokens survive restarts.
             environmentFile = "/run/secrets/quits-server.env";
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
+### Web
+
+The app also builds for the browser via Kotlin/Wasm (Compose for Web), reusing the shared UI and
+sync logic. Room persists locally through a Web Worker SQLite driver backed by the Origin Private
+File System (OPFS).
+
+```bash
+# inside the devshell (provides Node + Yarn, and points Kotlin at the Nix node):
+./gradlew :composeApp:wasmJsBrowserDistribution   # -> composeApp/build/dist/wasmJs/productionExecutable
+./gradlew :composeApp:wasmJsBrowserDevelopmentRun # serve with hot reload
+nix build .#web                                   # hermetic bundle (see note below)
+```
+
+`nix build .#web` is a pure build: a single mitm-cache fixed-output derivation captures the Maven
+and npm dependencies under `nix/web-deps.json`. Regenerate that lock — without hand-editing a hash —
+with the package's `updateScript` (the `update-web-deps` workflow runs it on a schedule). The build
+also requires `compose-kit` to publish a `wasmJs` target.
+
+#### Deploying the web app on NixOS
+
+The flake exports `nixosModules.quits-web`, an nginx vhost serving the static bundle with the
+cross-origin-isolation headers OPFS needs. The web client talks to the relay directly (the relay
+sends permissive CORS), so the web host and relay host are independent.
+
+```nix
+{
+  inputs.quits.url = "github:SeineEloquenz/quits";
+
+  outputs = { nixpkgs, quits, ... }: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        quits.nixosModules.quits-web
+        {
+          services.quits-web = {
+            enable = true;
+            serverName = "app.quits.eloque.nz";
+            package = quits.packages.x86_64-linux.web;
           };
         }
       ];

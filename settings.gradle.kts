@@ -18,7 +18,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "quits"
 
-include(":composeApp", ":androidApp")
+include(":composeApp", ":androidApp", ":sqliteWebWorker")
 
 val localComposeKitPath = providers.environmentVariable("LOCAL_COMPOSE_KIT").orNull?.takeIf { it.isNotBlank() }
 if (localComposeKitPath != null) {
