@@ -55,10 +55,16 @@ in
 
         locations."= /index.html".extraConfig = ''
           add_header Cache-Control "no-cache";
+            add_header Cross-Origin-Opener-Policy "same-origin" always;
+            add_header Cross-Origin-Embedder-Policy "require-corp" always;
+            add_header Cross-Origin-Resource-Policy "same-origin" always;
         '';
 
         locations."~* \\.(js|wasm|mjs)$".extraConfig = ''
           add_header Cache-Control "public, max-age=31536000, immutable";
+            add_header Cross-Origin-Opener-Policy "same-origin" always;
+            add_header Cross-Origin-Embedder-Policy "require-corp" always;
+            add_header Cross-Origin-Resource-Policy "same-origin" always;
         '';
       };
     };
