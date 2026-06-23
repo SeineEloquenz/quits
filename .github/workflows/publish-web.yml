@@ -1,0 +1,81 @@
+name: Publish
+
+# Publishes the built web app to the web branch
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (no leading v), e.g. 0.1.0"
+        required: true
+
+permissions:
+  contents: write
+
+# Never let two publishes race on the `web` branch.
+concurrency:
+  group: publish-web
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # macOS is mandatory: Kotlin/Native can only produce the Apple (iOS) klibs on a Mac host.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            v="${{ github.event.inputs.version }}"
+          else
+            v="${GITHUB_REF_NAME#v}"
+          fi
+          echo "Publishing version: $v"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v6
+
+      # Working copy of the static repo: clone the existing `web` branch (so prior versions are
+      # preserved), or start a fresh orphan branch on the very first publish.
+      - name: Prepare web-repo working copy
+        run: |
+          if git clone --depth=1 --branch web \
+              "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" \
+              web-repo; then
+            echo "Cloned existing web branch."
+          else
+            echo "No web branch yet — creating a fresh orphan."
+            rm -rf web-repo && mkdir web-repo
+            cd web-repo
+            git init -q
+            git checkout -q --orphan web
+            git remote add origin \
+              "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          fi
+
+      - name: Build browser distribution
+        run: ./gradlew :composeApp:wasmJsBrowserDistribution
+
+      - name: Publish artifacts into web-repo
+        run: |
+          cp -R composeApp/build/dist/wasmJs/productionExecutable "$GITHUB_WORKSPACE/web-repo"
+
+      - name: Commit & push
+        working-directory: web-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to publish (artifacts unchanged)."
+          else
+            git commit -q -m "Publish ${{ steps.ver.outputs.version }}"
+            git push origin HEAD:web
+          fi
