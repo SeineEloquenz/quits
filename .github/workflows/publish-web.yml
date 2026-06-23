@@ -65,7 +65,8 @@ jobs:
 
       - name: Publish artifacts into web-repo
         run: |
-          cp -R composeApp/build/dist/wasmJs/productionExecutable "$GITHUB_WORKSPACE/web-repo"
+          rm -r $GITHUB_WORKSPACE/web-repo/*
+          cp -R composeApp/build/dist/wasmJs/productionExecutable/* "$GITHUB_WORKSPACE/web-repo"
 
       - name: Commit & push
         working-directory: web-repo
