@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Quits app icon">
+  <!-- Full-bleed master (no corner rounding). Source for iOS, web PWA and maskable PNGs -->
+  <!-- where the platform applies its own mask. The bars sit well within the maskable safe zone. -->
+  <rect width="1024" height="1024" fill="#F1E7D2"/>
+  <rect x="252" y="340" width="520" height="148" rx="74" fill="#00665C"/>
+  <rect x="252" y="536" width="520" height="148" rx="74" fill="#E0A52A"/>
+</svg>

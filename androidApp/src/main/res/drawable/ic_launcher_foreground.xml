@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon foreground: the two equal bars, teal over amber. -->
+<!-- Sized to sit inside the 66dp safe zone of the 108dp canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#00665C"
+        android:pathData="M38,39 h32 a6,6 0 0 1 0,12 h-32 a6,6 0 0 1 0,-12 z" />
+    <path
+        android:fillColor="#E0A52A"
+        android:pathData="M38,57 h32 a6,6 0 0 1 0,12 h-32 a6,6 0 0 1 0,-12 z" />
+</vector>

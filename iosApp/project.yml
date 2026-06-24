@@ -18,7 +18,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: nz.eloque.quits
         INFOPLIST_FILE: iosApp/Info.plist
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64
         # The Kotlin/Native framework is produced by the Gradle build phase below into this dir.
         FRAMEWORK_SEARCH_PATHS:

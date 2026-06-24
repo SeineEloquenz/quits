@@ -1,0 +1,14 @@
+{
+  "name": "Quits",
+  "short_name": "Quits",
+  "description": "Split expenses with friends — even, settled, in sync.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F1E7D2",
+  "theme_color": "#00665C",
+  "icons": [
+    { "src": "favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any maskable" },
+    { "src": "icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Monochrome layer for Android themed icons. The fill colour is irrelevant: the system -->
+<!-- re-tints this layer from the user's wallpaper. Only the shape and alpha matter. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#000000"
+        android:pathData="M38,39 h32 a6,6 0 0 1 0,12 h-32 a6,6 0 0 1 0,-12 z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M38,57 h32 a6,6 0 0 1 0,12 h-32 a6,6 0 0 1 0,-12 z" />
+</vector>

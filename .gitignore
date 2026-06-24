@@ -28,3 +28,6 @@ result-*
 .idea/
 *.iml
 .vscode/
+
+# Brainstorming visual companion
+.superpowers/

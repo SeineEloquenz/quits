@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Quits">
+  <defs>
+    <clipPath id="squircle"><rect width="1024" height="1024" rx="230" ry="230"/></clipPath>
+  </defs>
+  <g clip-path="url(#squircle)">
+    <rect width="1024" height="1024" fill="#F1E7D2"/>
+    <rect x="252" y="340" width="520" height="148" rx="74" fill="#00665C"/>
+    <rect x="252" y="536" width="520" height="148" rx="74" fill="#E0A52A"/>
+  </g>
+</svg>
