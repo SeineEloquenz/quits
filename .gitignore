@@ -8,6 +8,7 @@ build/
 local.properties
 .kotlin/
 captures/
+keystore.jks
 
 # Xcode / iOS
 iosApp/build/
