@@ -4,6 +4,13 @@ plugins {
 }
 
 android {
+    dependenciesInfo {
+        // Disables dependency metadata when building APKs.
+        includeInApk = false
+        // Disables dependency metadata when building Android App Bundles.
+        includeInBundle = false
+    }
+
     namespace = "nz.eloque.quits"
     compileSdk = libs.versions.compileSdk.get().toInt()
     buildToolsVersion = libs.versions.buildTools.get()
@@ -12,23 +19,31 @@ android {
         applicationId = "nz.eloque.quits"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     signingConfigs {
         create("release") {
-            System.getenv("KEYSTORE_PATH")?.let { storeFile = file(it) }
+            storeFile = file(System.getProperty("user.home") + "/work/_temp/keystore.jks")
             storePassword = System.getenv("KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("SIGNING_KEY_ALIAS")
             keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            keyAlias = System.getenv("SIGNING_KEY_ALIAS")
         }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            signingConfig = signingConfigs["release"]
+        }
+        debug {
+            applicationIdSuffix = ".dev"
         }
     }
 
