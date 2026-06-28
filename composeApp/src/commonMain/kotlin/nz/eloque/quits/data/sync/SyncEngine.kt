@@ -85,7 +85,7 @@ class SyncEngine(
         records += settlements.map { RecordMapper.record(it) }
         if (records.isEmpty()) return
 
-        val applied = relay.push(handle.remoteId, handle.token, records).applied.toSet()
+        val applied = relay.push(handle.remoteId, handle.token, records.map { seal(it) }).applied.toSet()
         // Clear dirty keyed on the pushed (updatedAt, deviceId): if the row was edited again during
         // the round-trip its clock moved, the guarded update no-ops, and the edit stays pending.
         if (group != null && RecordMapper.GROUP_RECORD_ID in applied) {
@@ -101,9 +101,27 @@ class SyncEngine(
     private suspend fun pull(gid: String) {
         val handle = db.groupSyncDao().byGroup(gid) ?: return
         val result = relay.pull(handle.remoteId, handle.token, handle.lastSeq)
-        for (record in result.records) apply(gid, record)
+        for (record in result.records) apply(gid, open(record))
         if (result.seq > handle.lastSeq) db.groupSyncDao().setLastSeq(gid, result.seq)
     }
+
+    private fun seal(record: SyncRecord): EncryptedRecord =
+        EncryptedRecord(
+            id = record.id,
+            updatedAt = record.updatedAt,
+            deviceId = record.deviceId,
+            deleted = record.deleted,
+            ciphertext = SyncJson.encode(record.payload).encodeToByteArray(),
+        )
+
+    private fun open(record: EncryptedRecord): SyncRecord =
+        SyncRecord(
+            id = record.id,
+            updatedAt = record.updatedAt,
+            deviceId = record.deviceId,
+            deleted = record.deleted,
+            payload = SyncJson.decode(record.ciphertext.decodeToString()),
+        )
 
     private suspend fun apply(
         gid: String,

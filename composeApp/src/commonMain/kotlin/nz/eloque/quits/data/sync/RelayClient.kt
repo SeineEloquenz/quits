@@ -56,7 +56,7 @@ class RelayClient(
     override suspend fun push(
         remoteId: String,
         token: String,
-        records: List<SyncRecord>,
+        records: List<EncryptedRecord>,
     ): PushResult {
         val response: PushResponseDto =
             client
@@ -83,23 +83,23 @@ class RelayClient(
     }
 
     @OptIn(ExperimentalEncodingApi::class)
-    private fun SyncRecord.toWire(): WireRecordIn =
+    private fun EncryptedRecord.toWire(): WireRecordIn =
         WireRecordIn(
             id = id,
             updatedAt = updatedAt,
             deleted = deleted,
             deviceId = deviceId,
-            payload = Base64.encode(SyncJson.encode(payload).encodeToByteArray()),
+            payload = Base64.encode(ciphertext),
         )
 
     @OptIn(ExperimentalEncodingApi::class)
-    private fun WireRecordOut.toRecord(): SyncRecord =
-        SyncRecord(
+    private fun WireRecordOut.toRecord(): EncryptedRecord =
+        EncryptedRecord(
             id = id,
             updatedAt = updatedAt,
             deviceId = deviceId,
             deleted = deleted,
-            payload = SyncJson.decode(Base64.decode(payload).decodeToString()),
+            ciphertext = Base64.decode(payload),
         )
 
     @Serializable

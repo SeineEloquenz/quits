@@ -23,7 +23,7 @@ import kotlin.test.assertTrue
 
 private class FakeRelay : Relay {
     private data class Stored(
-        val record: SyncRecord,
+        val record: EncryptedRecord,
         val seq: Long,
     )
 
@@ -47,7 +47,7 @@ private class FakeRelay : Relay {
     override suspend fun push(
         remoteId: String,
         token: String,
-        records: List<SyncRecord>,
+        records: List<EncryptedRecord>,
     ): PushResult {
         val store = containers.getOrPut(remoteId) { mutableMapOf() }
         val applied = mutableListOf<String>()
