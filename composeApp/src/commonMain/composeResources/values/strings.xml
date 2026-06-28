@@ -7,6 +7,7 @@
     <string name="action_join">Join</string>
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_copy">Copy</string>
     <string name="action_reset">Reset</string>
     <string name="action_record">Record</string>
     <string name="action_dismiss">Dismiss</string>
