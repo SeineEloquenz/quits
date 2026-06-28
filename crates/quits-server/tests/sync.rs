@@ -50,13 +50,21 @@ async fn send(
     (status, value)
 }
 
-/// Creates a group. Returns `(group_id, code, token)`.
+/// Creates a group under a random lookup id. Returns `(group_id, lookup_id, token)`.
 async fn create_group(app: &Router) -> (String, String, String) {
-    let (status, resp) = send(app, "POST", "/v1/groups", None, None).await;
+    let lookup_id = Uuid::new_v4().to_string();
+    let (status, resp) = send(
+        app,
+        "POST",
+        "/v1/groups",
+        None,
+        Some(json!({ "lookup_id": lookup_id })),
+    )
+    .await;
     assert_eq!(status, StatusCode::OK, "create failed: {resp:?}");
     (
         resp["group_id"].as_str().unwrap().to_string(),
-        resp["code"].as_str().unwrap().to_string(),
+        lookup_id,
         resp["token"].as_str().unwrap().to_string(),
     )
 }
@@ -111,15 +119,15 @@ fn ids(list: &Value) -> Vec<String> {
 #[tokio::test]
 async fn two_devices_converge_with_last_write_wins() {
     let app = app_with(test_config()).await;
-    let (gid, code, token_a) = create_group(&app).await;
+    let (gid, lookup_id, token_a) = create_group(&app).await;
 
-    // Device B joins by code and gets a token for the same group.
+    // Device B joins by lookup id and gets a token for the same group.
     let (status, joined) = send(
         &app,
         "POST",
         "/v1/groups/join",
         None,
-        Some(json!({ "code": code })),
+        Some(json!({ "lookup_id": lookup_id })),
     )
     .await;
     assert_eq!(status, StatusCode::OK);
@@ -160,7 +168,7 @@ async fn two_devices_converge_with_last_write_wins() {
 #[tokio::test]
 async fn changes_require_a_matching_group_token() {
     let app = app_with(test_config()).await;
-    let (gid, _code, _token) = create_group(&app).await;
+    let (gid, _lookup, _token) = create_group(&app).await;
 
     // No token → 401.
     let (status, _) = send(
@@ -174,7 +182,7 @@ async fn changes_require_a_matching_group_token() {
     assert_eq!(status, StatusCode::UNAUTHORIZED);
 
     // A valid token for a *different* group → 403.
-    let (_gid2, _code2, token2) = create_group(&app).await;
+    let (_gid2, _lookup2, token2) = create_group(&app).await;
     let (status, _) = send(
         &app,
         "GET",
