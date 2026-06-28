@@ -23,6 +23,7 @@ multiplatformSettings = "1.3.0"
 androidxWork = "2.11.2"
 composeKit = "0.5.0"
 ktlint = "14.2.0"
+cryptography = "0.6.0"
 
 # Android SDK
 compileSdk = "37"
@@ -88,6 +89,10 @@ robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectr
 androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTest" }
 
 compose-kit = { module = "nz.eloque.compose-kit:lib", version.ref = "composeKit" }
+
+# cryptography-kotlin (E2EE)
+cryptography-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "cryptography" }
+cryptography-provider-optimal = { module = "dev.whyoleg.cryptography:cryptography-provider-optimal", version.ref = "cryptography" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
