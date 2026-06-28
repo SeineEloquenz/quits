@@ -16,10 +16,6 @@ use crate::auth::{Claims, GroupToken, issue_token};
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 
-/// Join/share codes use an unambiguous 31-char alphabet (no 0/O/1/I/L).
-const CODE_ALPHABET: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-const CODE_LEN: usize = 9;
-
 pub struct ClientContext {
     pub instance_header: Option<String>,
 }
@@ -40,13 +36,14 @@ impl FromRequestParts<AppState> for ClientContext {
 #[derive(Debug, Serialize)]
 pub struct CreateGroupResponse {
     pub group_id: String,
-    pub code: String,
     pub token: String,
 }
 
+/// Opaque, client-derived handle the relay stores to find a group; used by both create and join.
+/// The relay never learns the group secret it's derived from.
 #[derive(Debug, Deserialize)]
-pub struct JoinGroupRequest {
-    pub code: String,
+pub struct GroupLookupRequest {
+    pub lookup_id: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -127,10 +124,11 @@ pub async fn health() -> &'static str {
     "ok"
 }
 
-/// Creates a group. Gated by the optional instance secret.
+/// Creates a group under a client-supplied lookup id. Gated by the optional instance secret.
 pub async fn create_group(
     State(state): State<AppState>,
     ctx: ClientContext,
+    Json(req): Json<GroupLookupRequest>,
 ) -> AppResult<Json<CreateGroupResponse>> {
     if let Some(secret) = &state.config.instance_secret
         && ctx.instance_header.as_deref() != Some(secret.as_str())
@@ -141,33 +139,18 @@ pub async fn create_group(
     let id = Uuid::new_v4().to_string();
     let created_at = now_ms() as i64;
 
-    // Retry on the (astronomically unlikely) chance of a share-code collision, regenerating the
-    // code each time. `code` always holds the value that was actually inserted on success.
-    const MAX_CODE_ATTEMPTS: usize = 5;
-    let mut code = generate_code();
-    let mut inserted = false;
-    for _ in 0..MAX_CODE_ATTEMPTS {
-        match sqlx::query("INSERT INTO groups (id, code, created_at) VALUES (?, ?, ?)")
-            .bind(&id)
-            .bind(&code)
-            .bind(created_at)
-            .execute(&state.db)
-            .await
-        {
-            Ok(_) => {
-                inserted = true;
-                break;
-            }
-            Err(sqlx::Error::Database(e)) if e.is_unique_violation() => {
-                code = generate_code();
-            }
-            Err(e) => return Err(e.into()),
+    match sqlx::query("INSERT INTO groups (id, lookup_id, created_at) VALUES (?, ?, ?)")
+        .bind(&id)
+        .bind(&req.lookup_id)
+        .bind(created_at)
+        .execute(&state.db)
+        .await
+    {
+        Ok(_) => {}
+        Err(sqlx::Error::Database(e)) if e.is_unique_violation() => {
+            return Err(AppError::BadRequest("group already exists".into()));
         }
-    }
-    if !inserted {
-        return Err(AppError::Internal(
-            "could not allocate a unique group code".into(),
-        ));
+        Err(e) => return Err(e.into()),
     }
 
     let token = issue_token(
@@ -176,20 +159,16 @@ pub async fn create_group(
         now_secs(),
         state.config.token_ttl_secs,
     );
-    Ok(Json(CreateGroupResponse {
-        group_id: id,
-        code,
-        token,
-    }))
+    Ok(Json(CreateGroupResponse { group_id: id, token }))
 }
 
-/// Joins an existing group by its share code.
+/// Joins an existing group by its lookup id.
 pub async fn join_group(
     State(state): State<AppState>,
-    Json(req): Json<JoinGroupRequest>,
+    Json(req): Json<GroupLookupRequest>,
 ) -> AppResult<Json<JoinGroupResponse>> {
-    let row: Option<(String,)> = sqlx::query_as("SELECT id FROM groups WHERE code = ?")
-        .bind(&req.code)
+    let row: Option<(String,)> = sqlx::query_as("SELECT id FROM groups WHERE lookup_id = ?")
+        .bind(&req.lookup_id)
         .fetch_optional(&state.db)
         .await?;
     let group_id = row.ok_or(AppError::NotFound)?.0;
@@ -326,18 +305,6 @@ fn authorize(claims: &Claims, group_id: &str) -> AppResult<()> {
     }
 }
 
-fn generate_code() -> String {
-    // Map CSPRNG bytes (uuid v4 is getrandom-backed) onto the code alphabet.
-    let mut bytes = Vec::with_capacity(16);
-    while bytes.len() < CODE_LEN {
-        bytes.extend_from_slice(Uuid::new_v4().as_bytes());
-    }
-    bytes[..CODE_LEN]
-        .iter()
-        .map(|&b| CODE_ALPHABET[b as usize % CODE_ALPHABET.len()] as char)
-        .collect()
-}
-
 fn now_ms() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -350,16 +317,4 @@ fn now_secs() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn generated_codes_have_expected_shape() {
-        let code = generate_code();
-        assert_eq!(code.len(), CODE_LEN);
-        assert!(code.bytes().all(|b| CODE_ALPHABET.contains(&b)));
-    }
 }
