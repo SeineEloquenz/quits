@@ -1,6 +1,7 @@
 package nz.eloque.quits.data.sync
 
 import kotlinx.coroutines.test.runTest
+import nz.eloque.quits.data.crypto.GroupCrypto
 import nz.eloque.quits.data.db.inMemoryDatabase
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.domain.Currency
@@ -28,20 +29,19 @@ private class FakeRelay : Relay {
     )
 
     private val containers = mutableMapOf<String, MutableMap<String, Stored>>()
-    private val codes = mutableMapOf<String, String>()
+    private val lookups = mutableMapOf<String, String>()
     private var seq = 0L
 
-    override suspend fun createGroup(): GroupHandle {
+    override suspend fun createGroup(lookupId: String): GroupHandle {
         val remoteId = newId()
-        val code = remoteId.take(6).uppercase()
         containers[remoteId] = mutableMapOf()
-        codes[code] = remoteId
-        return GroupHandle(remoteId, code, "token-$remoteId")
+        lookups[lookupId] = remoteId
+        return GroupHandle(remoteId, "token-$remoteId")
     }
 
-    override suspend fun joinGroup(code: String): GroupHandle? {
-        val remoteId = codes[code] ?: return null
-        return GroupHandle(remoteId, code, "token-$remoteId")
+    override suspend fun joinGroup(lookupId: String): GroupHandle? {
+        val remoteId = lookups[lookupId] ?: return null
+        return GroupHandle(remoteId, "token-$remoteId")
     }
 
     override suspend fun push(
@@ -96,11 +96,11 @@ class SyncEngineTest {
 
             val db1 = inMemoryDatabase()
             val repo1 = GroupRepository(db1, deviceId = "dev1", now = { clock })
-            val engine1 = SyncEngine(db1, relay, deviceId = "dev1")
+            val engine1 = SyncEngine(db1, relay, GroupCrypto(), deviceId = "dev1")
 
             val db2 = inMemoryDatabase()
             val repo2 = GroupRepository(db2, deviceId = "dev2", now = { clock })
-            val engine2 = SyncEngine(db2, relay, deviceId = "dev2")
+            val engine2 = SyncEngine(db2, relay, GroupCrypto(), deviceId = "dev2")
 
             try {
                 // device 1 builds a group locally and shares it.
@@ -111,11 +111,11 @@ class SyncEngineTest {
                     Expense(ExpenseId("e1"), "Dinner", listOf(Payment(a, Money(3000, usd))), Split.Equal(listOf(a, b))),
                     spentAt = 1,
                 )
-                val handle = engine1.share(g)
+                val code = engine1.share(g)
 
                 // device 2 joins by code and pulls the whole group down.
                 clock = 1500L
-                val joined = engine2.join(handle.code)!!
+                val joined = engine2.join(code)!!
                 val onDevice1 = repo1.load(g)!!
                 val onDevice2 = repo2.load(joined)!!
                 assertEquals(2, onDevice2.members.size)
@@ -157,10 +157,10 @@ class SyncEngineTest {
             var clock = 1000L
             val db1 = inMemoryDatabase()
             val repo1 = GroupRepository(db1, deviceId = "dev1", now = { clock })
-            val engine1 = SyncEngine(db1, relay, deviceId = "dev1")
+            val engine1 = SyncEngine(db1, relay, GroupCrypto(), deviceId = "dev1")
             val db2 = inMemoryDatabase()
             val repo2 = GroupRepository(db2, deviceId = "dev2", now = { clock })
-            val engine2 = SyncEngine(db2, relay, deviceId = "dev2")
+            val engine2 = SyncEngine(db2, relay, GroupCrypto(), deviceId = "dev2")
 
             try {
                 val g = GroupId("g-local")
@@ -170,8 +170,8 @@ class SyncEngineTest {
                     Expense(ExpenseId("e1"), "Dinner", listOf(Payment(a, Money(3000, usd))), Split.Equal(listOf(a, b))),
                     spentAt = 1,
                 )
-                val handle = engine1.share(g)
-                val joined = engine2.join(handle.code)!!
+                val code = engine1.share(g)
+                val joined = engine2.join(code)!!
                 assertEquals(1, repo2.load(joined)!!.expenses.size)
 
                 clock = 2000L
