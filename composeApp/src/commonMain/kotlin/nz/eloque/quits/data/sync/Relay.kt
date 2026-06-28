@@ -3,7 +3,6 @@ package nz.eloque.quits.data.sync
 /** A group's sync handle as known to the relay. */
 data class GroupHandle(
     val remoteId: String,
-    val code: String,
     val token: String,
 )
 
@@ -19,10 +18,10 @@ data class PullResult(
 )
 
 interface Relay {
-    suspend fun createGroup(): GroupHandle
+    suspend fun createGroup(lookupId: String): GroupHandle
 
-    /** Returns the handle for [code], or null if no such group exists. */
-    suspend fun joinGroup(code: String): GroupHandle?
+    /** Returns the handle for [lookupId], or null if no such group exists. */
+    suspend fun joinGroup(lookupId: String): GroupHandle?
 
     suspend fun push(
         remoteId: String,
