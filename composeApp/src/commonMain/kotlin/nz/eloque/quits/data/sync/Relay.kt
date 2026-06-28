@@ -14,7 +14,7 @@ data class PushResult(
 )
 
 data class PullResult(
-    val records: List<SyncRecord>,
+    val records: List<EncryptedRecord>,
     val seq: Long,
 )
 
@@ -27,7 +27,7 @@ interface Relay {
     suspend fun push(
         remoteId: String,
         token: String,
-        records: List<SyncRecord>,
+        records: List<EncryptedRecord>,
     ): PushResult
 
     suspend fun pull(
