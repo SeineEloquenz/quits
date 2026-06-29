@@ -8,6 +8,7 @@
     <string name="action_save">Speichern</string>
     <string name="action_cancel">Abbrechen</string>
     <string name="action_copy">Kopieren</string>
+    <string name="action_scan">QR-Code scannen</string>
     <string name="action_reset">Zurücksetzen</string>
     <string name="action_record">Verbuchen</string>
     <string name="action_dismiss">Schließen</string>

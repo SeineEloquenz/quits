@@ -1,5 +1,6 @@
 package nz.eloque.quits.ui.group
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -110,6 +111,7 @@ import nz.eloque.quits.util.formatDateTime
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import qrgenerator.qrkitpainter.rememberQrKitPainter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -433,6 +435,12 @@ private fun ShareSheet(
                 Button(onClick = onShare) { Text(stringResource(Res.string.detail_share_group)) }
             } else {
                 val clipboard = LocalClipboardManager.current
+                Image(
+                    painter = rememberQrKitPainter(data = code),
+                    contentDescription = null,
+                    modifier = Modifier.size(200.dp).align(Alignment.CenterHorizontally),
+                )
+                Spacer(Modifier.height(12.dp))
                 Text(stringResource(Res.string.label_share_code), style = MaterialTheme.typography.labelMedium)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(code, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))

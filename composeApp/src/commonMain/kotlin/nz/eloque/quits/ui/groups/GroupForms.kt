@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -23,11 +27,14 @@ import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_create
 import nz.eloque.quits.resources.action_join
+import nz.eloque.quits.resources.action_scan
 import nz.eloque.quits.resources.groups_base_currency
 import nz.eloque.quits.resources.label_name
 import nz.eloque.quits.resources.label_share_code
 import nz.eloque.quits.ui.components.CurrencyPicker
 import org.jetbrains.compose.resources.stringResource
+import qrscanner.CameraLens
+import qrscanner.QrScanner
 
 /** Name + base-currency + Create. Resets the name field after submitting. */
 @Composable
@@ -74,6 +81,7 @@ fun JoinGroupForm(
     modifier: Modifier = Modifier,
 ) {
     var joinCode by remember { mutableStateOf("") }
+    var scanning by remember { mutableStateOf(false) }
 
     Column(modifier.padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -88,13 +96,30 @@ fun JoinGroupForm(
                 isError = error != null,
                 modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.width(12.dp))
+            IconButton(onClick = { scanning = !scanning }) {
+                Icon(Icons.Filled.QrCodeScanner, contentDescription = stringResource(Res.string.action_scan))
+            }
+            Spacer(Modifier.width(4.dp))
             Button(
                 onClick = { onJoin(joinCode) },
                 enabled = joinCode.isNotBlank(),
             ) {
                 Text(stringResource(Res.string.action_join))
             }
+        }
+        if (scanning) {
+            QrScanner(
+                modifier = Modifier.fillMaxWidth().height(260.dp).padding(top = 12.dp),
+                flashlightOn = false,
+                cameraLens = CameraLens.Back,
+                openImagePicker = false,
+                imagePickerHandler = {},
+                onCompletion = {
+                    scanning = false
+                    onJoin(it)
+                },
+                onFailure = { scanning = false },
+            )
         }
         error?.let {
             Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
