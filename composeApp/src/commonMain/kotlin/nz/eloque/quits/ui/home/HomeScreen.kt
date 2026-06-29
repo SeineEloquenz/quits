@@ -81,6 +81,8 @@ fun HomeScreen(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        // Leave horizontal swipes to the group screen's tab pager; the drawer opens from the menu button.
+        gesturesEnabled = drawerState.isOpen,
         drawerContent = {
             ModalDrawerSheet {
                 GroupDrawer(

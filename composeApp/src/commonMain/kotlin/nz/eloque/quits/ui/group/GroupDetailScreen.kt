@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -45,15 +47,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import nz.eloque.compose_kit.components.SwipeToDismiss
 import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.input.SubmittableTextField
@@ -115,7 +119,8 @@ fun GroupDetailScreen(
     val state by viewModel.state.collectAsState()
     val syncStatus by viewModel.syncStatus.collectAsState()
 
-    var selectedTab by rememberSaveable(groupId) { mutableStateOf(0) }
+    val scope = rememberCoroutineScope()
+    val pagerState = key(groupId) { rememberPagerState(pageCount = { 2 }) }
     var renaming by remember(groupId) { mutableStateOf<Pair<MemberId, String>?>(null) }
     var deleting by remember(groupId) { mutableStateOf<ExpenseRow?>(null) }
     var showShare by remember(groupId) { mutableStateOf(false) }
@@ -174,7 +179,7 @@ fun GroupDetailScreen(
             }
         },
         floatingActionButton = {
-            if (selectedTab == 0 && state.members.isNotEmpty()) {
+            if (pagerState.currentPage == 0 && state.members.isNotEmpty()) {
                 ExtendedFloatingActionButton(
                     onClick = onAddExpense,
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
@@ -191,43 +196,45 @@ fun GroupDetailScreen(
                 return@Column
             }
 
-            PrimaryTabRow(selectedTabIndex = selectedTab) {
+            PrimaryTabRow(selectedTabIndex = pagerState.currentPage) {
                 Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
+                    selected = pagerState.currentPage == 0,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
                     text = { Text(stringResource(Res.string.detail_expenses)) },
                 )
                 Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
+                    selected = pagerState.currentPage == 1,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
                     text = { Text(stringResource(Res.string.detail_members)) },
                 )
             }
 
-            val scrollModifier =
-                Modifier
-                    .fillMaxSize()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp)
+            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                val scrollModifier =
+                    Modifier
+                        .fillMaxSize()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp)
 
-            when (selectedTab) {
-                0 ->
-                    ExpensesTab(
-                        state = state,
-                        modifier = scrollModifier,
-                        onEditExpense = onEditExpense,
-                        onDeleteRequest = { deleting = it },
-                    )
-                else ->
-                    MembersTab(
-                        state = state,
-                        modifier = scrollModifier,
-                        onRename = { renaming = it },
-                        onRemove = viewModel::removeMember,
-                        onRecord = viewModel::record,
-                        onAddMember = viewModel::addMember,
-                    )
+                when (page) {
+                    0 ->
+                        ExpensesTab(
+                            state = state,
+                            modifier = scrollModifier,
+                            onEditExpense = onEditExpense,
+                            onDeleteRequest = { deleting = it },
+                        )
+                    else ->
+                        MembersTab(
+                            state = state,
+                            modifier = scrollModifier,
+                            onRename = { renaming = it },
+                            onRemove = viewModel::removeMember,
+                            onRecord = viewModel::record,
+                            onAddMember = viewModel::addMember,
+                        )
+                }
             }
         }
     }
