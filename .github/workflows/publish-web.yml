@@ -23,7 +23,7 @@ jobs:
     # macOS is mandatory: Kotlin/Native can only produce the Apple (iOS) klibs on a Mac host.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Resolve version
         id: ver
