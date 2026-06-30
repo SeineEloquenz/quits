@@ -78,7 +78,7 @@ androidx-sqlite-web = { module = "androidx.sqlite:sqlite-web", version.ref = "sq
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
 
 # Web (wasmJs) — browser APIs (Worker, document) for the SQLite web worker driver
-kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version = "0.3" }
+kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version = "0.5.0" }
 
 # WorkManager (Android background sync)
 androidx-work-runtime = { module = "androidx.work:work-runtime", version.ref = "androidxWork" }
