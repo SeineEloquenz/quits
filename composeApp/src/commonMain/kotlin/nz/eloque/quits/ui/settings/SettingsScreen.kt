@@ -11,12 +11,14 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.components.Section
+import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.input.SubmittableTextField
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.resources.Res
@@ -35,7 +37,13 @@ fun SettingsScreen(onBack: () -> Unit) {
     val state by viewModel.state.collectAsState()
 
     AppScaffold(
-        title = stringResource(Res.string.settings_title),
+        title = {
+            AbbreviatingText(
+                stringResource(Res.string.settings_title),
+                style = MaterialTheme.typography.headlineMedium,
+                maxLines = 1,
+            )
+        },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.cd_back))

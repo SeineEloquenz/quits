@@ -32,6 +32,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.chip.ChipSelector
 import nz.eloque.compose_kit.components.SectionCard
+import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
@@ -80,12 +81,17 @@ fun ExpenseEditorScreen(
     }
 
     AppScaffold(
-        title =
-            if (state.editing) {
-                stringResource(Res.string.editor_title_edit)
-            } else {
-                stringResource(Res.string.editor_title_add)
-            },
+        title = {
+            AbbreviatingText(
+                if (state.editing) {
+                    stringResource(Res.string.editor_title_edit)
+                } else {
+                    stringResource(Res.string.editor_title_add)
+                },
+                style = MaterialTheme.typography.headlineMedium,
+                maxLines = 1,
+            )
+        },
         navigationIcon = {
             IconButton(onClick = onCancel) {
                 Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.action_cancel))

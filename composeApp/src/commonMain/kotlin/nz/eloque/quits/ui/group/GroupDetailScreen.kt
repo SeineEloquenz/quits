@@ -160,7 +160,13 @@ fun GroupDetailScreen(
     }
 
     AppScaffold(
-        title = state.name.ifEmpty { stringResource(Res.string.group_fallback_name) },
+        title = {
+            AbbreviatingText(
+                state.name.ifEmpty { stringResource(Res.string.group_fallback_name) },
+                style = MaterialTheme.typography.headlineMedium,
+                maxLines = 1,
+            )
+        },
         navigationIcon = {
             IconButton(onClick = onOpenDrawer) {
                 Icon(Icons.Default.Menu, contentDescription = stringResource(Res.string.cd_menu))
