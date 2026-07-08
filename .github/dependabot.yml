@@ -4,18 +4,34 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      inputs:
+        patterns:
+          - "*"
 
   - package-ecosystem: cargo
     directory: /
     schedule:
       interval: weekly
+    groups:
+      cargo:
+        patterns:
+          - "*"
 
   - package-ecosystem: gradle
     directory: /
     schedule:
       interval: weekly
+    groups:
+      kotlin:
+        patterns:
+          - "*"
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"
