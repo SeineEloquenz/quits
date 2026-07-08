@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-java@v5
         with:
@@ -27,7 +27,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       - name: Cache Kotlin/Native (~/.konan)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
