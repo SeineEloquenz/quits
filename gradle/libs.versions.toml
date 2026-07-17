@@ -1,6 +1,6 @@
 [versions]
-agp = "9.2.1"
-kotlin = "2.3.21"
+agp = "9.3.0"
+kotlin = "2.4.10"
 composeMultiplatform = "1.11.1"
 composeMaterial3 = "1.9.0"
 composeMaterialIconsExtended = "1.7.3"
@@ -12,16 +12,16 @@ kotlinxCoroutines = "1.11.0"
 kotlinxSerialization = "1.11.0"
 kotlinxDatetime = "0.8.0"
 nav3 = "1.1.1"
-nav3Lifecycle = "2.10.0"
-ktor = "3.5.0"
-room = "3.0.0-rc01"
-sqlite = "2.7.0-rc01"
-ksp = "2.3.9"
+nav3Lifecycle = "2.11.0"
+ktor = "3.5.1"
+room = "3.0.0"
+sqlite = "2.7.0"
+ksp = "2.3.10"
 robolectric = "4.16.1"
 androidxTest = "1.7.0"
 multiplatformSettings = "1.3.0"
 androidxWork = "2.11.2"
-composeKit = "0.4.0"
+composeKit = "0.5.0"
 ktlint = "14.2.0"
 
 # Android SDK
@@ -78,7 +78,7 @@ androidx-sqlite-web = { module = "androidx.sqlite:sqlite-web", version.ref = "sq
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
 
 # Web (wasmJs) — browser APIs (Worker, document) for the SQLite web worker driver
-kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version = "0.3" }
+kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version = "0.5.0" }
 
 # WorkManager (Android background sync)
 androidx-work-runtime = { module = "androidx.work:work-runtime", version.ref = "androidxWork" }
