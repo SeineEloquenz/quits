@@ -10,6 +10,7 @@
     <string name="action_reset">Zurücksetzen</string>
     <string name="action_record">Verbuchen</string>
     <string name="action_dismiss">Schließen</string>
+    <string name="action_delete">Löschen</string>
     <string name="label_name">Name</string>
     <string name="label_share_code">Freigabecode</string>
 
@@ -30,6 +31,19 @@
     <string name="groups_heading">Gruppen</string>
     <string name="groups_empty">Noch keine Gruppen.\nErstelle oben eine oder tritt mit einem Code bei.</string>
     <string name="groups_join_not_found">Keine Gruppe für Code \"%1$s\" gefunden</string>
+    <string name="groups_member_count">%1$d Mitglieder · %2$s</string>
+    <string name="cd_add_group">Gruppe hinzufügen</string>
+
+    <!-- Add group screen -->
+    <string name="add_group_title">Gruppe hinzufügen</string>
+    <string name="add_group_tagline">Rechnungen mit Freunden teilen, synchronisiert</string>
+    <string name="add_group_join_hint">Bitte die Person, die die Gruppe erstellt hat, um den Freigabecode</string>
+    <string name="add_group_new_here">Neu hier?</string>
+    <string name="add_group_create_link">Gruppe erstellen ›</string>
+    <string name="add_group_or">oder</string>
+    <string name="add_group_no_account">Kein Konto nötig</string>
+
+    <!-- Undo delete -->
 
     <!-- Group detail -->
     <string name="group_fallback_name">Gruppe</string>
@@ -40,32 +54,71 @@
     <string name="detail_last_synced">Zuletzt synchronisiert %1$s</string>
     <string name="detail_not_synced">Noch nicht synchronisiert</string>
     <string name="detail_balances">Salden</string>
+    <string name="detail_balances_summary">%1$d Mitglieder</string>
     <string name="detail_add_members_hint">Füge Mitglieder hinzu, um aufzuteilen.</string>
     <string name="detail_settle_up">Ausgleichen</string>
+    <string name="detail_settle_up_link">%1$d vorgeschlagene Ausgleiche</string>
+    <string name="settle_up_none">Keine offenen Salden — alle sind ausgeglichen.</string>
+    <string name="settle_up_custom_link">Anderen Betrag verbuchen ›</string>
+    <string name="settle_up_from">Von</string>
+    <string name="settle_up_to">An</string>
     <string name="detail_transfer_row">%1$s → %2$s: %3$s</string>
     <string name="detail_members">Mitglieder</string>
     <string name="detail_add_member">Mitglied hinzufügen</string>
     <string name="detail_expenses">Ausgaben</string>
     <string name="detail_expenses_empty">Noch keine Ausgaben.</string>
+    <string name="date_today">Heute</string>
+    <string name="date_yesterday">Gestern</string>
+    <string name="detail_settlement_title">Ausgleich</string>
+    <string name="detail_settlement_row">%1$s hat %2$s bezahlt</string>
     <string name="detail_paid_by">bezahlt von %1$s</string>
+    <string name="detail_owed_by">Geschuldet von</string>
+    <string name="detail_split_summary_dated">%1$s · %2$s · %3$d Personen</string>
+    <string name="detail_edit_expense">Ausgabe bearbeiten</string>
+    <string name="detail_delete_expense">Ausgabe löschen</string>
+    <string name="detail_expense_not_found">Diese Ausgabe existiert nicht mehr.</string>
+    <string name="expense_delete_title">\"%1$s\" löschen?</string>
+    <string name="expense_delete_body">Dies entfernt die Ausgabe für alle in der Gruppe, sobald synchronisiert wurde. Das kann nicht rückgängig gemacht werden.</string>
     <string name="detail_add_members_first">Erst Mitglieder hinzufügen</string>
     <string name="detail_add_expense">Ausgabe hinzufügen</string>
     <string name="dialog_rename_title">Mitglied umbenennen</string>
+
+    <!-- Member detail -->
+    <string name="member_detail_appears_in">Erscheint in</string>
+    <string name="member_detail_no_expenses">Noch mit keiner Ausgabe verknüpft.</string>
+    <string name="member_detail_manage">Verwalten</string>
+    <string name="member_detail_status_owes">schuldet der Gruppe</string>
+    <string name="member_detail_status_owed">bekommt Geld</string>
+    <string name="member_detail_status_settled">ist ausgeglichen</string>
+    <string name="member_detail_paid_and_owed">Bezahlt %1$s · geschuldet %2$s</string>
+    <string name="member_detail_owed_only">Schuldet %1$s</string>
+    <string name="member_detail_not_found">Dieses Mitglied existiert nicht mehr.</string>
+    <string name="member_detail_remove_title">%1$s entfernen?</string>
+    <string name="member_detail_remove_body_referenced">%1$s hat einen Saldo von %2$s und erscheint in früheren Ausgaben oder Ausgleichen. Diese Historie bleibt erhalten, aber %1$s kann für neue Ausgaben nicht mehr ausgewählt werden.</string>
+    <string name="member_detail_remove_body_plain">%1$s ist noch mit keiner Ausgabe verknüpft — dies entfernt %1$s aus der Gruppe.</string>
 
     <!-- Expense editor -->
     <string name="editor_title_add">Ausgabe hinzufügen</string>
     <string name="editor_title_edit">Ausgabe bearbeiten</string>
     <string name="editor_label_title">Titel</string>
+    <string name="editor_label_amount">Betrag</string>
     <string name="editor_label_currency">Währung</string>
     <string name="editor_label_rate">Kurs → %1$s</string>
     <string name="editor_rate_fetching">Live-Kurs wird abgerufen…</string>
     <string name="editor_paid_by">Bezahlt von</string>
+    <string name="editor_paid_by_hint">%1$s hat %2$s bezahlt</string>
+    <string name="editor_paid_by_prompt">Wer hat bezahlt?</string>
+    <string name="editor_customize_paid_link">Beträge anpassen ›</string>
+    <string name="editor_equal_paid_link">‹ Gleichmäßig aufteilen</string>
     <string name="editor_split">Aufteilung</string>
+    <string name="editor_equal_hint">%1$d Personen · %2$s pro Person</string>
+    <string name="editor_equal_count">%1$d Personen</string>
     <string name="editor_split_equal">Gleich</string>
     <string name="editor_split_shares">Anteile</string>
     <string name="editor_split_percentage">Prozent</string>
     <string name="editor_split_exact">Exakt</string>
     <string name="editor_placeholder_shares">Anteile</string>
+    <string name="editor_shares_suffix">×</string>
     <string name="editor_placeholder_percent">%</string>
     <string name="editor_placeholder_amount">Betrag</string>
     <string name="editor_save_changes">Änderungen speichern</string>
@@ -94,6 +147,8 @@
     <string name="error_invalid_rate">Gib einen gültigen Wechselkurs zu %1$s ein</string>
     <string name="error_invalid_paid">Ungültiger gezahlter Betrag für %1$s</string>
     <string name="error_no_payer">Gib ein, wer wie viel bezahlt hat</string>
+    <string name="error_invalid_total">Gib einen gültigen Betrag ein</string>
+    <string name="error_paid_sum">Die gezahlten Beträge müssen zusammen %1$s ergeben</string>
     <string name="error_invalid_split">Ungültige Aufteilung</string>
     <string name="error_invalid_expense">Ungültige Ausgabe</string>
     <string name="error_no_participant">Wähle mindestens eine Person aus</string>

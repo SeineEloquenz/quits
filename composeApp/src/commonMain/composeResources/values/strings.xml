@@ -10,6 +10,7 @@
     <string name="action_reset">Reset</string>
     <string name="action_record">Record</string>
     <string name="action_dismiss">Dismiss</string>
+    <string name="action_delete">Delete</string>
     <string name="label_name">Name</string>
     <string name="label_share_code">Share code</string>
 
@@ -30,6 +31,19 @@
     <string name="groups_heading">Groups</string>
     <string name="groups_empty">No groups yet.\nCreate one above, or join with a code.</string>
     <string name="groups_join_not_found">No group found for code \"%1$s\"</string>
+    <string name="groups_member_count">%1$d members · %2$s</string>
+    <string name="cd_add_group">Add a group</string>
+
+    <!-- Add group screen (join-first, create tucked one tap away) -->
+    <string name="add_group_title">Add a group</string>
+    <string name="add_group_tagline">Split bills with friends, in sync</string>
+    <string name="add_group_join_hint">Ask whoever set up the group to send you their share code</string>
+    <string name="add_group_new_here">New here?</string>
+    <string name="add_group_create_link">Create a group ›</string>
+    <string name="add_group_or">or</string>
+    <string name="add_group_no_account">No account needed</string>
+
+    <!-- Undo delete -->
 
     <!-- Group detail -->
     <string name="group_fallback_name">Group</string>
@@ -40,14 +54,45 @@
     <string name="detail_last_synced">Last synced %1$s</string>
     <string name="detail_not_synced">Not synced yet</string>
     <string name="detail_balances">Balances</string>
+    <string name="detail_balances_summary">%1$d members</string>
     <string name="detail_add_members_hint">Add members to start splitting.</string>
     <string name="detail_settle_up">Settle up</string>
+    <string name="detail_settle_up_link">%1$d suggested settlements</string>
+    <string name="settle_up_none">No outstanding balances — everyone\'s settled up.</string>
+    <string name="settle_up_custom_link">Record a different amount ›</string>
+    <string name="settle_up_from">From</string>
+    <string name="settle_up_to">To</string>
     <string name="detail_transfer_row">%1$s → %2$s: %3$s</string>
     <string name="detail_members">Members</string>
     <string name="detail_add_member">Add member</string>
     <string name="detail_expenses">Expenses</string>
     <string name="detail_expenses_empty">No expenses yet.</string>
+    <string name="date_today">Today</string>
+    <string name="date_yesterday">Yesterday</string>
+    <string name="detail_settlement_title">Settlement</string>
+    <string name="detail_settlement_row">%1$s paid %2$s</string>
     <string name="detail_paid_by">paid by %1$s</string>
+    <string name="detail_owed_by">Owed by</string>
+    <string name="detail_split_summary_dated">%1$s · %2$s · %3$d people</string>
+    <string name="detail_edit_expense">Edit expense</string>
+    <string name="detail_delete_expense">Delete expense</string>
+    <string name="detail_expense_not_found">This expense no longer exists.</string>
+    <string name="expense_delete_title">Delete \"%1$s\"?</string>
+    <string name="expense_delete_body">This removes the expense for everyone in the group once synced. This can\'t be undone.</string>
+
+    <!-- Member detail -->
+    <string name="member_detail_appears_in">Appears in</string>
+    <string name="member_detail_no_expenses">Not tied to any expenses yet.</string>
+    <string name="member_detail_manage">Manage</string>
+    <string name="member_detail_status_owes">owes the group</string>
+    <string name="member_detail_status_owed">is owed</string>
+    <string name="member_detail_status_settled">is settled up</string>
+    <string name="member_detail_paid_and_owed">Paid %1$s · owed %2$s</string>
+    <string name="member_detail_owed_only">Owes %1$s</string>
+    <string name="member_detail_not_found">This member no longer exists.</string>
+    <string name="member_detail_remove_title">Remove %1$s?</string>
+    <string name="member_detail_remove_body_referenced">%1$s has a balance of %2$s and appears on past expenses or settlements. They\'ll stay attached to that history but won\'t be selectable on new ones.</string>
+    <string name="member_detail_remove_body_plain">%1$s isn\'t tied to any expenses yet — this removes them from the group.</string>
     <string name="detail_add_members_first">Add members first</string>
     <string name="detail_add_expense">Add expense</string>
     <string name="dialog_rename_title">Rename member</string>
@@ -56,16 +101,24 @@
     <string name="editor_title_add">Add expense</string>
     <string name="editor_title_edit">Edit expense</string>
     <string name="editor_label_title">Title</string>
+    <string name="editor_label_amount">Amount</string>
     <string name="editor_label_currency">Currency</string>
     <string name="editor_label_rate">Rate → %1$s</string>
     <string name="editor_rate_fetching">Fetching live rate…</string>
     <string name="editor_paid_by">Paid by</string>
+    <string name="editor_paid_by_hint">%1$s paid %2$s</string>
+    <string name="editor_paid_by_prompt">Tap who paid</string>
+    <string name="editor_customize_paid_link">Customize amounts ›</string>
+    <string name="editor_equal_paid_link">‹ Split evenly</string>
     <string name="editor_split">Split</string>
+    <string name="editor_equal_hint">%1$d people · %2$s each</string>
+    <string name="editor_equal_count">%1$d people</string>
     <string name="editor_split_equal">Equal</string>
     <string name="editor_split_shares">Shares</string>
     <string name="editor_split_percentage">Percentage</string>
     <string name="editor_split_exact">Exact</string>
     <string name="editor_placeholder_shares">shares</string>
+    <string name="editor_shares_suffix">×</string>
     <string name="editor_placeholder_percent">%</string>
     <string name="editor_placeholder_amount">amount</string>
     <string name="editor_save_changes">Save changes</string>
@@ -94,6 +147,8 @@
     <string name="error_invalid_rate">Enter a valid exchange rate to %1$s</string>
     <string name="error_invalid_paid">Invalid paid amount for %1$s</string>
     <string name="error_no_payer">Enter who paid and how much</string>
+    <string name="error_invalid_total">Enter a valid amount</string>
+    <string name="error_paid_sum">Paid amounts must add up to %1$s</string>
     <string name="error_invalid_split">Invalid split</string>
     <string name="error_invalid_expense">Invalid expense</string>
     <string name="error_no_participant">Select at least one participant</string>

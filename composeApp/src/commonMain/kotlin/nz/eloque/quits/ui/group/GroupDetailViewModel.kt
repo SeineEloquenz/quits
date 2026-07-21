@@ -47,15 +47,47 @@ data class ExpenseRow(
     val title: String,
     val total: Money,
     val paidBy: String,
+    val spentAt: Long,
 )
+
+data class SettlementRow(
+    val id: SettlementId,
+    val from: String,
+    val to: String,
+    val amount: Money,
+    val paidAt: Long,
+)
+
+/**
+ * One row in the merged activity feed. Expenses and settlements are unrelated domain types with
+ * different fields, but the feed shows them interleaved by time — this is the UI-layer join, not
+ * a new domain concept.
+ */
+sealed interface ActivityEntry {
+    val timestamp: Long
+
+    data class ExpenseEntry(
+        val row: ExpenseRow,
+    ) : ActivityEntry {
+        override val timestamp: Long get() = row.spentAt
+    }
+
+    data class SettlementEntry(
+        val row: SettlementRow,
+    ) : ActivityEntry {
+        override val timestamp: Long get() = row.paidAt
+    }
+}
 
 data class GroupDetailUiState(
     val loaded: Boolean = false,
     val name: String = "",
-    val baseCurrency: Currency = Currency.of("USD"),
+    val baseCurrency: Currency = Currency.of("EUR"),
     val members: List<MemberBalance> = emptyList(),
     val transfers: List<TransferRow> = emptyList(),
-    val expenses: List<ExpenseRow> = emptyList(),
+    /** Expenses and recorded settlements, merged and sorted newest-first. */
+    val activity: List<ActivityEntry> = emptyList(),
+    val settled: Boolean = true,
     val shareCode: String? = null,
     val lastSyncedAt: Long? = null,
 )
@@ -135,18 +167,12 @@ class GroupDetailViewModel(
 
     fun record(transfer: Transfer) {
         viewModelScope.launch {
+            // paidAt lives on the domain object now — the repository still accepts an explicit
+            // override, but recording always means "now" here, so this is the single source of truth.
             repo.upsertSettlement(
                 groupId,
-                Settlement(SettlementId(newId()), transfer.from, transfer.to, transfer.amount),
-                paidAt = nowMillis(),
+                Settlement(SettlementId(newId()), transfer.from, transfer.to, transfer.amount, paidAt = nowMillis()),
             )
-            trySync()
-        }
-    }
-
-    fun deleteExpense(id: ExpenseId) {
-        viewModelScope.launch {
-            repo.deleteExpense(id)
             trySync()
         }
     }
@@ -178,6 +204,29 @@ sealed interface SyncStatus {
 private fun Group.toUiState(): GroupDetailUiState {
     val names = members.associate { it.id to it.name }
     val balances = balances()
+
+    val expenseEntries =
+        expenses.map { expense ->
+            val paidBy =
+                expense.payments
+                    .map { names[it.payer] ?: "?" }
+                    .distinct()
+                    .joinToString(", ")
+            ActivityEntry.ExpenseEntry(ExpenseRow(expense.id, expense.title, expense.total, paidBy, expense.spentAt))
+        }
+    val settlementEntries =
+        settlements.map { settlement ->
+            ActivityEntry.SettlementEntry(
+                SettlementRow(
+                    settlement.id,
+                    names[settlement.from] ?: "?",
+                    names[settlement.to] ?: "?",
+                    settlement.amount,
+                    settlement.paidAt,
+                ),
+            )
+        }
+
     return GroupDetailUiState(
         loaded = true,
         name = name,
@@ -187,14 +236,7 @@ private fun Group.toUiState(): GroupDetailUiState {
             balances.simplify().map {
                 TransferRow(names[it.from] ?: "?", names[it.to] ?: "?", it)
             },
-        expenses =
-            expenses.map { expense ->
-                val paidBy =
-                    expense.payments
-                        .map { names[it.payer] ?: "?" }
-                        .distinct()
-                        .joinToString(", ")
-                ExpenseRow(expense.id, expense.title, expense.total, paidBy)
-            },
+        activity = (expenseEntries + settlementEntries).sortedByDescending { it.timestamp },
+        settled = balances.net.values.all { it.isZero },
     )
 }

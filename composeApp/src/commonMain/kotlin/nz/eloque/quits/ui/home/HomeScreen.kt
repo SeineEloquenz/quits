@@ -9,7 +9,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -24,26 +23,21 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
+import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.app_name
+import nz.eloque.quits.resources.cd_add_group
 import nz.eloque.quits.resources.cd_settings
-import nz.eloque.quits.resources.groups_join_group
-import nz.eloque.quits.resources.groups_new_group
 import nz.eloque.quits.resources.settings_title
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.group.GroupDetailScreen
-import nz.eloque.quits.ui.groups.CreateGroupForm
 import nz.eloque.quits.ui.groups.GroupsViewModel
-import nz.eloque.quits.ui.groups.JoinGroupForm
 import nz.eloque.quits.ui.onboarding.OnboardingScreen
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -51,8 +45,11 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun HomeScreen(
     onOpenSettings: () -> Unit,
+    onAddGroup: () -> Unit,
     onAddExpense: (GroupId) -> Unit,
-    onEditExpense: (GroupId, ExpenseId) -> Unit,
+    onOpenExpense: (GroupId, ExpenseId) -> Unit,
+    onOpenMember: (GroupId, MemberId) -> Unit,
+    onSettleUp: (GroupId) -> Unit,
 ) {
     val viewModel = koinViewModel<GroupsViewModel>()
     val state by viewModel.state.collectAsState()
@@ -81,23 +78,21 @@ fun HomeScreen(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        // Leave horizontal swipes to the group screen's tab pager; the drawer opens from the menu button.
+        // Leave horizontal swipes to the group screen's own gestures; the drawer opens from the menu button.
         gesturesEnabled = drawerState.isOpen,
         drawerContent = {
             ModalDrawerSheet {
                 GroupDrawer(
                     viewModel = viewModel,
                     activeGroup = active,
-                    error = error,
                     onSelect = {
                         viewModel.setActiveGroup(it)
                         closeDrawer()
                     },
-                    onCreate = { name, currency ->
-                        viewModel.createGroup(name, currency)
+                    onAddGroup = {
                         closeDrawer()
+                        onAddGroup()
                     },
-                    onJoin = viewModel::join,
                     onOpenSettings = {
                         closeDrawer()
                         onOpenSettings()
@@ -110,7 +105,9 @@ fun HomeScreen(
             groupId = active,
             onOpenDrawer = { scope.launch { drawerState.open() } },
             onAddExpense = { onAddExpense(active) },
-            onEditExpense = { onEditExpense(active, it) },
+            onOpenExpense = { onOpenExpense(active, it) },
+            onOpenMember = { onOpenMember(active, it) },
+            onSettleUp = { onSettleUp(active) },
         )
     }
 }
@@ -119,15 +116,11 @@ fun HomeScreen(
 private fun GroupDrawer(
     viewModel: GroupsViewModel,
     activeGroup: GroupId,
-    error: String?,
     onSelect: (GroupId) -> Unit,
-    onCreate: (name: String, currencyCode: String) -> Unit,
-    onJoin: (code: String) -> Unit,
+    onAddGroup: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    val state by viewModel.state.collectAsState()
-    var creating by remember { mutableStateOf(false) }
-    var joining by remember { mutableStateOf(false) }
+    val rows by viewModel.homeRows.collectAsState()
 
     Column(Modifier.verticalScroll(rememberScrollState())) {
         Text(
@@ -137,12 +130,11 @@ private fun GroupDrawer(
             modifier = Modifier.padding(16.dp),
         )
 
-        state.groups.forEach { group ->
+        rows.forEach { row ->
             NavigationDrawerItem(
-                label = { Text(group.name) },
-                selected = group.id == activeGroup,
-                badge = { Text(group.baseCurrency.code, color = MaterialTheme.colorScheme.outline) },
-                onClick = { onSelect(group.id) },
+                label = { Text(row.name) },
+                selected = row.id == activeGroup,
+                onClick = { onSelect(row.id) },
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
             )
         }
@@ -150,29 +142,12 @@ private fun GroupDrawer(
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
         NavigationDrawerItem(
-            label = { Text(stringResource(Res.string.groups_new_group)) },
+            label = { Text(stringResource(Res.string.cd_add_group)) },
             selected = false,
             icon = { Icon(Icons.Default.Add, contentDescription = null) },
-            onClick = { creating = !creating },
+            onClick = onAddGroup,
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
         )
-        if (creating) {
-            CreateGroupForm(onCreate = { name, currency ->
-                onCreate(name, currency)
-                creating = false
-            })
-        }
-
-        NavigationDrawerItem(
-            label = { Text(stringResource(Res.string.groups_join_group)) },
-            selected = false,
-            icon = { Icon(Icons.Default.GroupAdd, contentDescription = null) },
-            onClick = { joining = !joining },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-        )
-        if (joining) {
-            JoinGroupForm(onJoin = onJoin, error = error, onInput = viewModel::clearError)
-        }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
 

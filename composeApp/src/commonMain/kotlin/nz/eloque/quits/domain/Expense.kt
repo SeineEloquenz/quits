@@ -18,6 +18,13 @@ class Expense(
     val split: Split,
     /** Rate to convert this expense's currency into the group's base currency, captured at entry. */
     val rateToBase: Double = 1.0,
+    /**
+     * When the expense was incurred (epoch millis). 0 means unset — callers that care about
+     * chronological ordering (the activity feed) must supply a real value; the persistence
+     * layer already always does. Not part of [equals]/[hashCode] (identity is [id]-based, per
+     * [Entity]), so this can be filled in without affecting anything that compares expenses.
+     */
+    val spentAt: Long = 0L,
 ) : Entity<ExpenseId>() {
     init {
         require(payments.isNotEmpty()) { "an expense needs at least one payer" }

@@ -3,11 +3,14 @@ package nz.eloque.quits.ui.groups
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -29,6 +32,16 @@ data class GroupsUiState(
     val loaded: Boolean = false,
 )
 
+/** A row for the Groups home list: the summary plus what only a loaded [Group] can tell us. */
+data class GroupHomeRow(
+    val id: GroupId,
+    val name: String,
+    val baseCurrency: Currency,
+    val memberCount: Int,
+    /** True once every member's net balance is zero (or there are no members yet). */
+    val settled: Boolean,
+)
+
 class GroupsViewModel(
     private val repo: GroupRepository,
     private val engine: SyncEngine,
@@ -39,6 +52,25 @@ class GroupsViewModel(
             .groupsFlow()
             .map { GroupsUiState(it, loaded = true) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupsUiState())
+
+    /**
+     * [state]'s groups, each paired with its live balance status. Rebuilds its inner `combine`
+     * whenever the *set* of groups changes; each row otherwise stays reactive to that one
+     * group's own updates. Purely a UI-layer read — [GroupSummary] itself stays the lightweight
+     * projection it always was; this never touches the domain model.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val homeRows: StateFlow<List<GroupHomeRow>> =
+        state
+            .flatMapLatest { s ->
+                if (s.groups.isEmpty()) {
+                    flowOf(emptyList())
+                } else {
+                    combine(s.groups.map { summary -> repo.groupFlow(summary.id).map { summary to it } }) { pairs ->
+                        pairs.map { (summary, group) -> summary.toHomeRow(group) }
+                    }
+                }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val selectedGroupId = MutableStateFlow(settings.activeGroupId?.let { GroupId(it) })
 
@@ -121,3 +153,12 @@ class GroupsViewModel(
         _error.value = null
     }
 }
+
+private fun GroupSummary.toHomeRow(group: Group?): GroupHomeRow =
+    GroupHomeRow(
+        id = id,
+        name = name,
+        baseCurrency = baseCurrency,
+        memberCount = group?.members?.size ?: 0,
+        settled = group?.balances()?.net?.values?.all { it.isZero } ?: true,
+    )

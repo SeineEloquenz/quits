@@ -27,6 +27,11 @@ class MoneyTest {
     }
 
     @Test
+    fun parse_accepts_comma_separator() {
+        assertEquals(usd(1999), Money.parse("19,99", USD))
+    }
+
+    @Test
     fun parse_reads_decimal_strings_per_currency() {
         assertEquals(usd(1999), Money.parse("19.99", USD))
         assertEquals(usd(500), Money.parse("5", USD))

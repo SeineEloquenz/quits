@@ -125,8 +125,10 @@ class GroupRepository(
     }
 
     /**
-     * Inserts or updates [expense]. Display-only fields ([spentAt]/[category]/[note]) are kept from
-     * the existing row when not supplied, so editing the money/split parts never drops them.
+     * Inserts or updates [expense]. The timestamp is [expense].spentAt when set (> 0); the
+     * [spentAt] parameter can still override it explicitly (existing callers keep working
+     * unchanged). Display-only fields ([category]/[note]) are kept from the existing row when not
+     * supplied, so editing the money/split parts never drops them.
      */
     suspend fun upsertExpense(
         groupId: GroupId,
@@ -136,6 +138,7 @@ class GroupRepository(
         note: String? = null,
     ) {
         val existing = db.expenseDao().byId(expense.id.value)?.expense
+        val resolvedSpentAt = spentAt ?: expense.spentAt.takeIf { it > 0L } ?: existing?.spentAt ?: now()
         db.expenseDao().save(
             ExpenseEntity(
                 id = expense.id.value,
@@ -145,7 +148,7 @@ class GroupRepository(
                 currency = expense.currency.code,
                 rateToBase = expense.rateToBase,
                 category = category ?: existing?.category,
-                spentAt = spentAt ?: existing?.spentAt ?: now(),
+                spentAt = resolvedSpentAt,
                 note = note ?: existing?.note,
                 splitType = splitTypeName(expense.split),
                 sync = meta(),
@@ -160,12 +163,18 @@ class GroupRepository(
         db.expenseDao().tombstone(expenseId.value, now(), deviceId)
     }
 
+    /**
+     * Inserts or updates [settlement]. The timestamp is [settlement].paidAt when set (> 0); the
+     * [paidAt] parameter can still override it explicitly (existing callers keep working
+     * unchanged).
+     */
     suspend fun upsertSettlement(
         groupId: GroupId,
         settlement: Settlement,
-        paidAt: Long,
+        paidAt: Long? = null,
         note: String? = null,
     ) {
+        val resolvedPaidAt = paidAt ?: settlement.paidAt.takeIf { it > 0L } ?: now()
         db.settlementDao().upsert(
             SettlementEntity(
                 id = settlement.id.value,
@@ -175,7 +184,7 @@ class GroupRepository(
                 amountMinor = settlement.amount.minorUnits,
                 currency = settlement.amount.currency.code,
                 rateToBase = settlement.rateToBase,
-                paidAt = paidAt,
+                paidAt = resolvedPaidAt,
                 note = note,
                 sync = meta(),
             ),

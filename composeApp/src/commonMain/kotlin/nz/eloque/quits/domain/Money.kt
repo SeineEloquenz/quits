@@ -123,7 +123,7 @@ data class Money(
             if (trimmed.isEmpty()) return null
             val negative = trimmed.startsWith("-")
             val body = trimmed.trimStart('+', '-')
-            val parts = body.split('.')
+            val parts = body.split('.', ',')
             if (parts.size > 2) return null
             val wholeStr = parts[0].ifEmpty { "0" }
             val fracStr = parts.getOrElse(1) { "" }
