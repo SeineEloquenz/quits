@@ -1,10 +1,12 @@
 package nz.eloque.quits.ui.components
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import nz.eloque.quits.domain.Money
@@ -32,11 +34,29 @@ fun BalanceText(
     modifier: Modifier = Modifier,
     style: TextStyle = MaterialTheme.typography.titleMedium,
 ) {
-    val color =
-        when {
-            money.isPositive -> MaterialTheme.colorScheme.primary
-            money.isNegative -> MaterialTheme.colorScheme.error
-            else -> MaterialTheme.colorScheme.onSurfaceVariant
-        }
-    Text(money.display(), modifier = modifier, color = color, style = style, fontWeight = FontWeight.Medium)
+    Text(money.display(), modifier = modifier, color = money.balanceColor(), style = style, fontWeight = FontWeight.Medium)
 }
+
+@Composable
+private fun Money.balanceColor(): Color =
+    when {
+        this.isPositive -> balanceGreen()
+        this.isNegative -> balanceRed()
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+@Composable
+private fun balanceGreen(): Color =
+    if (isSystemInDarkTheme()) {
+        Color(0xFF81C784)
+    } else {
+        Color(0xFF388E3C)
+    }
+
+@Composable
+private fun balanceRed(): Color =
+    if (isSystemInDarkTheme()) {
+        Color(0xFFE57373)
+    } else {
+        Color(0xFFD32F2F)
+    }

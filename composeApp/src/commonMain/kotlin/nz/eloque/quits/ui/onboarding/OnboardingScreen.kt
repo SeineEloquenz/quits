@@ -19,16 +19,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import nz.eloque.compose_kit.components.SectionCard
 import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.add_group_no_account
+import nz.eloque.quits.resources.add_group_tagline
 import nz.eloque.quits.resources.app_name
-import nz.eloque.quits.resources.groups_join_group
-import nz.eloque.quits.resources.groups_new_group
-import nz.eloque.quits.ui.groups.CreateGroupForm
-import nz.eloque.quits.ui.groups.JoinGroupForm
+import nz.eloque.quits.ui.groups.AddGroupContent
 import org.jetbrains.compose.resources.stringResource
 
-/** First-run welcome shown when there are no groups yet: create a group or join one with a code. */
 @Composable
 fun OnboardingScreen(
     onCreate: (name: String, currencyCode: String) -> Unit,
@@ -40,7 +37,7 @@ fun OnboardingScreen(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.height(48.dp))
@@ -48,22 +45,26 @@ fun OnboardingScreen(
             Icons.Outlined.Groups,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(96.dp),
+            modifier = Modifier.size(72.dp),
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
+        Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
         Text(
-            stringResource(Res.string.app_name),
-            style = MaterialTheme.typography.headlineMedium,
+            stringResource(Res.string.add_group_tagline),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.outline,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(28.dp))
 
-        SectionCard(heading = stringResource(Res.string.groups_new_group)) {
-            CreateGroupForm(onCreate = onCreate, modifier = Modifier.fillMaxWidth())
-        }
-        SectionCard(heading = stringResource(Res.string.groups_join_group)) {
-            JoinGroupForm(onJoin = onJoin, error = error, onInput = onJoinInput, modifier = Modifier.fillMaxWidth())
-        }
+        AddGroupContent(onCreate = onCreate, onJoin = onJoin, error = error, onJoinInput = onJoinInput, modifier = Modifier.fillMaxWidth())
+
+        Spacer(Modifier.height(24.dp))
+        Text(
+            stringResource(Res.string.add_group_no_account),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline,
+        )
         Spacer(Modifier.height(24.dp))
     }
 }

@@ -38,6 +38,7 @@ internal fun SettlementEntity.toDomain(): Settlement =
         MemberId(toMember),
         Money(amountMinor, Currency.of(currency)),
         rateToBase,
+        paidAt,
     )
 
 internal fun ExpenseWithLines.toDomain(): Expense {
@@ -49,6 +50,7 @@ internal fun ExpenseWithLines.toDomain(): Expense {
         payments,
         toSplit(expense.splitType, splits, currency),
         expense.rateToBase,
+        expense.spentAt,
     )
 }
 
