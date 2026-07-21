@@ -1,5 +1,6 @@
 package nz.eloque.quits.ui.group
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
@@ -55,6 +57,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -68,6 +72,7 @@ import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Transfer
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_cancel
+import nz.eloque.quits.resources.action_copy
 import nz.eloque.quits.resources.action_record
 import nz.eloque.quits.resources.action_save
 import nz.eloque.quits.resources.cd_delete
@@ -106,6 +111,7 @@ import nz.eloque.quits.util.formatDateTime
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import qrgenerator.qrkitpainter.rememberQrKitPainter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -428,8 +434,20 @@ private fun ShareSheet(
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = onShare) { Text(stringResource(Res.string.detail_share_group)) }
             } else {
+                val clipboard = LocalClipboardManager.current
+                Image(
+                    painter = rememberQrKitPainter(data = code),
+                    contentDescription = null,
+                    modifier = Modifier.size(200.dp).align(Alignment.CenterHorizontally),
+                )
+                Spacer(Modifier.height(12.dp))
                 Text(stringResource(Res.string.label_share_code), style = MaterialTheme.typography.labelMedium)
-                Text(code, style = MaterialTheme.typography.headlineSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(code, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    IconButton(onClick = { clipboard.setText(AnnotatedString(code)) }) {
+                        Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(Res.string.action_copy))
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 Text(
                     stringResource(Res.string.detail_share_hint),
