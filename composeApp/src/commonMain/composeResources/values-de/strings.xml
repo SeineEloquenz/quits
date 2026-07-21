@@ -3,6 +3,7 @@
     <string name="app_name">Quits</string>
 
     <!-- Generic actions / labels -->
+    <string name="action_copy">Kopieren</string>
     <string name="action_create">Erstellen</string>
     <string name="action_join">Beitreten</string>
     <string name="action_save">Speichern</string>

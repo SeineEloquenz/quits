@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Menu
@@ -44,6 +45,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.input.SubmittableTextField
@@ -52,6 +55,7 @@ import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.action_copy
 import nz.eloque.quits.resources.cd_menu
 import nz.eloque.quits.resources.cd_sync
 import nz.eloque.quits.resources.detail_add_expense
@@ -381,8 +385,15 @@ private fun ShareSheet(
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = onShare) { Text(stringResource(Res.string.detail_share_group)) }
             } else {
+                val clipboard = LocalClipboardManager.current
+
                 Text(stringResource(Res.string.label_share_code), style = MaterialTheme.typography.labelMedium)
-                Text(code, style = MaterialTheme.typography.headlineSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(code, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    IconButton(onClick = { clipboard.setText(AnnotatedString(code)) }) {
+                        Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(Res.string.action_copy))
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 Text(
                     stringResource(Res.string.detail_share_hint),
