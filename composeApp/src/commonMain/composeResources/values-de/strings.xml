@@ -30,7 +30,6 @@
     <string name="groups_base_currency">Basiswährung</string>
     <string name="groups_join_group">Gruppe beitreten</string>
     <string name="groups_heading">Gruppen</string>
-    <string name="groups_empty">Noch keine Gruppen.\nErstelle oben eine oder tritt mit einem Code bei.</string>
     <string name="groups_join_not_found">Keine Gruppe für Code \"%1$s\" gefunden</string>
     <string name="groups_member_count">%1$d Mitglieder · %2$s</string>
     <string name="cd_add_group">Gruppe hinzufügen</string>
@@ -43,8 +42,6 @@
     <string name="add_group_create_link">Gruppe erstellen ›</string>
     <string name="add_group_or">oder</string>
     <string name="add_group_no_account">Kein Konto nötig</string>
-
-    <!-- Undo delete -->
 
     <!-- Group detail -->
     <string name="group_fallback_name">Gruppe</string>
@@ -63,7 +60,7 @@
     <string name="settle_up_custom_link">Anderen Betrag verbuchen ›</string>
     <string name="settle_up_from">Von</string>
     <string name="settle_up_to">An</string>
-    <string name="detail_transfer_row">%1$s → %2$s: %3$s</string>
+    <string name="detail_transfer_row">%1$s → %2$s</string>
     <string name="detail_members">Mitglieder</string>
     <string name="detail_add_member">Mitglied hinzufügen</string>
     <string name="detail_expenses">Ausgaben</string>
@@ -120,6 +117,8 @@
     <string name="editor_split_exact">Exakt</string>
     <string name="editor_placeholder_shares">Anteile</string>
     <string name="editor_shares_suffix">×</string>
+    <string name="editor_shares_decrease">Anteile verringern</string>
+    <string name="editor_shares_increase">Anteile erhöhen</string>
     <string name="editor_placeholder_percent">%</string>
     <string name="editor_placeholder_amount">Betrag</string>
     <string name="editor_save_changes">Änderungen speichern</string>
@@ -144,7 +143,6 @@
     <string name="error_sync_failed">Synchronisierung fehlgeschlagen: %1$s</string>
     <string name="rate_cached">Offline - zwischengespeicherter Kurs vom %1$s wird verwendet</string>
     <string name="rate_fetch_failed">Kurs konnte nicht abgerufen werden - bitte manuell eingeben.</string>
-    <string name="error_currency_code">Währung muss ein 3-Buchstaben-Code sein</string>
     <string name="error_invalid_rate">Gib einen gültigen Wechselkurs zu %1$s ein</string>
     <string name="error_invalid_paid">Ungültiger gezahlter Betrag für %1$s</string>
     <string name="error_no_payer">Gib ein, wer wie viel bezahlt hat</string>

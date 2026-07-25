@@ -10,7 +10,7 @@ interface SyncSettings {
     var relayUrl: String
     var instanceSecret: String?
 
-    /** Id of the group the home screen last showed, so launch reopens it. */
+    /** id of the group the home screen last showed, so launch reopens it. */
     var activeGroupId: String?
 
     companion object {

@@ -113,7 +113,7 @@ class MemberDetailViewModel(
             engine.sync(groupId)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // The change is already saved locally; a sync failure shouldn't block this screen.
         }
     }

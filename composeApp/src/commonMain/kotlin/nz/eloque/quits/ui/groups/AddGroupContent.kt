@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.add_group_create_link
 import nz.eloque.quits.resources.add_group_join_hint
@@ -36,7 +37,7 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 fun AddGroupContent(
-    onCreate: (name: String, currencyCode: String) -> Unit,
+    onCreate: (name: String, currency: Currency) -> Unit,
     onJoin: (code: String) -> Unit,
     error: String?,
     onJoinInput: () -> Unit,

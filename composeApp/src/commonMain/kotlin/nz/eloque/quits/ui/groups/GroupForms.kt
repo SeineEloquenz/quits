@@ -32,7 +32,7 @@ import org.jetbrains.compose.resources.stringResource
 /** Name + base-currency + Create. Resets the name field after submitting. */
 @Composable
 fun CreateGroupForm(
-    onCreate: (name: String, currencyCode: String) -> Unit,
+    onCreate: (name: String, currency: Currency) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var name by remember { mutableStateOf("") }
@@ -55,7 +55,7 @@ fun CreateGroupForm(
         Spacer(Modifier.height(8.dp))
         Button(
             onClick = {
-                onCreate(name, currency.code)
+                onCreate(name, currency)
                 name = ""
             },
             enabled = name.isNotBlank(),

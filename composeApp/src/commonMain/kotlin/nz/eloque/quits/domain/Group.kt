@@ -34,7 +34,7 @@ class Group(
 
     companion object {
         /**
-         * Member ids referenced by any of [expenses] or [settlements] (as a payer, a share holder, or
+         * Member ids referenced by any of [expenses] or [settlements] (as a payer, a share-holder, or
          * a settlement party). Lets a reconstructed aggregate keep a member that has been tombstoned
          * but is still tied to live financial records, instead of failing its referential invariant.
          */

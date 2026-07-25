@@ -45,6 +45,7 @@ import nz.eloque.quits.resources.cd_back
 import nz.eloque.quits.resources.detail_settle_up
 import nz.eloque.quits.resources.detail_transfer_row
 import nz.eloque.quits.resources.editor_placeholder_amount
+import nz.eloque.quits.resources.error_invalid_total
 import nz.eloque.quits.resources.settle_up_custom_link
 import nz.eloque.quits.resources.settle_up_from
 import nz.eloque.quits.resources.settle_up_none
@@ -52,6 +53,7 @@ import nz.eloque.quits.resources.settle_up_to
 import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.display
+import nz.eloque.quits.ui.components.isValidAmountInput
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -81,33 +83,37 @@ fun SettleUpScreen(
         }
 
         Column(
-            Modifier
-                .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .verticalScroll(rememberScrollState()),
         ) {
-            Spacer(Modifier.height(8.dp))
-
             if (state.transfers.isEmpty()) {
                 EmptyHint(stringResource(Res.string.settle_up_none))
             } else {
                 state.transfers.forEach { row ->
-                    ElevatedCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                    ElevatedCard(Modifier.fillMaxWidth()) {
                         Row(
-                            Modifier.fillMaxWidth().padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                stringResource(
-                                    Res.string.detail_transfer_row,
-                                    row.from,
-                                    row.to,
-                                    row.transfer.amount.display(),
-                                ),
-                                Modifier.weight(1f),
-                            )
+                            Column(
+                                verticalArrangement = Arrangement.SpaceEvenly,
+                                horizontalAlignment = Alignment.Start,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text(
+                                    stringResource(
+                                        Res.string.detail_transfer_row,
+                                        row.from,
+                                        row.to,
+                                    ),
+                                )
+                                Text(row.transfer.amount.display())
+                            }
                             Button(onClick = { viewModel.record(row.transfer) }) {
                                 Text(stringResource(Res.string.action_record))
                             }
@@ -145,7 +151,9 @@ private fun CustomSettlementForm(
     var to by remember { mutableStateOf(state.members[1]) }
     var amount by remember { mutableStateOf("") }
 
-    Column {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         SearchablePickerField(
             label = stringResource(Res.string.settle_up_from),
             selected = from,
@@ -156,7 +164,6 @@ private fun CustomSettlementForm(
             itemLabel = { it.name },
             modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.height(8.dp))
         SearchablePickerField(
             label = stringResource(Res.string.settle_up_to),
             selected = to,
@@ -167,24 +174,27 @@ private fun CustomSettlementForm(
             itemLabel = { it.name },
             modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.height(8.dp))
+        val amountValid = isValidAmountInput(amount, state.baseCurrency)
         OutlinedTextField(
             value = amount,
             onValueChange = { amount = it },
             label = { Text(stringResource(Res.string.editor_placeholder_amount)) },
             singleLine = true,
+            isError = !amountValid,
+            supportingText = if (!amountValid) ({ Text(stringResource(Res.string.error_invalid_total)) }) else null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.height(8.dp))
+        val money = Money.parse(amount.trim(), state.baseCurrency)
+        val canRecord = from.id != to.id && money != null && money.isPositive
         Button(
             onClick = {
-                val money = Money.parse(amount, state.baseCurrency) ?: return@Button
-                if (from.id == to.id || !money.isPositive) return@Button
-                onRecord(Transfer(from.id, to.id, money))
+                val toRecord = money ?: return@Button
+                onRecord(Transfer(from.id, to.id, toRecord))
                 amount = ""
                 expanded = false
             },
+            enabled = canRecord,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(stringResource(Res.string.action_record))

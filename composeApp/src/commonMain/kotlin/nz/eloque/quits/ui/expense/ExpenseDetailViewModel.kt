@@ -18,7 +18,6 @@ import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
-import nz.eloque.quits.domain.Split
 
 data class ExpenseParticipantRow(
     val id: MemberId,
@@ -59,13 +58,7 @@ class ExpenseDetailViewModel(
                         found = true,
                         title = expense.title,
                         total = expense.total,
-                        splitKind =
-                            when (expense.split) {
-                                is Split.Equal -> SplitKind.EQUAL
-                                is Split.Shares -> SplitKind.SHARES
-                                is Split.Percentage -> SplitKind.PERCENTAGE
-                                is Split.Exact -> SplitKind.EXACT
-                            },
+                        splitKind = expense.split.kind(),
                         participantCount = expense.shares.size,
                         spentAt = expense.spentAt,
                         paidBy =
@@ -100,8 +93,8 @@ class ExpenseDetailViewModel(
                 engine.sync(groupId)
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
-                // The delete is already saved locally; a sync failure shouldn't block leaving the screen.
+            } catch (_: Exception) {
+                // The deletion is already saved locally; a sync failure shouldn't block leaving the screen.
             }
         }
     }

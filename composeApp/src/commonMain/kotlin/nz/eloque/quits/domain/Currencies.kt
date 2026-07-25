@@ -6,6 +6,10 @@ expect object CurrencyCatalog {
 
     /** Localized display name for [code]; falls back to [code]. */
     fun nameOf(code: String): String
+
+    /** How many minor-unit digits [code] uses (2 for most, 0 for JPY, 3 for BHD…), per the
+     * platform's own currency data; falls back to 2 for a code the platform doesn't recognize. */
+    fun decimalDigits(code: String): Int
 }
 
 object Currencies {

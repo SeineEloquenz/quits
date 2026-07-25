@@ -35,7 +35,6 @@ abstract class QuitsDatabase : RoomDatabase() {
 }
 
 // Room generates the actual per-platform implementation of this constructor.
-@Suppress("KotlinNoActualForExpect")
 expect object QuitsDatabaseConstructor : RoomDatabaseConstructor<QuitsDatabase> {
     override fun initialize(): QuitsDatabase
 }

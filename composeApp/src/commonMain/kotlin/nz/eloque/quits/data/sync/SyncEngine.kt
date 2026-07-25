@@ -10,7 +10,7 @@ import nz.eloque.quits.domain.GroupId
 
 /**
  * Drives delta sync against the [relay]: push dirty rows, pull since the cursor, apply with
- * last-write-wins. [deviceId] identifies this device for LWW tiebreaks. One group at a time.
+ * last-write-wins.
  */
 class SyncEngine(
     private val db: QuitsDatabase,
@@ -53,7 +53,7 @@ class SyncEngine(
                 sync(GroupId(handle.groupId))
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 ok = false
             }
         }
@@ -111,23 +111,30 @@ class SyncEngine(
     ) {
         val meta = RecordMapper.meta(record, dirty = false)
         when (val payload = record.payload) {
-            is SyncPayload.Group ->
+            is SyncPayload.Group -> {
                 if (wins(db.groupDao().byId(gid)?.sync, record)) {
                     db.groupDao().upsert(RecordMapper.groupEntity(payload, gid, meta))
                 }
-            is SyncPayload.Member ->
+            }
+
+            is SyncPayload.Member -> {
                 if (wins(db.memberDao().byId(payload.id)?.sync, record)) {
                     db.memberDao().upsert(listOf(RecordMapper.memberEntity(payload, gid, meta)))
                 }
-            is SyncPayload.Expense ->
+            }
+
+            is SyncPayload.Expense -> {
                 if (wins(db.expenseDao().byId(payload.id)?.expense?.sync, record)) {
                     val entities = RecordMapper.expenseEntities(payload, gid, meta)
                     db.expenseDao().save(entities.expense, entities.payers, entities.splits)
                 }
-            is SyncPayload.Settlement ->
+            }
+
+            is SyncPayload.Settlement -> {
                 if (wins(db.settlementDao().byId(payload.id)?.sync, record)) {
                     db.settlementDao().upsert(RecordMapper.settlementEntity(payload, gid, meta))
                 }
+            }
         }
     }
 

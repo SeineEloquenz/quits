@@ -23,7 +23,6 @@ import nz.eloque.quits.domain.Settlement
 import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.domain.Transfer
 import nz.eloque.quits.resources.Res
-import nz.eloque.quits.resources.error_member_in_use
 import nz.eloque.quits.resources.error_relay_unreachable
 import nz.eloque.quits.resources.error_sync_failed
 import nz.eloque.quits.util.newId
@@ -140,28 +139,6 @@ class GroupDetailViewModel(
         viewModelScope.launch {
             repo.addMember(groupId, Member(MemberId(newId()), trimmed))
             trySync()
-        }
-    }
-
-    fun renameMember(
-        id: MemberId,
-        name: String,
-    ) {
-        val trimmed = name.trim()
-        if (trimmed.isEmpty()) return
-        viewModelScope.launch {
-            repo.renameMember(id, trimmed)
-            trySync()
-        }
-    }
-
-    fun removeMember(id: MemberId) {
-        viewModelScope.launch {
-            if (repo.removeMember(groupId, id)) {
-                trySync()
-            } else {
-                _syncStatus.value = SyncStatus.Failed(getString(Res.string.error_member_in_use))
-            }
         }
     }
 

@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.add_group_no_account
 import nz.eloque.quits.resources.add_group_tagline
@@ -28,7 +29,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun OnboardingScreen(
-    onCreate: (name: String, currencyCode: String) -> Unit,
+    onCreate: (name: String, currency: Currency) -> Unit,
     onJoin: (code: String) -> Unit,
     error: String?,
     onJoinInput: () -> Unit,

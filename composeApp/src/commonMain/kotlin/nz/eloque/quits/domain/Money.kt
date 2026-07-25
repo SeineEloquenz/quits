@@ -1,5 +1,7 @@
 package nz.eloque.quits.domain
 
+import nz.eloque.quits.domain.Currency.Companion.isValidCode
+import nz.eloque.quits.domain.Currency.Companion.of
 import kotlin.math.abs
 
 /** An ISO-4217 currency: its code and how many minor-unit digits it has (2 for most, 0 for JPY…). */
@@ -12,40 +14,10 @@ data class Currency(
     }
 
     companion object {
-        // Currencies whose minor-unit digit count isn't the default of 2 (per ISO 4217).
-        private val nonDefaultDigits =
-            mapOf(
-                // 0 decimal places
-                "BIF" to 0,
-                "CLP" to 0,
-                "DJF" to 0,
-                "GNF" to 0,
-                "ISK" to 0,
-                "JPY" to 0,
-                "KMF" to 0,
-                "KRW" to 0,
-                "PYG" to 0,
-                "RWF" to 0,
-                "UGX" to 0,
-                "VND" to 0,
-                "VUV" to 0,
-                "XAF" to 0,
-                "XOF" to 0,
-                "XPF" to 0,
-                // 3 decimal places
-                "BHD" to 3,
-                "IQD" to 3,
-                "JOD" to 3,
-                "KWD" to 3,
-                "LYD" to 3,
-                "OMR" to 3,
-                "TND" to 3,
-            )
-
         /** Builds a currency from [code], normalizing case; throws if it isn't a valid code. */
         fun of(code: String): Currency {
             val c = code.trim().uppercase()
-            return Currency(c, nonDefaultDigits[c] ?: 2)
+            return Currency(c, CurrencyCatalog.decimalDigits(c))
         }
 
         /** A well-formed ISO-4217-style code: exactly three letters (e.g. USD, EUR, JPY). */
@@ -92,14 +64,14 @@ data class Money(
     }
 
     /** Decimal representation, e.g. 1999 USD -> "19.99", 100 JPY -> "100". */
-    fun toDecimalString(): String {
+    fun toDecimalString(format: NumberFormatSymbols = LocaleNumberFormat): String {
         val scale = pow10(currency.decimalDigits)
         val sign = if (minorUnits < 0) "-" else ""
         val absUnits = abs(minorUnits)
         val whole = absUnits / scale
         if (currency.decimalDigits == 0) return "$sign$whole"
         val frac = (absUnits % scale).toString().padStart(currency.decimalDigits, '0')
-        return "$sign$whole.$frac"
+        return "$sign$whole${format.decimalSeparator()}$frac"
     }
 
     private fun requireSameCurrency(other: Money) {
@@ -112,24 +84,62 @@ data class Money(
         fun zero(currency: Currency): Money = Money(0, currency)
 
         /**
-         * Parses a decimal string (e.g. "19.99") into minor units of [currency], or null if it is
-         * not a valid number or has more fraction digits than the currency allows.
+         * Parses a decimal amount (e.g. "19.99", "1,234.56", "1.234,56") into minor units of
+         * [currency], respecting [format]'s locale conventions for the decimal and grouping
+         * separators (defaulting to the current platform locale). Returns null if [input] isn't a
+         * valid, correctly-scaled number for [currency].
+         *
+         * A separator is only treated as the decimal point if what follows it looks like a
+         * fraction for [currency] (all digits, no more than [Currency.decimalDigits]); otherwise
+         * any leftover punctuation must be the locale's own grouping separator, arranged in valid
+         * thousands groups.
          */
         fun parse(
             input: String,
             currency: Currency,
+            format: NumberFormatSymbols = LocaleNumberFormat,
         ): Money? {
             val trimmed = input.trim()
             if (trimmed.isEmpty()) return null
             val negative = trimmed.startsWith("-")
             val body = trimmed.trimStart('+', '-')
-            val parts = body.split('.', ',')
-            if (parts.size > 2) return null
-            val wholeStr = parts[0].ifEmpty { "0" }
-            val fracStr = parts.getOrElse(1) { "" }
-            if (wholeStr.any { !it.isDigit() } || fracStr.any { !it.isDigit() }) return null
+            if (body.isEmpty()) return null
+
             val digits = currency.decimalDigits
-            if (fracStr.length > digits) return null
+            val decimalCandidates = setOf(format.decimalSeparator())
+            val groupingSep = format.groupingSeparator()
+            val allowed = decimalCandidates + setOfNotNull(groupingSep)
+            if (body.any { !it.isDigit() && it !in allowed }) return null
+
+            // The last decimal-candidate character is the decimal point, provided what follows it
+            // is plausibly a fraction; otherwise there is no fractional part.
+            val lastDecimalIndex = body.indexOfLast { it in decimalCandidates }
+            var wholeRaw = body
+            var fracStr = ""
+            if (lastDecimalIndex >= 0) {
+                val candidateFrac = body.substring(lastDecimalIndex + 1)
+                val looksLikeFraction =
+                    candidateFrac.isNotEmpty() && candidateFrac.length <= digits && candidateFrac.all { it.isDigit() }
+                if (looksLikeFraction) {
+                    wholeRaw = body.substring(0, lastDecimalIndex)
+                    fracStr = candidateFrac
+                }
+            }
+
+            // Whatever punctuation remains in the whole part must be the locale's grouping
+            // separator, used consistently to mark groups of three digits.
+            val wholeStr =
+                if (groupingSep != null && wholeRaw.contains(groupingSep)) {
+                    val groups = wholeRaw.split(groupingSep)
+                    val leadingGroupOk = groups.first().isNotEmpty() && groups.first().length <= 3
+                    val restAreTriples = groups.drop(1).all { it.length == 3 }
+                    if (!leadingGroupOk || !restAreTriples) return null
+                    groups.joinToString("")
+                } else {
+                    wholeRaw
+                }
+            if (wholeStr.isEmpty() || wholeStr.any { !it.isDigit() }) return null
+
             val whole = wholeStr.toLongOrNull() ?: return null
             val frac = fracStr.padEnd(digits, '0').ifEmpty { "0" }.toLong()
             val minor = whole * pow10(digits) + frac

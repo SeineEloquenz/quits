@@ -27,7 +27,6 @@ import nz.eloque.quits.domain.Payment
 import nz.eloque.quits.domain.Split
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.editor_expense_fallback_title
-import nz.eloque.quits.resources.error_currency_code
 import nz.eloque.quits.resources.error_exact_sum
 import nz.eloque.quits.resources.error_invalid_amount
 import nz.eloque.quits.resources.error_invalid_expense
@@ -50,8 +49,6 @@ import nz.eloque.quits.util.newId
 import nz.eloque.quits.util.nowMillis
 import org.jetbrains.compose.resources.getString
 
-enum class SplitKind { EQUAL, SHARES, PERCENTAGE, EXACT }
-
 /**
  * EQUAL: the common case — tap avatars to pick who paid, and [ExpenseEditorUiState.amount] is
  * split evenly between them (same avatar-chip pattern as the split section's Equal mode). CUSTOM:
@@ -61,7 +58,7 @@ enum class SplitKind { EQUAL, SHARES, PERCENTAGE, EXACT }
 enum class PayerMode { EQUAL, CUSTOM }
 
 data class MemberInput(
-    val id: String,
+    val id: MemberId,
     val name: String,
 )
 
@@ -73,23 +70,23 @@ data class ExpenseEditorUiState(
     val title: String = "",
     /** The expense total. Payments (in either payer mode) must add up to exactly this. */
     val amount: String = "",
-    val currency: String = "EUR",
+    val currency: Currency = Currency.of("EUR"),
     val rate: String = "1.0",
     val payerMode: PayerMode = PayerMode.EQUAL,
     /** Who paid. In [PayerMode.EQUAL] this drives [paid] directly (split evenly); in
      * [PayerMode.CUSTOM] it's just which rows were selected before switching to custom amounts. */
-    val payerSelected: Set<String> = emptySet(),
-    val paid: Map<String, String> = emptyMap(),
+    val payerSelected: Set<MemberId> = emptySet(),
+    val paid: Map<MemberId, String> = emptyMap(),
     val splitKind: SplitKind = SplitKind.EQUAL,
-    val equalSelected: Set<String> = emptySet(),
-    val splitInput: Map<String, String> = emptyMap(),
+    val equalSelected: Set<MemberId> = emptySet(),
+    val splitInput: Map<MemberId, String> = emptyMap(),
     val error: String? = null,
     val fetchingRate: Boolean = false,
     val rateNotice: String? = null,
     /** 0 for a new expense (save() will stamp "now"); the original spentAt when editing one. */
     val originalSpentAt: Long = 0L,
 ) {
-    val isForeign: Boolean get() = currency.trim().uppercase() != baseCurrency.code
+    val isForeign: Boolean get() = currency != baseCurrency
 }
 
 class ExpenseEditorViewModel(
@@ -118,7 +115,7 @@ class ExpenseEditorViewModel(
         group: Group,
         existing: Expense?,
     ): ExpenseEditorUiState {
-        val members = group.members.map { MemberInput(it.id.value, it.name) }
+        val members = group.members.map { MemberInput(it.id, it.name) }
         val allIds = members.map { it.id }.toSet()
         if (existing == null) {
             // Default to one selected payer, split "evenly" (i.e. just them) — the common case is
@@ -130,7 +127,7 @@ class ExpenseEditorViewModel(
                 editing = false,
                 baseCurrency = group.baseCurrency,
                 members = members,
-                currency = group.baseCurrency.code,
+                currency = group.baseCurrency,
                 payerMode = PayerMode.EQUAL,
                 payerSelected = members.firstOrNull()?.let { setOf(it.id) } ?: emptySet(),
                 equalSelected = allIds,
@@ -140,7 +137,7 @@ class ExpenseEditorViewModel(
             existing.payments
                 .groupBy { it.payer }
                 .mapValues { (_, payments) -> payments.fold(Money.zero(existing.currency)) { a, p -> a + p.amount } }
-        val paid = paidMoney.entries.associate { (member, money) -> member.value to money.toDecimalString() }
+        val paid = paidMoney.entries.associate { (member, money) -> member to money.toDecimalString() }
         val distinctPayers = paidMoney.keys.toList()
         // Was this actually an even split between the payers, or a deliberately uneven one?
         // Compare against what Split.Equal would produce for the same payers/total — the same
@@ -150,7 +147,7 @@ class ExpenseEditorViewModel(
                 try {
                     val even = Split.Equal(distinctPayers).divide(existing.total)
                     distinctPayers.all { even[it] == paidMoney[it] }
-                } catch (e: IllegalArgumentException) {
+                } catch (_: IllegalArgumentException) {
                     false
                 }
         val split = existing.split
@@ -161,27 +158,21 @@ class ExpenseEditorViewModel(
             members = members,
             title = existing.title,
             amount = existing.total.toDecimalString(),
-            currency = existing.currency.code,
+            currency = existing.currency,
             rate = existing.rateToBase.toString(),
             // Don't collapse a deliberately uneven multi-payer expense into the equal-split chips
             // on open — that would silently hide the real amounts until re-expanded.
             payerMode = if (isEvenSplit) PayerMode.EQUAL else PayerMode.CUSTOM,
-            payerSelected = distinctPayers.map { it.value }.toSet(),
+            payerSelected = distinctPayers.toSet(),
             paid = paid,
             originalSpentAt = existing.spentAt,
-            splitKind =
-                when (split) {
-                    is Split.Equal -> SplitKind.EQUAL
-                    is Split.Shares -> SplitKind.SHARES
-                    is Split.Percentage -> SplitKind.PERCENTAGE
-                    is Split.Exact -> SplitKind.EXACT
-                },
-            equalSelected = if (split is Split.Equal) split.participants.map { it.value }.toSet() else allIds,
+            splitKind = split.kind(),
+            equalSelected = if (split is Split.Equal) split.participants.toSet() else allIds,
             splitInput =
                 when (split) {
-                    is Split.Shares -> split.shares.entries.associate { it.key.value to it.value.toString() }
-                    is Split.Percentage -> split.percent.entries.associate { it.key.value to it.value.toString() }
-                    is Split.Exact -> split.amounts.entries.associate { it.key.value to it.value.toDecimalString() }
+                    is Split.Shares -> split.shares.entries.associate { it.key to it.value.toString() }
+                    is Split.Percentage -> split.percent.entries.associate { it.key to it.value.toString() }
+                    is Split.Exact -> split.amounts.entries.associate { it.key to it.value.toDecimalString() }
                     is Split.Equal -> emptyMap()
                 },
         )
@@ -197,15 +188,19 @@ class ExpenseEditorViewModel(
             s.copy(amount = value, paid = paid)
         }
 
-    fun setCurrency(value: String) {
-        val code = value.uppercase()
+    fun setCurrency(value: Currency) {
         _state.update { s ->
-            val paid = if (s.payerMode == PayerMode.EQUAL) equalDistribution(s.amount, code, s.payerSelected, s.members) else s.paid
-            s.copy(currency = code, paid = paid)
+            val paid =
+                if (s.payerMode == PayerMode.EQUAL) {
+                    equalDistribution(s.amount, value, s.payerSelected, s.members)
+                } else {
+                    s.paid
+                }
+            s.copy(currency = value, paid = paid)
         }
         val base = _state.value.baseCurrency
-        if (Currency.isValidCode(code) && code != base.code) {
-            fetchRate(Currency.of(code), base)
+        if (value != base) {
+            fetchRate(value, base)
         }
     }
 
@@ -233,7 +228,7 @@ class ExpenseEditorViewModel(
                     }
                 } catch (e: CancellationException) {
                     throw e
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     // No live or cached rate; fall back to manual entry.
                     _state.update {
                         it.copy(fetchingRate = false, rateNotice = getString(Res.string.rate_fetch_failed))
@@ -249,7 +244,7 @@ class ExpenseEditorViewModel(
      * re-split evenly across whoever's left selected — same avatar-chip pattern as the split
      * section's Equal mode, just applied to "who paid" instead of "who owes".
      */
-    fun togglePayer(memberId: String) =
+    fun togglePayer(memberId: MemberId) =
         _state.update { s ->
             val selected = if (memberId in s.payerSelected) s.payerSelected - memberId else s.payerSelected + memberId
             s.copy(payerSelected = selected, paid = equalDistribution(s.amount, s.currency, selected, s.members))
@@ -268,10 +263,9 @@ class ExpenseEditorViewModel(
                 PayerMode.EQUAL -> {
                     // Collapse back to the chips: keep whoever currently has a positive amount in
                     // the table selected, and re-split evenly between them.
-                    val currency = Currency.parse(s.currency)
                     val selected =
                         s.members
-                            .filter { m -> currency != null && Money.parse(s.paid[m.id].orEmpty(), currency)?.isPositive == true }
+                            .filter { m -> Money.parse(s.paid[m.id].orEmpty(), s.currency)?.isPositive == true }
                             .map { it.id }
                             .toSet()
                             .ifEmpty { s.payerSelected }
@@ -286,71 +280,36 @@ class ExpenseEditorViewModel(
 
     /** Split mode only: editing one member's amount directly in the table. */
     fun setPaid(
-        memberId: String,
+        memberId: MemberId,
         value: String,
     ) = _state.update { it.copy(paid = it.paid + (memberId to value)) }
 
     fun setKind(kind: SplitKind) = _state.update { it.copy(splitKind = kind) }
 
-    fun toggleEqual(memberId: String) =
+    fun toggleEqual(memberId: MemberId) =
         _state.update {
             val next = if (memberId in it.equalSelected) it.equalSelected - memberId else it.equalSelected + memberId
             it.copy(equalSelected = next)
         }
 
     fun setSplitInput(
-        memberId: String,
+        memberId: MemberId,
         value: String,
     ) = _state.update { it.copy(splitInput = it.splitInput + (memberId to value)) }
 
     fun save() {
         viewModelScope.launch {
             val s = _state.value
-            val currency = Currency.parse(s.currency.trim().ifEmpty { s.baseCurrency.code })
-            if (currency == null) {
-                setError(getString(Res.string.error_currency_code))
-                return@launch
-            }
-            val rate = if (currency == s.baseCurrency) 1.0 else s.rate.trim().toDoubleOrNull()
-            if (rate == null || rate <= 0.0) {
-                setError(getString(Res.string.error_invalid_rate, s.baseCurrency.code))
-                return@launch
-            }
+            val validated =
+                when (val outcome = s.validate()) {
+                    is ExpenseValidation.Invalid -> {
+                        setError(errorMessage(outcome.reason))
+                        return@launch
+                    }
 
-            val total = Money.parse(s.amount.trim(), currency)
-            if (total == null || !total.isPositive) {
-                setError(getString(Res.string.error_invalid_total))
-                return@launch
-            }
-
-            val payments = mutableListOf<Payment>()
-            for (member in s.members) {
-                val text = s.paid[member.id].orEmpty().trim()
-                if (text.isEmpty()) continue
-                val money = Money.parse(text, currency)
-                if (money == null || !money.isPositive) {
-                    setError(getString(Res.string.error_invalid_paid, member.name))
-                    return@launch
-                }
-                payments += Payment(MemberId(member.id), money)
-            }
-            if (payments.isEmpty()) {
-                setError(getString(Res.string.error_no_payer))
-                return@launch
-            }
-
-            val paidSum = payments.fold(Money.zero(currency)) { acc, p -> acc + p.amount }
-            if (paidSum != total) {
-                setError(getString(Res.string.error_paid_sum, "${total.toDecimalString()} ${total.currency.code}"))
-                return@launch
-            }
-
-            val split =
-                try {
-                    buildSplit(s, currency, total) ?: return@launch
-                } catch (e: IllegalArgumentException) {
-                    setError(getString(Res.string.error_invalid_split))
-                    return@launch
+                    is ExpenseValidation.Valid -> {
+                        outcome.expense
+                    }
                 }
 
             val expense =
@@ -358,12 +317,12 @@ class ExpenseEditorViewModel(
                     Expense(
                         ExpenseId(expenseId ?: newId()),
                         s.title.trim().ifEmpty { getString(Res.string.editor_expense_fallback_title) },
-                        payments,
-                        split,
-                        rate,
+                        validated.payments,
+                        validated.split,
+                        validated.rate,
                         spentAt = if (s.originalSpentAt > 0L) s.originalSpentAt else nowMillis(),
                     )
-                } catch (e: IllegalArgumentException) {
+                } catch (_: IllegalArgumentException) {
                     setError(getString(Res.string.error_invalid_expense))
                     return@launch
                 }
@@ -374,7 +333,7 @@ class ExpenseEditorViewModel(
                 engine.sync(groupId)
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Swallowed: it will sync on the next open/refresh.
             }
             _state.update { it.copy(error = null) }
@@ -382,88 +341,217 @@ class ExpenseEditorViewModel(
         }
     }
 
-    private suspend fun buildSplit(
-        s: ExpenseEditorUiState,
-        currency: Currency,
-        total: Money,
-    ): Split? =
-        when (s.splitKind) {
-            SplitKind.EQUAL -> {
-                val participants = s.members.filter { it.id in s.equalSelected }.map { MemberId(it.id) }
-                if (participants.isEmpty()) {
-                    setError(getString(Res.string.error_no_participant))
-                    null
-                } else {
-                    Split.Equal(participants)
-                }
-            }
-
-            SplitKind.SHARES -> {
-                val map = mutableMapOf<MemberId, Long>()
-                for (member in s.members) {
-                    val text = s.splitInput[member.id].orEmpty().trim()
-                    if (text.isEmpty()) continue
-                    val weight = text.toLongOrNull()
-                    if (weight == null || weight < 0) {
-                        setError(getString(Res.string.error_invalid_share, member.name))
-                        return null
-                    }
-                    if (weight > 0) map[MemberId(member.id)] = weight
-                }
-                if (map.isEmpty()) {
-                    setError(getString(Res.string.error_no_share))
-                    null
-                } else {
-                    Split.Shares(map)
-                }
-            }
-
-            SplitKind.PERCENTAGE -> {
-                val map = mutableMapOf<MemberId, Int>()
-                for (member in s.members) {
-                    val text = s.splitInput[member.id].orEmpty().trim()
-                    if (text.isEmpty()) continue
-                    val percent = text.toIntOrNull()
-                    if (percent == null || percent < 0) {
-                        setError(getString(Res.string.error_invalid_percent, member.name))
-                        return null
-                    }
-                    if (percent > 0) map[MemberId(member.id)] = percent
-                }
-                if (map.values.sum() != 100) {
-                    setError(getString(Res.string.error_percent_sum))
-                    null
-                } else {
-                    Split.Percentage(map)
-                }
-            }
-
-            SplitKind.EXACT -> {
-                val map = mutableMapOf<MemberId, Money>()
-                for (member in s.members) {
-                    val text = s.splitInput[member.id].orEmpty().trim()
-                    if (text.isEmpty()) continue
-                    val money = Money.parse(text, currency)
-                    if (money == null) {
-                        setError(getString(Res.string.error_invalid_amount, member.name))
-                        return null
-                    }
-                    map[MemberId(member.id)] = money
-                }
-                if (map.isEmpty()) {
-                    setError(getString(Res.string.error_no_exact))
-                    null
-                } else if (map.values.fold(Money.zero(currency)) { acc, m -> acc + m } != total) {
-                    setError(getString(Res.string.error_exact_sum))
-                    null
-                } else {
-                    Split.Exact(map)
-                }
-            }
+    private suspend fun errorMessage(reason: ExpenseValidationError): String =
+        when (reason) {
+            is ExpenseValidationError.InvalidRate -> getString(Res.string.error_invalid_rate, reason.baseCode)
+            is ExpenseValidationError.InvalidTotal -> getString(Res.string.error_invalid_total)
+            is ExpenseValidationError.InvalidPaid -> getString(Res.string.error_invalid_paid, reason.memberName)
+            is ExpenseValidationError.NoPayer -> getString(Res.string.error_no_payer)
+            is ExpenseValidationError.PaidSumMismatch -> getString(Res.string.error_paid_sum, reason.totalText)
+            is ExpenseValidationError.InvalidSplit -> getString(Res.string.error_invalid_split)
+            is ExpenseValidationError.NoParticipant -> getString(Res.string.error_no_participant)
+            is ExpenseValidationError.InvalidShare -> getString(Res.string.error_invalid_share, reason.memberName)
+            is ExpenseValidationError.NoShare -> getString(Res.string.error_no_share)
+            is ExpenseValidationError.InvalidPercent -> getString(Res.string.error_invalid_percent, reason.memberName)
+            is ExpenseValidationError.PercentSum -> getString(Res.string.error_percent_sum)
+            is ExpenseValidationError.InvalidAmount -> getString(Res.string.error_invalid_amount, reason.memberName)
+            is ExpenseValidationError.NoExact -> getString(Res.string.error_no_exact)
+            is ExpenseValidationError.ExactSum -> getString(Res.string.error_exact_sum)
         }
 
     private fun setError(message: String) = _state.update { it.copy(error = message) }
 }
+
+sealed class ExpenseValidationError {
+    data class InvalidRate(
+        val baseCode: String,
+    ) : ExpenseValidationError()
+
+    data object InvalidTotal : ExpenseValidationError()
+
+    data class InvalidPaid(
+        val memberName: String,
+    ) : ExpenseValidationError()
+
+    data object NoPayer : ExpenseValidationError()
+
+    data class PaidSumMismatch(
+        val totalText: String,
+    ) : ExpenseValidationError()
+
+    data object InvalidSplit : ExpenseValidationError()
+
+    data object NoParticipant : ExpenseValidationError()
+
+    data class InvalidShare(
+        val memberName: String,
+    ) : ExpenseValidationError()
+
+    data object NoShare : ExpenseValidationError()
+
+    data class InvalidPercent(
+        val memberName: String,
+    ) : ExpenseValidationError()
+
+    data object PercentSum : ExpenseValidationError()
+
+    data class InvalidAmount(
+        val memberName: String,
+    ) : ExpenseValidationError()
+
+    data object NoExact : ExpenseValidationError()
+
+    data object ExactSum : ExpenseValidationError()
+}
+
+/** Everything [ExpenseEditorViewModel.save] needs to build the domain [Expense] once fields check out. */
+data class ValidatedExpense(
+    val payments: List<Payment>,
+    val split: Split,
+    val rate: Double,
+)
+
+sealed class ExpenseValidation {
+    data class Valid(
+        val expense: ValidatedExpense,
+    ) : ExpenseValidation()
+
+    data class Invalid(
+        val reason: ExpenseValidationError,
+    ) : ExpenseValidation()
+}
+
+fun ExpenseEditorUiState.validate(): ExpenseValidation {
+    val currency = this.currency
+    val rate = if (currency == baseCurrency) 1.0 else this.rate.trim().toDoubleOrNull()
+    if (rate == null || rate <= 0.0) {
+        return ExpenseValidation.Invalid(ExpenseValidationError.InvalidRate(baseCurrency.code))
+    }
+
+    val total = Money.parse(amount.trim(), currency)
+    if (total == null || !total.isPositive) {
+        return ExpenseValidation.Invalid(ExpenseValidationError.InvalidTotal)
+    }
+
+    val payments = mutableListOf<Payment>()
+    for (member in members) {
+        val text = paid[member.id].orEmpty().trim()
+        if (text.isEmpty()) continue
+        val money = Money.parse(text, currency)
+        if (money == null || !money.isPositive) {
+            return ExpenseValidation.Invalid(ExpenseValidationError.InvalidPaid(member.name))
+        }
+        payments += Payment(member.id, money)
+    }
+    if (payments.isEmpty()) {
+        return ExpenseValidation.Invalid(ExpenseValidationError.NoPayer)
+    }
+
+    val paidSum = payments.fold(Money.zero(currency)) { acc, p -> acc + p.amount }
+    if (paidSum != total) {
+        return ExpenseValidation.Invalid(
+            ExpenseValidationError.PaidSumMismatch("${total.toDecimalString()} ${total.currency.code}"),
+        )
+    }
+
+    val split =
+        try {
+            when (val outcome = buildSplit(this, currency, total)) {
+                is SplitOutcome.Invalid -> return ExpenseValidation.Invalid(outcome.reason)
+                is SplitOutcome.Valid -> outcome.split
+            }
+        } catch (_: IllegalArgumentException) {
+            return ExpenseValidation.Invalid(ExpenseValidationError.InvalidSplit)
+        }
+
+    return ExpenseValidation.Valid(ValidatedExpense(payments, split, rate))
+}
+
+/** True once [ExpenseEditorUiState.validate] would succeed — drives the save button's enabled state. */
+fun ExpenseEditorUiState.isValid(): Boolean = validate() is ExpenseValidation.Valid
+
+/** Result of [buildSplit]: either the [Split] to save, or why the split section isn't valid yet. */
+private sealed class SplitOutcome {
+    data class Valid(
+        val split: Split,
+    ) : SplitOutcome()
+
+    data class Invalid(
+        val reason: ExpenseValidationError,
+    ) : SplitOutcome()
+}
+
+private fun buildSplit(
+    s: ExpenseEditorUiState,
+    currency: Currency,
+    total: Money,
+): SplitOutcome =
+    when (s.splitKind) {
+        SplitKind.EQUAL -> {
+            val participants = s.members.filter { it.id in s.equalSelected }.map { it.id }
+            if (participants.isEmpty()) {
+                SplitOutcome.Invalid(ExpenseValidationError.NoParticipant)
+            } else {
+                SplitOutcome.Valid(Split.Equal(participants))
+            }
+        }
+
+        SplitKind.SHARES -> {
+            val map = mutableMapOf<MemberId, Long>()
+            for (member in s.members) {
+                val text = s.splitInput[member.id].orEmpty().trim()
+                if (text.isEmpty()) continue
+                val weight = text.toLongOrNull()
+                if (weight == null || weight < 0) {
+                    return SplitOutcome.Invalid(ExpenseValidationError.InvalidShare(member.name))
+                }
+                if (weight > 0) map[member.id] = weight
+            }
+            if (map.isEmpty()) {
+                SplitOutcome.Invalid(ExpenseValidationError.NoShare)
+            } else {
+                SplitOutcome.Valid(Split.Shares(map))
+            }
+        }
+
+        SplitKind.PERCENTAGE -> {
+            val map = mutableMapOf<MemberId, Int>()
+            for (member in s.members) {
+                val text = s.splitInput[member.id].orEmpty().trim()
+                if (text.isEmpty()) continue
+                val percent = text.toIntOrNull()
+                if (percent == null || percent < 0) {
+                    return SplitOutcome.Invalid(ExpenseValidationError.InvalidPercent(member.name))
+                }
+                if (percent > 0) map[member.id] = percent
+            }
+            if (map.values.sum() != 100) {
+                SplitOutcome.Invalid(ExpenseValidationError.PercentSum)
+            } else {
+                SplitOutcome.Valid(Split.Percentage(map))
+            }
+        }
+
+        SplitKind.EXACT -> {
+            val map = mutableMapOf<MemberId, Money>()
+            for (member in s.members) {
+                val text = s.splitInput[member.id].orEmpty().trim()
+                if (text.isEmpty()) continue
+                val money = Money.parse(text, currency)
+                if (money == null) {
+                    return SplitOutcome.Invalid(ExpenseValidationError.InvalidAmount(member.name))
+                }
+                map[member.id] = money
+            }
+            if (map.isEmpty()) {
+                SplitOutcome.Invalid(ExpenseValidationError.NoExact)
+            } else if (map.values.fold(Money.zero(currency)) { acc, m -> acc + m } != total) {
+                SplitOutcome.Invalid(ExpenseValidationError.ExactSum)
+            } else {
+                SplitOutcome.Valid(Split.Exact(map))
+            }
+        }
+    }
 
 /**
  * The even split of [amount] across [selected], via the real [Split.Equal.divide] — the same
@@ -472,19 +560,18 @@ class ExpenseEditorViewModel(
  */
 private fun equalDistribution(
     amount: String,
-    currencyCode: String,
-    selected: Set<String>,
+    currency: Currency,
+    selected: Set<MemberId>,
     members: List<MemberInput>,
-): Map<String, String> {
+): Map<MemberId, String> {
     if (selected.isEmpty()) return emptyMap()
-    val currency = Currency.parse(currencyCode) ?: return emptyMap()
     val total = Money.parse(amount.trim(), currency) ?: return emptyMap()
     if (!total.isPositive) return emptyMap()
-    val ids = members.filter { it.id in selected }.map { MemberId(it.id) }
+    val ids = members.filter { it.id in selected }.map { it.id }
     if (ids.isEmpty()) return emptyMap()
     return try {
-        Split.Equal(ids).divide(total).entries.associate { it.key.value to it.value.toDecimalString() }
-    } catch (e: IllegalArgumentException) {
+        Split.Equal(ids).divide(total).entries.associate { it.key to it.value.toDecimalString() }
+    } catch (_: IllegalArgumentException) {
         emptyMap()
     }
 }

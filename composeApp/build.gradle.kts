@@ -22,6 +22,11 @@ compose.resources {
 }
 
 kotlin {
+    compilerOptions {
+        // Disable expect actual warnings
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     android {
         namespace = "nz.eloque.quits.shared"
         compileSdk = libs.versions.compileSdk.get().toInt()

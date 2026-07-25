@@ -46,10 +46,6 @@ import nz.eloque.quits.resources.detail_owed_by
 import nz.eloque.quits.resources.detail_split_summary_dated
 import nz.eloque.quits.resources.editor_expense_fallback_title
 import nz.eloque.quits.resources.editor_paid_by
-import nz.eloque.quits.resources.editor_split_equal
-import nz.eloque.quits.resources.editor_split_exact
-import nz.eloque.quits.resources.editor_split_percentage
-import nz.eloque.quits.resources.editor_split_shares
 import nz.eloque.quits.resources.expense_delete_body
 import nz.eloque.quits.resources.expense_delete_title
 import nz.eloque.quits.ui.components.EmptyHint
@@ -152,7 +148,7 @@ fun ExpenseDetailScreen(
                     stringResource(
                         Res.string.detail_split_summary_dated,
                         dayGroupLabel(state.spentAt),
-                        splitKindLabel(state.splitKind),
+                        state.splitKind.label(),
                         state.participantCount,
                     ),
                     style = MaterialTheme.typography.bodySmall,
@@ -193,12 +189,3 @@ private fun ParticipantRow(row: ExpenseParticipantRow) {
         MoneyText(row.amount)
     }
 }
-
-@Composable
-private fun splitKindLabel(kind: SplitKind): String =
-    when (kind) {
-        SplitKind.EQUAL -> stringResource(Res.string.editor_split_equal)
-        SplitKind.SHARES -> stringResource(Res.string.editor_split_shares)
-        SplitKind.PERCENTAGE -> stringResource(Res.string.editor_split_percentage)
-        SplitKind.EXACT -> stringResource(Res.string.editor_split_exact)
-    }

@@ -1,10 +1,13 @@
 package nz.eloque.quits.domain
 
 actual object CurrencyCatalog {
-    // Browser Intl APIs: supportedValuesOf('currency') for the ISO-4217 list, DisplayNames for names.
+    // Browser Intl APIs: supportedValuesOf('currency') for the ISO-4217 list, DisplayNames for
+    // names, and a currency-style NumberFormat's resolved options for the minor-unit digit count.
     actual fun codes(): List<String> = supportedCurrencyCodes().split(",").filter { it.isNotBlank() }
 
     actual fun nameOf(code: String): String = currencyDisplayName(code).ifBlank { code }
+
+    actual fun decimalDigits(code: String): Int = currencyDecimalDigits(code)
 }
 
 @OptIn(ExperimentalWasmJsInterop::class)
@@ -13,3 +16,7 @@ private fun supportedCurrencyCodes(): String =
 
 @OptIn(ExperimentalWasmJsInterop::class)
 private fun currencyDisplayName(code: String): String = js("(new Intl.DisplayNames(undefined, { type: 'currency' })).of(code) || ''")
+
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun currencyDecimalDigits(code: String): Int =
+    js("(new Intl.NumberFormat(undefined, { style: 'currency', currency: code }).resolvedOptions().maximumFractionDigits)")

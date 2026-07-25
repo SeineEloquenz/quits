@@ -15,8 +15,6 @@ data class SettingsUiState(
 class SettingsViewModel(
     private val settings: SyncSettings,
 ) : ViewModel() {
-    val defaultRelayUrl: String = SyncSettings.DEFAULT_RELAY_URL
-
     private val _state =
         MutableStateFlow(
             SettingsUiState(

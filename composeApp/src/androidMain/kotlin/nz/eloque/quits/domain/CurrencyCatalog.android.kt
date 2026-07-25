@@ -14,4 +14,9 @@ actual object CurrencyCatalog {
 
     actual fun nameOf(code: String): String =
         runCatching { JavaCurrency.getInstance(code).getDisplayName(Locale.getDefault()) }.getOrDefault(code)
+
+    actual fun decimalDigits(code: String): Int {
+        val digits = runCatching { JavaCurrency.getInstance(code).defaultFractionDigits }.getOrDefault(2)
+        return if (digits < 0) 2 else digits
+    }
 }

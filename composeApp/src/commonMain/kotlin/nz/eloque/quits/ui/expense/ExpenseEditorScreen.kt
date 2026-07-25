@@ -19,8 +19,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,12 +39,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.chip.ChipSelector
 import nz.eloque.compose_kit.components.SectionCard
 import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.scaffold.AppScaffold
-import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
@@ -68,18 +70,19 @@ import nz.eloque.quits.resources.editor_remaining
 import nz.eloque.quits.resources.editor_remaining_done
 import nz.eloque.quits.resources.editor_save_changes
 import nz.eloque.quits.resources.editor_save_expense
-import nz.eloque.quits.resources.editor_shares_suffix
+import nz.eloque.quits.resources.editor_shares_decrease
+import nz.eloque.quits.resources.editor_shares_increase
 import nz.eloque.quits.resources.editor_split
-import nz.eloque.quits.resources.editor_split_equal
-import nz.eloque.quits.resources.editor_split_exact
-import nz.eloque.quits.resources.editor_split_percentage
-import nz.eloque.quits.resources.editor_split_shares
 import nz.eloque.quits.resources.editor_title_add
 import nz.eloque.quits.resources.editor_title_edit
+import nz.eloque.quits.resources.error_invalid_amount
+import nz.eloque.quits.resources.error_invalid_paid
+import nz.eloque.quits.resources.error_invalid_total
 import nz.eloque.quits.ui.components.CurrencyPicker
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.display
+import nz.eloque.quits.ui.components.isValidAmountInput
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -140,19 +143,23 @@ fun ExpenseEditorScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(8.dp))
+                    val amountValid = isValidAmountInput(state.amount, state.currency)
                     OutlinedTextField(
                         value = state.amount,
                         onValueChange = viewModel::setAmount,
                         label = { Text(stringResource(Res.string.editor_label_amount)) },
                         singleLine = true,
+                        isError = !amountValid,
+                        supportingText =
+                            if (!amountValid) ({ Text(stringResource(Res.string.error_invalid_total)) }) else null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(8.dp))
                     CurrencyPicker(
                         label = stringResource(Res.string.editor_label_currency),
-                        selected = Currency.of(state.currency),
-                        onSelected = { viewModel.setCurrency(it.code) },
+                        selected = state.currency,
+                        onSelected = viewModel::setCurrency,
                     )
                     if (state.isForeign) {
                         Spacer(Modifier.height(8.dp))
@@ -205,15 +212,24 @@ fun ExpenseEditorScreen(
                         }
 
                         PayerMode.CUSTOM -> {
-                            val currency = Currency.parse(state.currency)
+                            val currency = state.currency
                             state.members.forEach { member ->
+                                val text = state.paid[member.id].orEmpty()
+                                val valid = isValidAmountInput(text, currency)
                                 SplitInputRow(member = member, preview = null) {
                                     OutlinedTextField(
-                                        value = state.paid[member.id].orEmpty(),
+                                        value = text,
                                         onValueChange = { viewModel.setPaid(member.id, it) },
                                         placeholder = { Text("0") },
-                                        suffix = currency?.let { c -> { Text(c.code) } },
+                                        suffix = { Text(currency.code) },
                                         singleLine = true,
+                                        isError = !valid,
+                                        supportingText =
+                                            if (!valid) {
+                                                { Text(stringResource(Res.string.error_invalid_paid, member.name)) }
+                                            } else {
+                                                null
+                                            },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                         modifier = Modifier.width(140.dp),
                                     )
@@ -234,7 +250,7 @@ fun ExpenseEditorScreen(
 
             SectionCard(heading = stringResource(Res.string.editor_split)) {
                 Column(Modifier.padding(16.dp)) {
-                    val splitLabels = SplitKind.entries.associateWith { splitLabel(it) }
+                    val splitLabels = SplitKind.entries.associateWith { it.label() }
                     ChipSelector(
                         options = SplitKind.entries,
                         selectedOptions = listOf(state.splitKind),
@@ -267,14 +283,9 @@ fun ExpenseEditorScreen(
                         SplitKind.SHARES -> {
                             state.members.forEach { member ->
                                 SplitInputRow(member = member, preview = sharesPreview(state, member.id)?.display()) {
-                                    OutlinedTextField(
+                                    SharesStepper(
                                         value = state.splitInput[member.id].orEmpty(),
                                         onValueChange = { viewModel.setSplitInput(member.id, it) },
-                                        placeholder = { Text(splitPlaceholder(state.splitKind)) },
-                                        suffix = { Text(stringResource(Res.string.editor_shares_suffix)) },
-                                        singleLine = true,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        modifier = Modifier.width(110.dp),
                                     )
                                 }
                             }
@@ -297,15 +308,24 @@ fun ExpenseEditorScreen(
                         }
 
                         SplitKind.EXACT -> {
-                            val currency = Currency.parse(state.currency)
+                            val currency = state.currency
                             state.members.forEach { member ->
+                                val text = state.splitInput[member.id].orEmpty()
+                                val valid = isValidAmountInput(text, currency, requirePositive = false)
                                 SplitInputRow(member = member, preview = null) {
                                     OutlinedTextField(
-                                        value = state.splitInput[member.id].orEmpty(),
+                                        value = text,
                                         onValueChange = { viewModel.setSplitInput(member.id, it) },
                                         placeholder = { Text(splitPlaceholder(state.splitKind)) },
-                                        suffix = currency?.let { c -> { Text(c.code) } },
+                                        suffix = { Text(currency.code) },
                                         singleLine = true,
+                                        isError = !valid,
+                                        supportingText =
+                                            if (!valid) {
+                                                { Text(stringResource(Res.string.error_invalid_amount, member.name)) }
+                                            } else {
+                                                null
+                                            },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                         modifier = Modifier.width(140.dp),
                                     )
@@ -325,7 +345,7 @@ fun ExpenseEditorScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            Button(onClick = viewModel::save, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = viewModel::save, enabled = state.isValid(), modifier = Modifier.fillMaxWidth()) {
                 Text(
                     if (state.editing) {
                         stringResource(Res.string.editor_save_changes)
@@ -351,7 +371,7 @@ private fun MemberChip(
         modifier = Modifier.clickable(onClick = onClick),
     ) {
         Box {
-            MemberAvatar(name = member.name, id = MemberId(member.id), size = 40.dp)
+            MemberAvatar(name = member.name, id = member.id, size = 40.dp)
             if (selected) {
                 Icon(
                     Icons.Default.CheckCircle,
@@ -379,8 +399,7 @@ private fun paidByEqualHint(state: ExpenseEditorUiState): String {
     val selected = state.members.filter { it.id in state.payerSelected }
     if (selected.isEmpty()) return stringResource(Res.string.editor_paid_by_prompt)
 
-    val currency = Currency.parse(state.currency)
-    val total = currency?.let { Money.parse(state.amount.trim(), it) }
+    val total = Money.parse(state.amount.trim(), state.currency)
     if (total == null || !total.isPositive) {
         return if (selected.size == 1) {
             stringResource(Res.string.editor_paid_by_prompt)
@@ -399,7 +418,7 @@ private fun paidByEqualHint(state: ExpenseEditorUiState): String {
 /** Split-payer mode's "remaining to assign" — mirrors the split section's own hint below. */
 @Composable
 private fun PaidRemainingHint(state: ExpenseEditorUiState) {
-    val currency = Currency.parse(state.currency) ?: return
+    val currency = state.currency
     val total = Money.parse(state.amount.trim(), currency) ?: return
     val assigned = state.members.sumOf { m -> Money.parse(state.paid[m.id].orEmpty().trim(), currency)?.minorUnits ?: 0L }
     val remaining = Money(total.minorUnits - assigned, currency)
@@ -423,7 +442,7 @@ private fun RemainingHint(state: ExpenseEditorUiState) {
     val text =
         when (state.splitKind) {
             SplitKind.EXACT -> {
-                val currency = Currency.parse(state.currency) ?: return
+                val currency = state.currency
                 val total = Money.parse(state.amount.trim(), currency)?.minorUnits ?: 0L
                 val assigned =
                     state.members.sumOf { m -> Money.parse(state.splitInput[m.id].orEmpty().trim(), currency)?.minorUnits ?: 0L }
@@ -471,7 +490,7 @@ private fun SplitInputRow(
         Modifier.fillMaxWidth().padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MemberAvatar(name = member.name, id = MemberId(member.id), size = 32.dp)
+        MemberAvatar(name = member.name, id = member.id, size = 32.dp)
         Text(member.name, Modifier.weight(1f).padding(start = 12.dp, end = 8.dp))
         if (preview != null) {
             Text(
@@ -485,12 +504,42 @@ private fun SplitInputRow(
     }
 }
 
+/**
+ * −/+ stepper for the Shares split field. Replaces free-text entry: shares are always a small
+ * non-negative whole number, so tapping is faster and less error-prone than opening a keyboard.
+ */
+@Composable
+private fun SharesStepper(
+    value: String,
+    onValueChange: (String) -> Unit,
+) {
+    val current = value.trim().toLongOrNull()?.coerceAtLeast(0) ?: 0L
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(
+            onClick = { onValueChange((current - 1).coerceAtLeast(0).toString()) },
+            enabled = current > 0,
+        ) {
+            Icon(Icons.Default.Remove, contentDescription = stringResource(Res.string.editor_shares_decrease))
+        }
+        Text(
+            text = current.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.width(28.dp),
+        )
+        IconButton(
+            onClick = { onValueChange((current + 1).toString()) },
+        ) {
+            Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.editor_shares_increase))
+        }
+    }
+}
+
 /** "4 people · ¥1,200 each" once the amount is valid; a plain count otherwise. */
 @Composable
 private fun equalSplitHint(state: ExpenseEditorUiState): String {
     val count = state.equalSelected.size
-    val currency = Currency.parse(state.currency)
-    val total = currency?.let { Money.parse(state.amount.trim(), it) }
+    val total = Money.parse(state.amount.trim(), state.currency)
     return if (count > 0 && total != null && total.isPositive) {
         val each = Money(total.minorUnits / count, total.currency)
         stringResource(Res.string.editor_equal_hint, count, each.display())
@@ -508,9 +557,9 @@ private fun equalSplitHint(state: ExpenseEditorUiState): String {
 @Composable
 private fun percentagePreview(
     state: ExpenseEditorUiState,
-    memberId: String,
+    memberId: MemberId,
 ): Money? {
-    val currency = Currency.parse(state.currency) ?: return null
+    val currency = state.currency
     val total = Money.parse(state.amount.trim(), currency) ?: return null
     val percent = state.splitInput[memberId].orEmpty().trim().toIntOrNull() ?: return null
     if (percent <= 0) return null
@@ -518,11 +567,11 @@ private fun percentagePreview(
     val entries =
         state.members.mapNotNull { m ->
             val p = state.splitInput[m.id].orEmpty().trim().toIntOrNull()
-            if (p != null && p > 0) MemberId(m.id) to p else null
+            if (p != null && p > 0) m.id to p else null
         }
     if (entries.sumOf { it.second } == 100) {
         val exact = Split.Percentage(entries.toMap()).divide(total)
-        return exact[MemberId(memberId)]
+        return exact[memberId]
     }
     return Money(total.minorUnits * percent / 100, currency)
 }
@@ -535,9 +584,9 @@ private fun percentagePreview(
 @Composable
 private fun sharesPreview(
     state: ExpenseEditorUiState,
-    memberId: String,
+    memberId: MemberId,
 ): Money? {
-    val currency = Currency.parse(state.currency) ?: return null
+    val currency = state.currency
     val total = Money.parse(state.amount.trim(), currency) ?: return null
     if (!total.isPositive) return null
     val weight = state.splitInput[memberId].orEmpty().trim().toLongOrNull() ?: return null
@@ -546,24 +595,15 @@ private fun sharesPreview(
     val entries =
         state.members.mapNotNull { m ->
             val w = state.splitInput[m.id].orEmpty().trim().toLongOrNull()
-            if (w != null && w > 0) MemberId(m.id) to w else null
+            if (w != null && w > 0) m.id to w else null
         }
     if (entries.isEmpty()) return null
     return try {
-        Split.Shares(entries.toMap()).divide(total)[MemberId(memberId)]
-    } catch (e: IllegalArgumentException) {
+        Split.Shares(entries.toMap()).divide(total)[memberId]
+    } catch (_: IllegalArgumentException) {
         null
     }
 }
-
-@Composable
-private fun splitLabel(kind: SplitKind): String =
-    when (kind) {
-        SplitKind.EQUAL -> stringResource(Res.string.editor_split_equal)
-        SplitKind.SHARES -> stringResource(Res.string.editor_split_shares)
-        SplitKind.PERCENTAGE -> stringResource(Res.string.editor_split_percentage)
-        SplitKind.EXACT -> stringResource(Res.string.editor_split_exact)
-    }
 
 @Composable
 private fun splitPlaceholder(kind: SplitKind): String =
