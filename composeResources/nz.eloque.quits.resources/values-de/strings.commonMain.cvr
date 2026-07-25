@@ -52,7 +52,7 @@ string|detail_share_group|R3J1cHBlIGZyZWlnZWJlbg==
 string|detail_share_hint|QW5kZXJlIHRyZXRlbiBtaXQgZGllc2VtIENvZGUgZGVyIEdydXBwZSBiZWku
 string|detail_sharing|RnJlaWdhYmU=
 string|detail_split_summary_dated|JTEkcyDCtyAlMiRzIMK3ICUzJGQgUGVyc29uZW4=
-string|detail_transfer_row|JTEkcyDihpIgJTIkczogJTMkcw==
+string|detail_transfer_row|JTEkcyDihpIgJTIkcw==
 string|dialog_rename_title|TWl0Z2xpZWQgdW1iZW5lbm5lbg==
 string|editor_customize_paid_link|QmV0csOkZ2UgYW5wYXNzZW4g4oC6
 string|editor_equal_count|JTEkZCBQZXJzb25lbg==
@@ -74,6 +74,8 @@ string|editor_remaining_done|QWxsZXMgenVnZW9yZG5ldA==
 string|editor_remaining|Tm9jaCB6dXp1b3JkbmVuOiAlMSRz
 string|editor_save_changes|w4RuZGVydW5nZW4gc3BlaWNoZXJu
 string|editor_save_expense|QXVzZ2FiZSBzcGVpY2hlcm4=
+string|editor_shares_decrease|QW50ZWlsZSB2ZXJyaW5nZXJu
+string|editor_shares_increase|QW50ZWlsZSBlcmjDtmhlbg==
 string|editor_shares_suffix|w5c=
 string|editor_split_equal|R2xlaWNo
 string|editor_split_exact|RXhha3Q=
@@ -82,7 +84,6 @@ string|editor_split_shares|QW50ZWlsZQ==
 string|editor_split|QXVmdGVpbHVuZw==
 string|editor_title_add|QXVzZ2FiZSBoaW56dWbDvGdlbg==
 string|editor_title_edit|QXVzZ2FiZSBiZWFyYmVpdGVu
-string|error_currency_code|V8OkaHJ1bmcgbXVzcyBlaW4gMy1CdWNoc3RhYmVuLUNvZGUgc2Vpbg==
 string|error_exact_sum|RXhha3RlIEJldHLDpGdlIG3DvHNzZW4genVzYW1tZW4gZGVuIEdlc2FtdGJldHJhZyBlcmdlYmVu
 string|error_invalid_amount|VW5nw7xsdGlnZXIgQmV0cmFnIGbDvHIgJTEkcw==
 string|error_invalid_expense|VW5nw7xsdGlnZSBBdXNnYWJl
@@ -105,7 +106,6 @@ string|expense_delete_body|RGllcyBlbnRmZXJudCBkaWUgQXVzZ2FiZSBmw7xyIGFsbGUgaW4gZ
 string|expense_delete_title|XCIlMSRzXCIgbMO2c2NoZW4/
 string|group_fallback_name|R3J1cHBl
 string|groups_base_currency|QmFzaXN3w6RocnVuZw==
-string|groups_empty|Tm9jaCBrZWluZSBHcnVwcGVuLgpFcnN0ZWxsZSBvYmVuIGVpbmUgb2RlciB0cml0dCBtaXQgZWluZW0gQ29kZSBiZWku
 string|groups_heading|R3J1cHBlbg==
 string|groups_join_group|R3J1cHBlIGJlaXRyZXRlbg==
 string|groups_join_not_found|S2VpbmUgR3J1cHBlIGbDvHIgQ29kZSBcIiUxJHNcIiBnZWZ1bmRlbg==
