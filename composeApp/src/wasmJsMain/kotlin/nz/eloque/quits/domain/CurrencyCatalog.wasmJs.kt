@@ -24,7 +24,8 @@ private fun currencyDecimalDigits(code: String): Int =
     js("(new Intl.NumberFormat(undefined, { style: 'currency', currency: code }).resolvedOptions().maximumFractionDigits)")
 
 @OptIn(ExperimentalWasmJsInterop::class)
-private fun currencySymbol(code: String): String = js(
-    "(new Intl.NumberFormat(undefined, { style: 'currency', currency: code, currencyDisplay: 'symbol' })" +
-    ".formatToParts(0).find(p => p.type === 'currency')?.value || '')"
-)
+private fun currencySymbol(code: String): String =
+    js(
+        "(new Intl.NumberFormat(undefined, { style: 'currency', currency: code, currencyDisplay: 'symbol' })" +
+            ".formatToParts(0).find(p => p.type === 'currency')?.value || '')",
+    )

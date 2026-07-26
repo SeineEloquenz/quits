@@ -20,6 +20,5 @@ actual object CurrencyCatalog {
         return if (digits < 0) 2 else digits
     }
 
-    actual fun symbolOf(code: String): String? =
-        runCatching { JavaCurrency.getInstance(code).getSymbol(Locale.getDefault()) }.getOrNull()
+    actual fun symbolOf(code: String): String? = runCatching { JavaCurrency.getInstance(code).getSymbol(Locale.getDefault()) }.getOrNull()
 }
