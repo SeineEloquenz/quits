@@ -2,6 +2,7 @@ package nz.eloque.quits.data.sync
 
 import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.runBlocking
+import nz.eloque.quits.util.newId
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -33,9 +34,9 @@ class RelayClientIntegrationTest {
     @Test
     fun create_push_pull_and_join_round_trip() =
         live { relay ->
-            val handle = relay.createGroup()
+            val lookupId = newId()
+            val handle = relay.createGroup(lookupId)
             assertTrue(handle.remoteId.isNotEmpty())
-            assertTrue(handle.code.isNotEmpty())
 
             val ciphertext = "alice".encodeToByteArray()
             val record = EncryptedRecord("m1", updatedAt = 1, deviceId = "devX", deleted = false, ciphertext = ciphertext)
@@ -47,8 +48,8 @@ class RelayClientIntegrationTest {
             val pulled = pull.records.single { it.id == "m1" }
             assertContentEquals(ciphertext, pulled.ciphertext)
 
-            // Joining by code lands on the same container and sees the same data.
-            val joined = relay.joinGroup(handle.code)!!
+            // Joining by lookup id lands on the same container and sees the same data.
+            val joined = relay.joinGroup(lookupId)!!
             assertEquals(handle.remoteId, joined.remoteId)
             val viaJoin = relay.pull(joined.remoteId, joined.token, since = 0)
             assertTrue(viaJoin.records.any { it.id == "m1" })
@@ -57,7 +58,7 @@ class RelayClientIntegrationTest {
     @Test
     fun last_write_wins_rejects_stale_pushes() =
         live { relay ->
-            val handle = relay.createGroup()
+            val handle = relay.createGroup(newId())
             val newer = EncryptedRecord("m1", updatedAt = 10, deviceId = "devX", deleted = false, ciphertext = "New".encodeToByteArray())
             val older = EncryptedRecord("m1", updatedAt = 5, deviceId = "devX", deleted = false, ciphertext = "Old".encodeToByteArray())
             assertEquals(listOf("m1"), relay.push(handle.remoteId, handle.token, listOf(newer)).applied)

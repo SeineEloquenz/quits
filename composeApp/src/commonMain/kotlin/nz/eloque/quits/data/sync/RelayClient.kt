@@ -33,24 +33,26 @@ class RelayClient(
 
     private val baseUrl: String get() = settings.relayUrl.trimEnd('/')
 
-    override suspend fun createGroup(): GroupHandle {
+    override suspend fun createGroup(lookupId: String): GroupHandle {
         val response: CreateGroupResponse =
             client
                 .post("$baseUrl/v1/groups") {
+                    contentType(ContentType.Application.Json)
                     settings.instanceSecret?.let { header("X-Quits-Instance", it) }
+                    setBody(GroupLookupRequest(lookupId))
                 }.body()
-        return GroupHandle(response.groupId, response.code, response.token)
+        return GroupHandle(response.groupId, response.token)
     }
 
-    override suspend fun joinGroup(code: String): GroupHandle? {
+    override suspend fun joinGroup(lookupId: String): GroupHandle? {
         val response: HttpResponse =
             client.post("$baseUrl/v1/groups/join") {
                 contentType(ContentType.Application.Json)
-                setBody(JoinGroupRequest(code))
+                setBody(GroupLookupRequest(lookupId))
             }
         if (response.status == HttpStatusCode.NotFound) return null
         val body: JoinGroupResponse = response.body()
-        return GroupHandle(body.groupId, code, body.token)
+        return GroupHandle(body.groupId, body.token)
     }
 
     override suspend fun push(
@@ -105,13 +107,12 @@ class RelayClient(
     @Serializable
     private data class CreateGroupResponse(
         @SerialName("group_id") val groupId: String,
-        val code: String,
         val token: String,
     )
 
     @Serializable
-    private data class JoinGroupRequest(
-        val code: String,
+    private data class GroupLookupRequest(
+        @SerialName("lookup_id") val lookupId: String,
     )
 
     @Serializable

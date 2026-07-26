@@ -3,38 +3,54 @@ package nz.eloque.quits.data.sync
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import nz.eloque.quits.data.crypto.GroupCrypto
+import nz.eloque.quits.data.crypto.GroupKey
+import nz.eloque.quits.data.crypto.SecretCode
 import nz.eloque.quits.data.db.GroupSyncEntity
 import nz.eloque.quits.data.db.QuitsDatabase
 import nz.eloque.quits.data.db.SyncMeta
 import nz.eloque.quits.domain.GroupId
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * Drives delta sync against the [relay]: push dirty rows, pull since the cursor, apply with
  * last-write-wins.
+ *
+ * Payloads are end-to-end encrypted: a group's secret share code derives both the relay lookup id
+ * and the AES key (see [crypto]), so the relay only ever sees opaque ciphertext.
  */
 class SyncEngine(
     private val db: QuitsDatabase,
     private val relay: Relay,
+    private val crypto: GroupCrypto,
     private val deviceId: String,
     private val now: () -> Long = { 0L },
 ) {
-    /** Registers a local group with the relay and pushes its current state. Returns the share handle. */
-    suspend fun share(localGroupId: GroupId): GroupHandle {
-        val handle = relay.createGroup()
-        db.groupSyncDao().put(GroupSyncEntity(localGroupId.value, handle.remoteId, handle.code, handle.token))
+    private val keys = mutableMapOf<String, GroupKey>()
+
+    /** Registers a local group with the relay and pushes its current state. Returns the share code. */
+    suspend fun share(localGroupId: GroupId): String {
+        val secret = SecretCode.generate()
+        val handle = relay.createGroup(lookupId(secret))
+        db.groupSyncDao().put(GroupSyncEntity(localGroupId.value, handle.remoteId, secret, handle.token))
         sync(localGroupId)
-        return handle
+        return secret
     }
 
-    /** Joins an existing group by [code], then pulls it down. Returns the new local group id, or null. */
+    /** Joins an existing group by its secret share [code], then pulls it down. Returns the new local group id, or null. */
     suspend fun join(code: String): GroupId? {
-        val handle = relay.joinGroup(code) ?: return null
+        val secret = SecretCode.decode(code)?.let { SecretCode.encode(it) } ?: return null
+        val handle = relay.joinGroup(lookupId(secret)) ?: return null
         // A joiner has no prior local group, so it adopts the relay's id as its local id.
-        db.groupSyncDao().put(GroupSyncEntity(handle.remoteId, handle.remoteId, handle.code, handle.token))
+        db.groupSyncDao().put(GroupSyncEntity(handle.remoteId, handle.remoteId, secret, handle.token))
         val id = GroupId(handle.remoteId)
         sync(id)
         return id
     }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private suspend fun lookupId(secret: String): String = Base64.encode(crypto.lookupId(SecretCode.decode(secret)!!))
 
     /** Whether [localGroupId] has a relay handle (i.e. is shared/joined). */
     suspend fun isSynced(localGroupId: GroupId): Boolean = db.groupSyncDao().byGroup(localGroupId.value) != null
@@ -85,7 +101,8 @@ class SyncEngine(
         records += settlements.map { RecordMapper.record(it) }
         if (records.isEmpty()) return
 
-        val applied = relay.push(handle.remoteId, handle.token, records.map { seal(it) }).applied.toSet()
+        val key = keyFor(handle)
+        val applied = relay.push(handle.remoteId, handle.token, records.map { seal(key, it) }).applied.toSet()
         // Clear dirty keyed on the pushed (updatedAt, deviceId): if the row was edited again during
         // the round-trip its clock moved, the guarded update no-ops, and the edit stays pending.
         if (group != null && RecordMapper.GROUP_RECORD_ID in applied) {
@@ -100,28 +117,65 @@ class SyncEngine(
 
     private suspend fun pull(gid: String) {
         val handle = db.groupSyncDao().byGroup(gid) ?: return
+        val key = keyFor(handle)
         val result = relay.pull(handle.remoteId, handle.token, handle.lastSeq)
-        for (record in result.records) apply(gid, open(record))
+        for (record in result.records) {
+            val opened =
+                try {
+                    open(key, record)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    null // undecryptable (corrupt/tampered) record: skip rather than abort the pull.
+                }
+            if (opened != null) apply(gid, opened)
+        }
         if (result.seq > handle.lastSeq) db.groupSyncDao().setLastSeq(gid, result.seq)
     }
 
-    private fun seal(record: SyncRecord): EncryptedRecord =
+    private suspend fun keyFor(handle: GroupSyncEntity): GroupKey =
+        keys.getOrPut(handle.groupId) {
+            val secret = SecretCode.decode(handle.code) ?: error("invalid group secret for ${handle.groupId}")
+            crypto.groupKey(secret)
+        }
+
+    private suspend fun seal(
+        key: GroupKey,
+        record: SyncRecord,
+    ): EncryptedRecord =
         EncryptedRecord(
             id = record.id,
             updatedAt = record.updatedAt,
             deviceId = record.deviceId,
             deleted = record.deleted,
-            ciphertext = SyncJson.encode(record.payload).encodeToByteArray(),
+            ciphertext =
+                key.encrypt(
+                    SyncJson.encode(record.payload).encodeToByteArray(),
+                    aad(record.id, record.updatedAt, record.deviceId, record.deleted),
+                ),
         )
 
-    private fun open(record: EncryptedRecord): SyncRecord =
+    private suspend fun open(
+        key: GroupKey,
+        record: EncryptedRecord,
+    ): SyncRecord =
         SyncRecord(
             id = record.id,
             updatedAt = record.updatedAt,
             deviceId = record.deviceId,
             deleted = record.deleted,
-            payload = SyncJson.decode(record.ciphertext.decodeToString()),
+            payload =
+                SyncJson.decode(
+                    key.decrypt(record.ciphertext, aad(record.id, record.updatedAt, record.deviceId, record.deleted)).decodeToString(),
+                ),
         )
+
+    private fun aad(
+        id: String,
+        updatedAt: Long,
+        deviceId: String,
+        deleted: Boolean,
+    ): ByteArray = "$id\u0000$updatedAt\u0000$deviceId\u0000$deleted".encodeToByteArray()
 
     private suspend fun apply(
         gid: String,

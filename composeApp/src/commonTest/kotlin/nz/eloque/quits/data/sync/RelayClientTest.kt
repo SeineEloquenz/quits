@@ -32,17 +32,20 @@ class RelayClientTest {
     fun create_group_posts_and_parses_handle() =
         runTest {
             var path = ""
+            var body = ""
             var instance: String? = "sentinel"
             val relay =
                 client { request ->
                     path = request.url.encodedPath
+                    body = (request.body as TextContent).text
                     instance = request.headers["X-Quits-Instance"]
-                    json("""{"group_id":"g1","code":"ABCDEF","token":"tok"}""")
+                    json("""{"group_id":"g1","token":"tok"}""")
                 }
-            val handle = relay.createGroup()
+            val handle = relay.createGroup("look-1")
             assertEquals("/v1/groups", path)
+            assertTrue(body.contains("\"lookup_id\":\"look-1\""), body)
             assertNull(instance) // no instance secret configured
-            assertEquals(GroupHandle("g1", "ABCDEF", "tok"), handle)
+            assertEquals(GroupHandle("g1", "tok"), handle)
         }
 
     @Test
