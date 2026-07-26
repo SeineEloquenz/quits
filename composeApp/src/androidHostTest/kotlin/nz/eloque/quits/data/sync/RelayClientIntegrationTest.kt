@@ -3,6 +3,7 @@ package nz.eloque.quits.data.sync
 import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -36,15 +37,15 @@ class RelayClientIntegrationTest {
             assertTrue(handle.remoteId.isNotEmpty())
             assertTrue(handle.code.isNotEmpty())
 
-            val record =
-                SyncRecord("m1", updatedAt = 1, deviceId = "devX", deleted = false, payload = SyncPayload.Member("m1", "Alice", null))
+            val ciphertext = "alice".encodeToByteArray()
+            val record = EncryptedRecord("m1", updatedAt = 1, deviceId = "devX", deleted = false, ciphertext = ciphertext)
             val push = relay.push(handle.remoteId, handle.token, listOf(record))
             assertEquals(listOf("m1"), push.applied)
             assertTrue(push.seq > 0)
 
             val pull = relay.pull(handle.remoteId, handle.token, since = 0)
             val pulled = pull.records.single { it.id == "m1" }
-            assertEquals(SyncPayload.Member("m1", "Alice", null), pulled.payload)
+            assertContentEquals(ciphertext, pulled.ciphertext)
 
             // Joining by code lands on the same container and sees the same data.
             val joined = relay.joinGroup(handle.code)!!
@@ -57,15 +58,14 @@ class RelayClientIntegrationTest {
     fun last_write_wins_rejects_stale_pushes() =
         live { relay ->
             val handle = relay.createGroup()
-            val newer =
-                SyncRecord("m1", updatedAt = 10, deviceId = "devX", deleted = false, payload = SyncPayload.Member("m1", "New", null))
-            val older = SyncRecord("m1", updatedAt = 5, deviceId = "devX", deleted = false, payload = SyncPayload.Member("m1", "Old", null))
+            val newer = EncryptedRecord("m1", updatedAt = 10, deviceId = "devX", deleted = false, ciphertext = "New".encodeToByteArray())
+            val older = EncryptedRecord("m1", updatedAt = 5, deviceId = "devX", deleted = false, ciphertext = "Old".encodeToByteArray())
             assertEquals(listOf("m1"), relay.push(handle.remoteId, handle.token, listOf(newer)).applied)
             val stale = relay.push(handle.remoteId, handle.token, listOf(older))
             assertEquals(listOf("m1"), stale.rejected)
 
             val current = relay.pull(handle.remoteId, handle.token, 0).records.single { it.id == "m1" }
-            assertEquals(SyncPayload.Member("m1", "New", null), current.payload)
+            assertContentEquals("New".encodeToByteArray(), current.ciphertext)
         }
 
     @Test

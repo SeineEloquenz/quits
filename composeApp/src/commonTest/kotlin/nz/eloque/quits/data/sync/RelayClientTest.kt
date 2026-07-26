@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -62,21 +63,21 @@ class RelayClientTest {
                     body = (request.body as TextContent).text
                     json("""{"seq":5,"applied":["m1"],"rejected":[]}""")
                 }
-            val record =
-                SyncRecord("m1", updatedAt = 7, deviceId = "dev", deleted = false, payload = SyncPayload.Member("m1", "Alice", null))
+            val ciphertext = byteArrayOf(1, 2, 3, 4)
+            val record = EncryptedRecord("m1", updatedAt = 7, deviceId = "dev", deleted = false, ciphertext = ciphertext)
             val result = relay.push("rid", "tok", listOf(record))
 
             assertEquals("Bearer tok", auth)
             assertTrue(body.contains("\"device_id\":\"dev\""), body)
-            val expectedPayload = Base64.encode(SyncJson.encode(record.payload).encodeToByteArray())
-            assertTrue(body.contains(expectedPayload), "expected base64 payload in body")
+            assertTrue(body.contains(Base64.encode(ciphertext)), "expected base64 payload in body")
             assertEquals(PushResult(5, listOf("m1"), emptyList()), result)
         }
 
     @Test
     fun pull_decodes_records_and_passes_since() =
         runTest {
-            val payload = Base64.encode(SyncJson.encode(SyncPayload.Member("m1", "Bob", null)).encodeToByteArray())
+            val ciphertext = byteArrayOf(9, 8, 7)
+            val payload = Base64.encode(ciphertext)
             var since = -1L
             var auth: String? = null
             val relay =
@@ -94,6 +95,6 @@ class RelayClientTest {
             assertEquals(3, result.seq)
             val record = result.records.single()
             assertEquals("m1", record.id)
-            assertEquals(SyncPayload.Member("m1", "Bob", null), record.payload)
+            assertContentEquals(ciphertext, record.ciphertext)
         }
 }
