@@ -81,14 +81,13 @@ class GroupsViewModel(
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private val selectedGroupId = MutableStateFlow(settings.activeGroupId?.let { GroupId(it) })
-
     /**
      * The group the home screen should show: the persisted selection when it still exists,
      * otherwise the first group, or null while loading / when there are none.
      */
     val activeGroup: StateFlow<GroupId?> =
-        combine(state, selectedGroupId) { s, active ->
+        combine(state, settings.activeGroupIdFlow) { s, activeId ->
+            val active = activeId?.let(::GroupId)
             when {
                 !s.loaded -> null
                 active != null && s.groups.any { it.id == active } -> active
@@ -107,7 +106,6 @@ class GroupsViewModel(
 
     suspend fun setActiveGroup(id: GroupId) {
         settings.activeGroupId = id.value
-        selectedGroupId.value = id
         _events.emit(GroupsEvent.GroupReady)
     }
 
