@@ -9,10 +9,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import nz.eloque.quits.domain.Currencies
 import nz.eloque.quits.domain.Money
 
-/** Human-readable amount, e.g. "19.99 USD". */
-fun Money.display(): String = "${toDecimalString()} ${currency.code}"
+/** Human-readable amount, e.g. "$19.99", "US$19.99" (falls back to the ISO code if no symbol exists). */
+fun Money.display(): String = "${Currencies.symbol(currency)}${toDecimalString()}"
 
 /** A plain amount with no balance semantics. */
 @Composable

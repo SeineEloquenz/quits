@@ -45,6 +45,7 @@ import nz.eloque.compose_kit.chip.ChipSelector
 import nz.eloque.compose_kit.components.SectionCard
 import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.scaffold.AppScaffold
+import nz.eloque.quits.domain.Currencies
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
@@ -221,7 +222,7 @@ fun ExpenseEditorScreen(
                                         value = text,
                                         onValueChange = { viewModel.setPaid(member.id, it) },
                                         placeholder = { Text("0") },
-                                        suffix = { Text(currency.code) },
+                                        suffix = { Text(Currencies.symbol(currency)) },
                                         singleLine = true,
                                         isError = !valid,
                                         supportingText =
@@ -317,7 +318,7 @@ fun ExpenseEditorScreen(
                                         value = text,
                                         onValueChange = { viewModel.setSplitInput(member.id, it) },
                                         placeholder = { Text(splitPlaceholder(state.splitKind)) },
-                                        suffix = { Text(currency.code) },
+                                        suffix = { Text(Currencies.symbol(currency)) },
                                         singleLine = true,
                                         isError = !valid,
                                         supportingText =

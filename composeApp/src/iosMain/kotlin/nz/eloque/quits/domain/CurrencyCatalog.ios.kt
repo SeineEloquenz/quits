@@ -20,4 +20,13 @@ actual object CurrencyCatalog {
             }
         return formatter.maximumFractionDigits.toInt()
     }
+
+    actual fun symbolOf(code: String): String? {
+        val formatter =
+            NSNumberFormatter().apply {
+                numberStyle = NSNumberFormatterCurrencyStyle
+                currencyCode = code
+            }
+        return formatter.currencySymbol?.ifBlank { null }
+    }
 }
