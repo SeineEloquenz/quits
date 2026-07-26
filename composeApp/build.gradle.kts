@@ -85,6 +85,8 @@ kotlin {
             implementation(libs.room.runtime)
             implementation(libs.multiplatform.settings)
             implementation(libs.compose.kit)
+            implementation(libs.cryptography.core)
+            implementation(libs.cryptography.provider.optimal)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
