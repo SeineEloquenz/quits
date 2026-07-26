@@ -86,8 +86,10 @@ fun HomeScreen(
                     viewModel = viewModel,
                     activeGroup = active,
                     onSelect = {
-                        viewModel.setActiveGroup(it)
                         closeDrawer()
+                        scope.launch {
+                            viewModel.setActiveGroup(it)
+                        }
                     },
                     onAddGroup = {
                         closeDrawer()

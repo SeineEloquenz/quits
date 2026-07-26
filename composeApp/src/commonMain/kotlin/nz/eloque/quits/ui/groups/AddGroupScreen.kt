@@ -11,9 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.scaffold.AppScaffold
@@ -36,17 +33,12 @@ fun AddGroupScreen(
 ) {
     val viewModel = koinViewModel<GroupsViewModel>()
     val error by viewModel.error.collectAsState()
-    val activeGroup by viewModel.activeGroup.collectAsState()
 
-    // Only react to activeGroup changes caused by an explicit create/join on *this* screen —
-    // not to whatever it happened to already be (e.g. still loading, or the group open before
-    // navigating here) — so this can't fire a false "ready" before the person has done anything.
-    // createGroup()/join() both call setActiveGroup() on success, so Home will already be showing
-    // the new group once this pops back — no need to pass the id along.
-    var requested by remember { mutableStateOf(false) }
-    LaunchedEffect(activeGroup, requested) {
-        if (requested && activeGroup != null) {
-            onDone()
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                GroupsEvent.GroupReady -> onDone()
+            }
         }
     }
 
@@ -60,14 +52,8 @@ fun AddGroupScreen(
         contentHorizontalPadding = 0.dp,
     ) {
         AddGroupContent(
-            onCreate = { name, currency ->
-                requested = true
-                viewModel.createGroup(name, currency)
-            },
-            onJoin = {
-                requested = true
-                viewModel.join(it)
-            },
+            onCreate = viewModel::createGroup,
+            onJoin = viewModel::join,
             error = error,
             onJoinInput = viewModel::clearError,
             modifier = Modifier,

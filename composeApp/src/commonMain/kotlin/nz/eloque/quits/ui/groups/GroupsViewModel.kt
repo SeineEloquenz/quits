@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -42,6 +44,10 @@ data class GroupHomeRow(
     val settled: Boolean,
 )
 
+sealed interface GroupsEvent {
+    data object GroupReady : GroupsEvent
+}
+
 class GroupsViewModel(
     private val repo: GroupRepository,
     private val engine: SyncEngine,
@@ -52,6 +58,9 @@ class GroupsViewModel(
             .groupsFlow()
             .map { GroupsUiState(it, loaded = true) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupsUiState())
+
+    private val _events = MutableSharedFlow<GroupsEvent>()
+    val events = _events.asSharedFlow()
 
     /**
      * [state]'s groups, each paired with its live balance status. Rebuilds its inner `combine`
@@ -96,9 +105,10 @@ class GroupsViewModel(
         }
     }
 
-    fun setActiveGroup(id: GroupId) {
+    suspend fun setActiveGroup(id: GroupId) {
         settings.activeGroupId = id.value
         selectedGroupId.value = id
+        _events.emit(GroupsEvent.GroupReady)
     }
 
     fun createGroup(
