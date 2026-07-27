@@ -16,7 +16,7 @@ import androidx.room3.RoomDatabaseConstructor
         SettlementEntity::class,
         FxRateEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @ConstructedBy(QuitsDatabaseConstructor::class)

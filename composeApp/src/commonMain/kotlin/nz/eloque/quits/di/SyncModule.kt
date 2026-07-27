@@ -1,6 +1,7 @@
 package nz.eloque.quits.di
 
 import com.russhwolf.settings.Settings
+import nz.eloque.quits.data.crypto.GroupCrypto
 import nz.eloque.quits.data.sync.PersistentSyncSettings
 import nz.eloque.quits.data.sync.Relay
 import nz.eloque.quits.data.sync.RelayClient
@@ -25,5 +26,6 @@ val syncModule =
         single { DeviceId(resolveDeviceId(get())) }
         single<SyncSettings> { PersistentSyncSettings(get()) }
         single<Relay> { RelayClient(get(), get()) }
-        single { SyncEngine(get(), get(), get<DeviceId>().value, now = { nowMillis() }) }
+        single { GroupCrypto() }
+        single { SyncEngine(get(), get(), get(), get<DeviceId>().value, now = { nowMillis() }) }
     }

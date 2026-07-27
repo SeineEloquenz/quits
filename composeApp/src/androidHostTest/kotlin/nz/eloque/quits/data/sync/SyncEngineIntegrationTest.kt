@@ -2,6 +2,7 @@ package nz.eloque.quits.data.sync
 
 import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.runBlocking
+import nz.eloque.quits.data.crypto.GroupCrypto
 import nz.eloque.quits.data.db.inMemoryDatabase
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.domain.Currency
@@ -54,10 +55,10 @@ class SyncEngineIntegrationTest {
             var clock = 1000L
             val db1 = inMemoryDatabase()
             val repo1 = GroupRepository(db1, deviceId = "dev1", now = { clock })
-            val engine1 = SyncEngine(db1, relay, deviceId = "dev1")
+            val engine1 = SyncEngine(db1, relay, GroupCrypto(), deviceId = "dev1")
             val db2 = inMemoryDatabase()
             val repo2 = GroupRepository(db2, deviceId = "dev2", now = { clock })
-            val engine2 = SyncEngine(db2, relay, deviceId = "dev2")
+            val engine2 = SyncEngine(db2, relay, GroupCrypto(), deviceId = "dev2")
 
             try {
                 val g = GroupId("g-local")
@@ -67,10 +68,10 @@ class SyncEngineIntegrationTest {
                     Expense(ExpenseId("e1"), "Dinner", listOf(Payment(a, Money(3000, usd))), Split.Equal(listOf(a, b))),
                     spentAt = 1,
                 )
-                val handle = engine1.share(g)
+                val code = engine1.share(g)
 
                 clock = 1500L
-                val joined = engine2.join(handle.code)!!
+                val joined = engine2.join(code)!!
                 assertEquals(2, repo2.load(joined)!!.members.size)
                 assertEquals(1, repo2.load(joined)!!.expenses.size)
 
