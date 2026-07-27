@@ -4,6 +4,9 @@ import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIApplication
 import platform.UIKit.UIViewController
 import platform.UIKit.UIWindowScene
+// popoverPresentationController is an ObjC category member, so Kotlin/Native exposes it as an
+// extension property that must be imported explicitly.
+import platform.UIKit.popoverPresentationController
 
 /** Presents a `UIActivityViewController` from the top-most view controller. */
 class IosSharer : Sharer {
@@ -23,7 +26,7 @@ class IosSharer : Sharer {
     }
 }
 
-/** The active window's root controller, via the foreground scene (UIApplication.keyWindow is gone in recent SDKs). */
+/** The active window's root controller, via the foreground scene (the modern replacement for the deprecated UIApplication.keyWindow). */
 private fun keyRootViewController(): UIViewController? {
     val scene =
         UIApplication.sharedApplication.connectedScenes
