@@ -1,5 +1,6 @@
 version:0
 string|action_cancel|Q2FuY2Vs
+string|action_copy_link|Q29weSBsaW5r
 string|action_copy|Q29weQ==
 string|action_create|Q3JlYXRl
 string|action_delete|RGVsZXRl
@@ -8,6 +9,7 @@ string|action_join|Sm9pbg==
 string|action_record|UmVjb3Jk
 string|action_reset|UmVzZXQ=
 string|action_save|U2F2ZQ==
+string|action_share_link|U2hhcmUgbGluaw==
 string|add_group_create_link|Q3JlYXRlIGEgZ3JvdXAg4oC6
 string|add_group_join_hint|QXNrIHdob2V2ZXIgc2V0IHVwIHRoZSBncm91cCB0byBzZW5kIHlvdSB0aGVpciBzaGFyZSBjb2Rl
 string|add_group_new_here|TmV3IGhlcmU/
@@ -111,6 +113,8 @@ string|groups_join_group|Sm9pbiBncm91cA==
 string|groups_join_not_found|Tm8gZ3JvdXAgZm91bmQgZm9yIGNvZGUgXCIlMSRzXCI=
 string|groups_member_count|JTEkZCBtZW1iZXJzIMK3ICUyJHM=
 string|groups_new_group|TmV3IGdyb3Vw
+string|invite_join_body|WW91J3ZlIGJlZW4gaW52aXRlZCB0byBhIHNoYXJlZCBncm91cC4gSm9pbmluZyBzeW5jcyBpdHMgZXhwZW5zZXMgdG8gdGhpcyBkZXZpY2Uu
+string|invite_join_title|Sm9pbiBncm91cA==
 string|label_name|TmFtZQ==
 string|label_share_code|U2hhcmUgY29kZQ==
 string|member_detail_appears_in|QXBwZWFycyBpbg==
