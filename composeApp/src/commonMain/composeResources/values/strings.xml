@@ -12,6 +12,8 @@
     <string name="action_record">Record</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="action_delete">Delete</string>
+    <string name="action_share_link">Share link</string>
+    <string name="action_copy_link">Copy link</string>
     <string name="label_name">Name</string>
     <string name="label_share_code">Share code</string>
 
@@ -42,6 +44,10 @@
     <string name="add_group_create_link">Create a group ›</string>
     <string name="add_group_or">or</string>
     <string name="add_group_no_account">No account needed</string>
+
+    <!-- Invite link -->
+    <string name="invite_join_title">Join group</string>
+    <string name="invite_join_body">You've been invited to a shared group. Joining syncs its expenses to this device.</string>
 
     <!-- Group detail -->
     <string name="group_fallback_name">Group</string>

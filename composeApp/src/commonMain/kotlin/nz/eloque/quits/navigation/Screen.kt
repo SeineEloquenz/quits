@@ -47,3 +47,8 @@ data class ExpenseEditorKey(
 
 @Serializable
 data object SettingsKey : NavKey
+
+@Serializable
+data class JoinInviteKey(
+    val code: String,
+) : NavKey

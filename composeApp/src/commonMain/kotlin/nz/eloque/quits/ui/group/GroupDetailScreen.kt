@@ -33,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,11 +52,14 @@ import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.input.SubmittableTextField
 import nz.eloque.compose_kit.scaffold.AppScaffold
+import nz.eloque.quits.data.invite.InviteLink
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_copy
+import nz.eloque.quits.resources.action_copy_link
+import nz.eloque.quits.resources.action_share_link
 import nz.eloque.quits.resources.cd_menu
 import nz.eloque.quits.resources.cd_sync
 import nz.eloque.quits.resources.detail_add_expense
@@ -84,8 +88,10 @@ import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.MoneyText
 import nz.eloque.quits.ui.components.dayGroupLabel
+import nz.eloque.quits.util.Sharer
 import nz.eloque.quits.util.formatDateTime
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -386,6 +392,20 @@ private fun ShareSheet(
                 Button(onClick = onShare) { Text(stringResource(Res.string.detail_share_group)) }
             } else {
                 val clipboard = LocalClipboardManager.current
+                val sharer = koinInject<Sharer>()
+                val link = InviteLink.build(code)
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = { sharer.share(link) }, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Filled.Share, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(Res.string.action_share_link))
+                    }
+                    OutlinedButton(onClick = { clipboard.setText(AnnotatedString(link)) }, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(Res.string.action_copy_link))
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
 
                 Text(stringResource(Res.string.label_share_code), style = MaterialTheme.typography.labelMedium)
                 Row(verticalAlignment = Alignment.CenterVertically) {

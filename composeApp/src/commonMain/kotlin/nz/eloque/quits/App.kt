@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -18,6 +19,7 @@ import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
 import nz.eloque.compose_kit.navigation.slideBackward
 import nz.eloque.compose_kit.navigation.slideForward
+import nz.eloque.quits.data.invite.PendingInvite
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
@@ -25,6 +27,7 @@ import nz.eloque.quits.navigation.AddGroupKey
 import nz.eloque.quits.navigation.ExpenseDetailKey
 import nz.eloque.quits.navigation.ExpenseEditorKey
 import nz.eloque.quits.navigation.GroupsHomeKey
+import nz.eloque.quits.navigation.JoinInviteKey
 import nz.eloque.quits.navigation.MemberDetailKey
 import nz.eloque.quits.navigation.SettingsKey
 import nz.eloque.quits.navigation.SettleUpKey
@@ -34,8 +37,10 @@ import nz.eloque.quits.ui.expense.ExpenseEditorScreen
 import nz.eloque.quits.ui.group.MemberDetailScreen
 import nz.eloque.quits.ui.group.SettleUpScreen
 import nz.eloque.quits.ui.groups.AddGroupScreen
+import nz.eloque.quits.ui.groups.JoinInviteScreen
 import nz.eloque.quits.ui.home.HomeScreen
 import nz.eloque.quits.ui.settings.SettingsScreen
+import org.koin.compose.koinInject
 
 private val navSavedStateConfiguration =
     SavedStateConfiguration {
@@ -49,6 +54,7 @@ private val navSavedStateConfiguration =
                     subclass(SettleUpKey::class)
                     subclass(ExpenseEditorKey::class)
                     subclass(SettingsKey::class)
+                    subclass(JoinInviteKey::class)
                 }
             }
     }
@@ -61,6 +67,16 @@ fun App() {
             color = MaterialTheme.colorScheme.background,
         ) {
             val backStack = rememberNavBackStack(navSavedStateConfiguration, GroupsHomeKey)
+            val pendingInvite = koinInject<PendingInvite>()
+            LaunchedEffect(Unit) {
+                // A link opened from outside the app surfaces here; route to a join confirmation.
+                pendingInvite.code.collect { code ->
+                    if (code != null) {
+                        backStack.add(JoinInviteKey(code))
+                        pendingInvite.consume()
+                    }
+                }
+            }
             NavDisplay(
                 backStack = backStack,
                 modifier = Modifier.fillMaxSize().safeDrawingPadding(),
@@ -118,6 +134,14 @@ fun App() {
                         }
                         entry<SettingsKey> {
                             SettingsScreen(onBack = { backStack.removeLastOrNull() })
+                        }
+                        entry<JoinInviteKey> { key ->
+                            JoinInviteScreen(
+                                code = key.code,
+                                onCancel = { backStack.removeLastOrNull() },
+                                // join() sets the new group active; Home shows it once we pop back.
+                                onJoined = { backStack.removeLastOrNull() },
+                            )
                         }
                         entry<ExpenseEditorKey> { key ->
                             ExpenseEditorScreen(

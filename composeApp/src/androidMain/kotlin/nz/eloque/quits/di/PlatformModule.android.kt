@@ -10,6 +10,8 @@ import com.russhwolf.settings.SharedPreferencesSettings
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.okhttp.OkHttp
 import nz.eloque.quits.data.db.QuitsDatabase
+import nz.eloque.quits.util.AndroidSharer
+import nz.eloque.quits.util.Sharer
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -28,4 +30,5 @@ actual val platformModule: Module =
             SharedPreferencesSettings(androidContext().getSharedPreferences("quits", Context.MODE_PRIVATE))
         }
         single<HttpClientEngine> { OkHttp.create() }
+        single<Sharer> { AndroidSharer(androidContext()) }
     }

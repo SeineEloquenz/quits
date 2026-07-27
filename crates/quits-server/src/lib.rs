@@ -9,6 +9,7 @@ pub mod config;
 pub mod error;
 mod routes;
 pub mod state;
+mod wellknown;
 
 use axum::Router;
 use axum::routing::{get, post};
@@ -42,6 +43,12 @@ pub fn router(state: AppState) -> Router {
             "/v1/groups/{id}/changes",
             get(routes::get_changes).post(routes::post_changes),
         )
+        .route("/.well-known/assetlinks.json", get(wellknown::assetlinks))
+        .route(
+            "/.well-known/apple-app-site-association",
+            get(wellknown::apple_app_site_association),
+        )
+        .route("/join", get(wellknown::join_landing))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(state)

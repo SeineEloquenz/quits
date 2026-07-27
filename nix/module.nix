@@ -11,13 +11,20 @@ let
   # Settings exposed as plain (non-secret) environment variables. Secrets
   # (QUITS_JWT_SECRET, QUITS_INSTANCE_SECRET) must come from `environmentFile`
   # so they never land in the world-readable Nix store.
-  baseEnv = {
-    QUITS_ADDR = "${cfg.host}:${toString cfg.port}";
-    DATABASE_URL = cfg.databaseUrl;
-    QUITS_DB_MAX_CONNECTIONS = toString cfg.dbMaxConnections;
-    QUITS_TOKEN_TTL_SECS = toString cfg.tokenTtlSecs;
-    RUST_LOG = cfg.logLevel;
-  };
+  baseEnv =
+    {
+      QUITS_ADDR = "${cfg.host}:${toString cfg.port}";
+      DATABASE_URL = cfg.databaseUrl;
+      QUITS_DB_MAX_CONNECTIONS = toString cfg.dbMaxConnections;
+      QUITS_TOKEN_TTL_SECS = toString cfg.tokenTtlSecs;
+      RUST_LOG = cfg.logLevel;
+    }
+    // lib.optionalAttrs (cfg.androidCertSha256 != [ ]) {
+      QUITS_ANDROID_CERT_SHA256 = lib.concatStringsSep "," cfg.androidCertSha256;
+    }
+    // lib.optionalAttrs (cfg.iosAppId != null) {
+      QUITS_IOS_APP_ID = cfg.iosAppId;
+    };
 in
 {
   options.services.quits-server = {
@@ -79,6 +86,32 @@ in
       default = "info";
       example = "quits_server=debug,tower_http=debug";
       description = "Value for `RUST_LOG` (tracing env-filter).";
+    };
+
+    androidCertSha256 = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "AA:BB:CC:..." "DD:EE:FF:..." ];
+      description = ''
+        Android release signing SHA-256 fingerprint(s), colon-separated hex, advertised in
+        `/.well-known/assetlinks.json` (`QUITS_ANDROID_CERT_SHA256`, comma-joined), so invite
+        links open the app as verified App Links. List several to accept multiple signing keys
+        (e.g. upload key + Play App Signing key). Empty uses the binary's built-in fingerprint.
+
+        NOTE: the reverse proxy fronting the invite-link domain must forward `/.well-known/*`
+        and `/join` to this service.
+      '';
+    };
+
+    iosAppId = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "ABCDE12345.nz.eloque.quits";
+      description = ''
+        Apple `TeamID.bundleId` advertised in `/.well-known/apple-app-site-association`
+        (`QUITS_IOS_APP_ID`). Null uses the binary's built-in placeholder (won't verify until a
+        real Team ID is set).
+      '';
     };
 
     openFirewall = lib.mkOption {

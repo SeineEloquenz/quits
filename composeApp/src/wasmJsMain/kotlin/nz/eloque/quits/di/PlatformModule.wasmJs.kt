@@ -9,6 +9,8 @@ import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.js.Js
 import nz.eloque.quits.data.db.QuitsDatabase
 import nz.eloque.quits.sqlite.createWebSqliteDriver
+import nz.eloque.quits.util.Sharer
+import nz.eloque.quits.util.WebSharer
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -20,4 +22,5 @@ actual val platformModule: Module =
         // multiplatform-settings backed by window.localStorage.
         single<Settings> { StorageSettings() }
         single<HttpClientEngine> { Js.create() }
+        single<Sharer> { WebSharer() }
     }

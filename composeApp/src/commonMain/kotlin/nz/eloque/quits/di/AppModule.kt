@@ -1,5 +1,6 @@
 package nz.eloque.quits.di
 
+import nz.eloque.quits.data.invite.PendingInvite
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
@@ -10,6 +11,7 @@ import nz.eloque.quits.ui.group.MemberDetailViewModel
 import nz.eloque.quits.ui.groups.GroupsViewModel
 import nz.eloque.quits.ui.settings.SettingsViewModel
 import org.koin.core.context.startKoin
+import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
@@ -17,6 +19,7 @@ import org.koin.dsl.module
 
 val appModule =
     module {
+        singleOf(::PendingInvite)
         viewModelOf(::GroupsViewModel)
         viewModelOf(::SettingsViewModel)
         viewModel { params -> GroupDetailViewModel(get(), get(), params.get<GroupId>()) }
