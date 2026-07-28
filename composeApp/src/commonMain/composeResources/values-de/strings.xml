@@ -24,6 +24,8 @@
     <string name="cd_delete">%1$s löschen</string>
     <string name="cd_menu">Gruppenmenü öffnen</string>
     <string name="cd_more">Weitere Optionen</string>
+    <string name="cd_search">Aktivität durchsuchen</string>
+    <string name="cd_clear_search">Suche löschen</string>
 
     <!-- Groups list -->
     <string name="groups_new_group">Neue Gruppe</string>
@@ -67,6 +69,8 @@
     <string name="detail_add_member">Mitglied hinzufügen</string>
     <string name="detail_expenses">Ausgaben</string>
     <string name="detail_expenses_empty">Noch keine Ausgaben.</string>
+    <string name="detail_search_hint">Titel, Kategorie, Notiz suchen</string>
+    <string name="detail_no_matches">Keine Aktivität entspricht deinen Filtern.</string>
     <string name="date_today">Heute</string>
     <string name="date_yesterday">Gestern</string>
     <string name="detail_settlement_title">Ausgleich</string>

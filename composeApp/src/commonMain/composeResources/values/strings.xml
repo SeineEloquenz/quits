@@ -26,6 +26,8 @@
     <string name="cd_delete">Delete %1$s</string>
     <string name="cd_menu">Open groups menu</string>
     <string name="cd_more">More options</string>
+    <string name="cd_search">Search activity</string>
+    <string name="cd_clear_search">Clear search</string>
 
     <!-- Groups list -->
     <string name="groups_new_group">New group</string>
@@ -73,6 +75,8 @@
     <string name="detail_add_member">Add member</string>
     <string name="detail_expenses">Expenses</string>
     <string name="detail_expenses_empty">No expenses yet.</string>
+    <string name="detail_search_hint">Search title, category, note</string>
+    <string name="detail_no_matches">No activity matches your filters.</string>
     <string name="date_today">Today</string>
     <string name="date_yesterday">Yesterday</string>
     <string name="detail_settlement_title">Settlement</string>

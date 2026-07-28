@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.sync.SyncEngine
@@ -47,6 +48,10 @@ data class ExpenseRow(
     val total: Money,
     val paidBy: String,
     val spentAt: Long,
+    val category: String? = null,
+    val note: String? = null,
+    /** Everyone tied to the expense (payers and share-holders), for the member filter. */
+    val participants: Set<MemberId> = emptySet(),
 )
 
 data class SettlementRow(
@@ -55,7 +60,21 @@ data class SettlementRow(
     val to: String,
     val amount: Money,
     val paidAt: Long,
+    val fromId: MemberId? = null,
+    val toId: MemberId? = null,
 )
+
+/**
+ * Feed search/filter, applied in the UI layer over the merged activity. A blank query and empty
+ * selections mean "show everything".
+ */
+data class ActivityFilter(
+    val query: String = "",
+    val category: String? = null,
+    val members: Set<MemberId> = emptySet(),
+) {
+    val isActive: Boolean get() = query.isNotBlank() || category != null || members.isNotEmpty()
+}
 
 /**
  * One row in the merged activity feed. Expenses and settlements are unrelated domain types with
@@ -84,8 +103,11 @@ data class GroupDetailUiState(
     val baseCurrency: Currency = Currency.of("EUR"),
     val members: List<MemberBalance> = emptyList(),
     val transfers: List<TransferRow> = emptyList(),
-    /** Expenses and recorded settlements, merged and sorted newest-first. */
+    /** Expenses and recorded settlements, merged, sorted newest-first, and filtered by [filter]. */
     val activity: List<ActivityEntry> = emptyList(),
+    /** Distinct categories present across all (unfiltered) expenses, for the filter chips. */
+    val categories: List<String> = emptyList(),
+    val filter: ActivityFilter = ActivityFilter(),
     val settled: Boolean = true,
     val shareCode: String? = null,
     val lastSyncedAt: Long? = null,
@@ -96,13 +118,26 @@ class GroupDetailViewModel(
     private val engine: SyncEngine,
     private val groupId: GroupId,
 ) : ViewModel() {
+    private val filter = MutableStateFlow(ActivityFilter())
+
     val state: StateFlow<GroupDetailUiState> =
-        combine(repo.groupFlow(groupId), engine.syncInfoFlow(groupId)) { group, info ->
-            (group?.toUiState() ?: GroupDetailUiState()).copy(shareCode = info.code, lastSyncedAt = info.lastSyncedAt)
+        combine(repo.groupFlow(groupId), engine.syncInfoFlow(groupId), filter) { group, info, filter ->
+            (group?.toUiState(filter) ?: GroupDetailUiState(filter = filter))
+                .copy(shareCode = info.code, lastSyncedAt = info.lastSyncedAt)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupDetailUiState())
 
     private val _syncStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
     val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
+
+    fun setQuery(value: String) = filter.update { it.copy(query = value) }
+
+    fun toggleCategoryFilter(category: String) =
+        filter.update { if (it.category == category) it.copy(category = null) else it.copy(category = category) }
+
+    fun toggleMemberFilter(id: MemberId) =
+        filter.update { if (id in it.members) it.copy(members = it.members - id) else it.copy(members = it.members + id) }
+
+    fun clearFilters() = filter.update { ActivityFilter() }
 
     init {
         // Pull the latest on open (no-op for a local-only group).
@@ -185,7 +220,7 @@ sealed interface SyncStatus {
     ) : SyncStatus
 }
 
-private fun Group.toUiState(): GroupDetailUiState {
+private fun Group.toUiState(filter: ActivityFilter): GroupDetailUiState {
     val names = members.associate { it.id to it.name }
     val balances = balances()
 
@@ -196,7 +231,19 @@ private fun Group.toUiState(): GroupDetailUiState {
                     .map { names[it.payer] ?: "?" }
                     .distinct()
                     .joinToString(", ")
-            ActivityEntry.ExpenseEntry(ExpenseRow(expense.id, expense.title, expense.total, paidBy, expense.spentAt))
+            val participants = (expense.payments.map { it.payer } + expense.shares.keys).toSet()
+            ActivityEntry.ExpenseEntry(
+                ExpenseRow(
+                    expense.id,
+                    expense.title,
+                    expense.total,
+                    paidBy,
+                    expense.spentAt,
+                    expense.category,
+                    expense.note,
+                    participants,
+                ),
+            )
         }
     val settlementEntries =
         settlements.map { settlement ->
@@ -207,9 +254,13 @@ private fun Group.toUiState(): GroupDetailUiState {
                     names[settlement.to] ?: "?",
                     settlement.amount,
                     settlement.paidAt,
+                    settlement.from,
+                    settlement.to,
                 ),
             )
         }
+
+    val allEntries = (expenseEntries + settlementEntries).sortedByDescending { it.timestamp }
 
     return GroupDetailUiState(
         loaded = true,
@@ -220,7 +271,33 @@ private fun Group.toUiState(): GroupDetailUiState {
             balances.simplify().map {
                 TransferRow(names[it.from] ?: "?", names[it.to] ?: "?", it)
             },
-        activity = (expenseEntries + settlementEntries).sortedByDescending { it.timestamp },
+        activity = allEntries.filter { it.matches(filter) },
+        categories =
+            expenses
+                .mapNotNull { it.category?.takeIf(String::isNotBlank) }
+                .distinct()
+                .sorted(),
+        filter = filter,
         settled = balances.net.values.all { it.isZero },
     )
+}
+
+/** True if this entry passes every active facet of [filter] (facets combine with AND). */
+private fun ActivityEntry.matches(filter: ActivityFilter): Boolean {
+    val query = filter.query.trim()
+    return when (this) {
+        is ActivityEntry.ExpenseEntry -> {
+            if (filter.category != null && row.category != filter.category) return false
+            if (filter.members.isNotEmpty() && row.participants.none { it in filter.members }) return false
+            query.isEmpty() ||
+                listOfNotNull(row.title, row.category, row.note).any { it.contains(query, ignoreCase = true) }
+        }
+
+        is ActivityEntry.SettlementEntry -> {
+            // Settlements have no category, so any category filter excludes them.
+            if (filter.category != null) return false
+            if (filter.members.isNotEmpty() && row.fromId !in filter.members && row.toId !in filter.members) return false
+            query.isEmpty() || row.from.contains(query, ignoreCase = true) || row.to.contains(query, ignoreCase = true)
+        }
+    }
 }

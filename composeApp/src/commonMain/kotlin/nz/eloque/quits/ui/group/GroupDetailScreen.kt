@@ -2,6 +2,7 @@ package nz.eloque.quits.ui.group
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,12 +20,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -34,12 +37,14 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -68,8 +73,10 @@ import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_copy
 import nz.eloque.quits.resources.action_copy_link
 import nz.eloque.quits.resources.action_share_link
+import nz.eloque.quits.resources.cd_clear_search
 import nz.eloque.quits.resources.cd_menu
 import nz.eloque.quits.resources.cd_more
+import nz.eloque.quits.resources.cd_search
 import nz.eloque.quits.resources.cd_sync
 import nz.eloque.quits.resources.detail_add_expense
 import nz.eloque.quits.resources.detail_add_member
@@ -81,8 +88,10 @@ import nz.eloque.quits.resources.detail_expenses
 import nz.eloque.quits.resources.detail_expenses_empty
 import nz.eloque.quits.resources.detail_last_synced
 import nz.eloque.quits.resources.detail_local_only
+import nz.eloque.quits.resources.detail_no_matches
 import nz.eloque.quits.resources.detail_not_synced
 import nz.eloque.quits.resources.detail_paid_by
+import nz.eloque.quits.resources.detail_search_hint
 import nz.eloque.quits.resources.detail_settle_up_link
 import nz.eloque.quits.resources.detail_settlement_row
 import nz.eloque.quits.resources.detail_settlement_title
@@ -127,6 +136,7 @@ fun GroupDetailScreen(
     var showShare by remember(groupId) { mutableStateOf(false) }
     var menuExpanded by remember(groupId) { mutableStateOf(false) }
     var showLeave by remember(groupId) { mutableStateOf(false) }
+    var showSearch by remember(groupId) { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(syncStatus) {
@@ -166,6 +176,12 @@ fun GroupDetailScreen(
             }
         },
         actions = {
+            IconButton(onClick = {
+                showSearch = !showSearch
+                if (!showSearch) viewModel.clearFilters()
+            }) {
+                Icon(Icons.Default.Search, contentDescription = stringResource(Res.string.cd_search))
+            }
             IconButton(onClick = { showShare = true }) {
                 Icon(Icons.Default.Share, contentDescription = stringResource(Res.string.detail_sharing))
             }
@@ -237,12 +253,23 @@ fun GroupDetailScreen(
             )
             Spacer(Modifier.height(4.dp))
 
+            AnimatedVisibility(visible = showSearch) {
+                ActivitySearchBar(
+                    filter = state.filter,
+                    categories = state.categories,
+                    members = state.members,
+                    onQuery = viewModel::setQuery,
+                    onToggleCategory = viewModel::toggleCategoryFilter,
+                    onToggleMember = viewModel::toggleMemberFilter,
+                )
+            }
+
             if (state.activity.isEmpty()) {
                 EmptyHint(
-                    if (state.members.isEmpty()) {
-                        stringResource(Res.string.detail_add_members_first)
-                    } else {
-                        stringResource(Res.string.detail_expenses_empty)
+                    when {
+                        state.filter.isActive -> stringResource(Res.string.detail_no_matches)
+                        state.members.isEmpty() -> stringResource(Res.string.detail_add_members_first)
+                        else -> stringResource(Res.string.detail_expenses_empty)
                     },
                 )
             } else {
@@ -276,6 +303,65 @@ fun GroupDetailScreen(
             }
             Spacer(Modifier.height(88.dp)) // room for the FAB
         }
+    }
+}
+
+@Composable
+private fun ActivitySearchBar(
+    filter: ActivityFilter,
+    categories: List<String>,
+    members: List<MemberBalance>,
+    onQuery: (String) -> Unit,
+    onToggleCategory: (String) -> Unit,
+    onToggleMember: (MemberId) -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        OutlinedTextField(
+            value = filter.query,
+            onValueChange = onQuery,
+            label = { Text(stringResource(Res.string.detail_search_hint)) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            trailingIcon = {
+                if (filter.query.isNotEmpty()) {
+                    IconButton(onClick = { onQuery("") }) {
+                        Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.cd_clear_search))
+                    }
+                }
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (categories.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                categories.forEach { category ->
+                    FilterChip(
+                        selected = filter.category == category,
+                        onClick = { onToggleCategory(category) },
+                        label = { Text(category) },
+                    )
+                }
+            }
+        }
+        if (members.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                members.forEach { member ->
+                    FilterChip(
+                        selected = member.id in filter.members,
+                        onClick = { onToggleMember(member.id) },
+                        label = { Text(member.name) },
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
     }
 }
 
