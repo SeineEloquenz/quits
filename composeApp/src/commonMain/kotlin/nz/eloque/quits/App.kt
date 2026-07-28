@@ -6,8 +6,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -21,8 +19,9 @@ import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
 import nz.eloque.compose_kit.navigation.slideBackward
 import nz.eloque.compose_kit.navigation.slideForward
+import nz.eloque.quits.data.invite.InviteResolution
+import nz.eloque.quits.data.invite.InviteResolver
 import nz.eloque.quits.data.invite.PendingInvite
-import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.data.sync.SyncSettings
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
@@ -72,19 +71,24 @@ fun App() {
         ) {
             val backStack = rememberNavBackStack(navSavedStateConfiguration, GroupsHomeKey)
             val pendingInvite = koinInject<PendingInvite>()
-            val engine = koinInject<SyncEngine>()
+            val inviteResolver = koinInject<InviteResolver>()
             val settings = koinInject<SyncSettings>()
-            val pendingCode by pendingInvite.code.collectAsState()
 
-            LaunchedEffect(pendingCode, backStack.lastOrNull()) {
-                val code = pendingCode ?: return@LaunchedEffect
-                val existing = engine.localGroupFor(code)
-                if (existing != null) {
-                    settings.activeGroupId = existing.value
-                    while (backStack.size > 1) backStack.removeLastOrNull()
-                    pendingInvite.consume()
-                } else if (backStack.none { it is JoinInviteKey }) {
-                    backStack.add(JoinInviteKey(code))
+            // React to invite decisions only; the resolver does the domain lookup once per code.
+            LaunchedEffect(Unit) {
+                inviteResolver.resolution.collect { resolution ->
+                    when (resolution) {
+                        InviteResolution.None -> {}
+                        is InviteResolution.JumpTo -> {
+                            settings.activeGroupId = resolution.groupId.value
+                            while (backStack.size > 1) backStack.removeLastOrNull()
+                            pendingInvite.consume()
+                        }
+                        is InviteResolution.Confirm ->
+                            if (backStack.none { it is JoinInviteKey }) {
+                                backStack.add(JoinInviteKey(resolution.code))
+                            }
+                    }
                 }
             }
             NavDisplay(

@@ -1,5 +1,6 @@
 package nz.eloque.quits.di
 
+import nz.eloque.quits.data.invite.InviteResolver
 import nz.eloque.quits.data.invite.PendingInvite
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
@@ -20,6 +21,7 @@ import org.koin.dsl.module
 val appModule =
     module {
         singleOf(::PendingInvite)
+        singleOf(::InviteResolver)
         viewModelOf(::GroupsViewModel)
         viewModelOf(::SettingsViewModel)
         viewModel { params -> GroupDetailViewModel(get(), get(), params.get<GroupId>()) }
