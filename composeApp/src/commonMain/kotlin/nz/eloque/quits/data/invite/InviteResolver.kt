@@ -12,10 +12,14 @@ sealed interface InviteResolution {
     data object None : InviteResolution
 
     /** The user already belongs to the group behind this code; jump straight into it. */
-    data class JumpTo(val groupId: GroupId) : InviteResolution
+    data class JumpTo(
+        val groupId: GroupId,
+    ) : InviteResolution
 
     /** The user isn't a member yet; ask them to confirm joining under this [code]. */
-    data class Confirm(val code: String) : InviteResolution
+    data class Confirm(
+        val code: String,
+    ) : InviteResolution
 }
 
 /**
