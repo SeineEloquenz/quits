@@ -45,8 +45,8 @@ class MoneyTest {
         assertEquals(Money(123456, EUR), Money.parse("1.234,56", EUR, deDe))
         assertEquals(Money(123400, EUR), Money.parse("1.234", EUR, deDe))
 
-        // The app's own internal format (ASCII '.') still round-trips under a non-English locale.
-        assertEquals(Money(1999, EUR), Money.parse("19.99", EUR, deDe))
+        assertEquals(Money(1999, EUR), Money.parse("19,99", EUR, deDe))
+        assertEquals(null, Money.parse("19.99", EUR, deDe))
     }
 
     @Test
