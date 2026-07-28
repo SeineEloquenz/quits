@@ -64,9 +64,9 @@ import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_copy
 import nz.eloque.quits.resources.action_copy_link
-import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_share_link
 import nz.eloque.quits.resources.cd_menu
 import nz.eloque.quits.resources.cd_more

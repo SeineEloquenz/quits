@@ -61,6 +61,8 @@
     <string name="settle_up_from">Von</string>
     <string name="settle_up_to">An</string>
     <string name="detail_transfer_row">%1$s → %2$s</string>
+    <string name="settle_up_confirm_title">Zahlung erfassen?</string>
+    <string name="settle_up_confirm_body">Erfassen, dass %1$s %2$s %3$s gezahlt hat?</string>
     <string name="detail_members">Mitglieder</string>
     <string name="detail_add_member">Mitglied hinzufügen</string>
     <string name="detail_expenses">Ausgaben</string>

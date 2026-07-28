@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,12 +41,15 @@ import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Transfer
 import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_record
 import nz.eloque.quits.resources.cd_back
 import nz.eloque.quits.resources.detail_settle_up
 import nz.eloque.quits.resources.detail_transfer_row
 import nz.eloque.quits.resources.editor_placeholder_amount
 import nz.eloque.quits.resources.error_invalid_total
+import nz.eloque.quits.resources.settle_up_confirm_body
+import nz.eloque.quits.resources.settle_up_confirm_title
 import nz.eloque.quits.resources.settle_up_custom_link
 import nz.eloque.quits.resources.settle_up_from
 import nz.eloque.quits.resources.settle_up_none
@@ -68,6 +72,37 @@ fun SettleUpScreen(
     // recording here or there shows up identically either way.
     val viewModel = koinViewModel<GroupDetailViewModel>(key = groupId.value) { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
+
+    var pending by remember { mutableStateOf<PendingSettlement?>(null) }
+    pending?.let { settlement ->
+        AlertDialog(
+            onDismissRequest = { pending = null },
+            title = { Text(stringResource(Res.string.settle_up_confirm_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        Res.string.settle_up_confirm_body,
+                        settlement.from,
+                        settlement.to,
+                        settlement.transfer.amount.display(),
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pending = null
+                        viewModel.record(settlement.transfer)
+                    },
+                ) {
+                    Text(stringResource(Res.string.action_record))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pending = null }) { Text(stringResource(Res.string.action_cancel)) }
+            },
+        )
+    }
 
     AppScaffold(
         title = { Text(stringResource(Res.string.detail_settle_up), style = MaterialTheme.typography.headlineMedium) },
@@ -114,7 +149,7 @@ fun SettleUpScreen(
                                 )
                                 Text(row.transfer.amount.display())
                             }
-                            Button(onClick = { viewModel.record(row.transfer) }) {
+                            Button(onClick = { pending = PendingSettlement(row.from, row.to, row.transfer) }) {
                                 Text(stringResource(Res.string.action_record))
                             }
                         }
@@ -126,17 +161,27 @@ fun SettleUpScreen(
             HorizontalDivider()
             Spacer(Modifier.height(16.dp))
 
-            CustomSettlementForm(state = state, onRecord = viewModel::record)
+            CustomSettlementForm(
+                state = state,
+                onRecord = { from, to, transfer -> pending = PendingSettlement(from.name, to.name, transfer) },
+            )
             Spacer(Modifier.height(24.dp))
         }
     }
 }
 
+/** A settlement awaiting confirmation, holding display names alongside the transfer to record. */
+private data class PendingSettlement(
+    val from: String,
+    val to: String,
+    val transfer: Transfer,
+)
+
 /** "Record a different amount": any from → to → amount, not just the suggested minimal set. */
 @Composable
 private fun CustomSettlementForm(
     state: GroupDetailUiState,
-    onRecord: (Transfer) -> Unit,
+    onRecord: (from: MemberBalance, to: MemberBalance, transfer: Transfer) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     if (!expanded) {
@@ -190,7 +235,7 @@ private fun CustomSettlementForm(
         Button(
             onClick = {
                 val toRecord = money ?: return@Button
-                onRecord(Transfer(from.id, to.id, toRecord))
+                onRecord(from, to, Transfer(from.id, to.id, toRecord))
                 amount = ""
                 expanded = false
             },

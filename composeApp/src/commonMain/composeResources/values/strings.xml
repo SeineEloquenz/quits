@@ -67,6 +67,8 @@
     <string name="settle_up_from">From</string>
     <string name="settle_up_to">To</string>
     <string name="detail_transfer_row">%1$s → %2$s</string>
+    <string name="settle_up_confirm_title">Record settlement?</string>
+    <string name="settle_up_confirm_body">Record that %1$s paid %2$s %3$s?</string>
     <string name="detail_members">Members</string>
     <string name="detail_add_member">Add member</string>
     <string name="detail_expenses">Expenses</string>
