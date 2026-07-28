@@ -87,6 +87,7 @@ kotlin {
             implementation(libs.compose.kit)
             implementation(libs.cryptography.core)
             implementation(libs.cryptography.provider.optimal)
+            implementation(libs.kermit)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)

@@ -24,6 +24,7 @@ androidxWork = "2.11.2"
 composeKit = "0.5.3"
 ktlint = "14.2.0"
 cryptography = "0.6.0"
+kermit = "2.0.8"
 
 # Android SDK
 compileSdk = "37"
@@ -93,6 +94,9 @@ compose-kit = { module = "nz.eloque.compose-kit:lib", version.ref = "composeKit"
 # cryptography-kotlin (E2EE)
 cryptography-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "cryptography" }
 cryptography-provider-optimal = { module = "dev.whyoleg.cryptography:cryptography-provider-optimal", version.ref = "cryptography" }
+
+# Kermit (multiplatform logging)
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

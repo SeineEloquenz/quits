@@ -16,6 +16,7 @@ import nz.eloque.quits.data.fx.FxRates
 import nz.eloque.quits.data.fx.RateResult
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.sync.SyncEngine
+import nz.eloque.quits.data.sync.syncQuietly
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
@@ -329,13 +330,7 @@ class ExpenseEditorViewModel(
 
             repo.upsertExpense(groupId, expense)
             // The expense is saved locally; a sync failure shouldn't block leaving the screen.
-            try {
-                engine.sync(groupId)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                // Swallowed: it will sync on the next open/refresh.
-            }
+            engine.syncQuietly(groupId)
             _state.update { it.copy(error = null) }
             _saved.send(Unit)
         }

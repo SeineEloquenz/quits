@@ -1,5 +1,6 @@
 package nz.eloque.quits.data.sync
 
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -239,4 +240,20 @@ class SyncEngine(
         local == null ||
             record.updatedAt > local.updatedAt ||
             (record.updatedAt == local.updatedAt && record.deviceId > local.deviceId)
+}
+
+/**
+ * Best-effort [sync][SyncEngine.sync] of [groupId]: the change that triggered it is already saved
+ * locally, so a network failure is fine to swallow — it will sync on the next open/refresh.
+ * Cancellation still propagates. For flows that must report success/failure to the UI, call
+ * [SyncEngine.sync] directly instead.
+ */
+suspend fun SyncEngine.syncQuietly(groupId: GroupId) {
+    try {
+        sync(groupId)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Logger.w(e) { "syncQuietly: sync of ${groupId.value} failed, will retry on next open/refresh" }
+    }
 }

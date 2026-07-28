@@ -2,7 +2,6 @@ package nz.eloque.quits.ui.expense
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,6 +12,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.sync.SyncEngine
+import nz.eloque.quits.data.sync.syncQuietly
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
@@ -89,13 +89,8 @@ class ExpenseDetailViewModel(
         viewModelScope.launch {
             repo.deleteExpense(expenseId)
             _deleted.send(Unit)
-            try {
-                engine.sync(groupId)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                // The deletion is already saved locally; a sync failure shouldn't block leaving the screen.
-            }
+            // The deletion is already saved locally; a sync failure shouldn't block leaving the screen.
+            engine.syncQuietly(groupId)
         }
     }
 }

@@ -2,7 +2,6 @@ package nz.eloque.quits.ui.group
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.sync.SyncEngine
+import nz.eloque.quits.data.sync.syncQuietly
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
@@ -88,7 +88,7 @@ class MemberDetailViewModel(
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
             repo.renameMember(memberId, trimmed)
-            trySync()
+            engine.syncQuietly(groupId)
         }
     }
 
@@ -96,7 +96,7 @@ class MemberDetailViewModel(
     fun remove() {
         viewModelScope.launch {
             if (repo.removeMember(groupId, memberId)) {
-                trySync()
+                engine.syncQuietly(groupId)
                 _removed.send(Unit)
             } else {
                 _error.value = getString(Res.string.error_member_in_use)
@@ -106,15 +106,5 @@ class MemberDetailViewModel(
 
     fun dismissError() {
         _error.value = null
-    }
-
-    private suspend fun trySync() {
-        try {
-            engine.sync(groupId)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            // The change is already saved locally; a sync failure shouldn't block this screen.
-        }
     }
 }
