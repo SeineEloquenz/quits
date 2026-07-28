@@ -57,7 +57,9 @@ import nz.eloque.quits.resources.editor_equal_count
 import nz.eloque.quits.resources.editor_equal_hint
 import nz.eloque.quits.resources.editor_equal_paid_link
 import nz.eloque.quits.resources.editor_label_amount
+import nz.eloque.quits.resources.editor_label_category
 import nz.eloque.quits.resources.editor_label_currency
+import nz.eloque.quits.resources.editor_label_note
 import nz.eloque.quits.resources.editor_label_rate
 import nz.eloque.quits.resources.editor_label_title
 import nz.eloque.quits.resources.editor_paid_by
@@ -144,6 +146,14 @@ fun ExpenseEditorScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = state.category,
+                        onValueChange = viewModel::setCategory,
+                        label = { Text(stringResource(Res.string.editor_label_category)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
                     val amountValid = isValidAmountInput(state.amount, state.currency)
                     OutlinedTextField(
                         value = state.amount,
@@ -180,6 +190,13 @@ fun ExpenseEditorScreen(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = state.note,
+                        onValueChange = viewModel::setNote,
+                        label = { Text(stringResource(Res.string.editor_label_note)) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
 

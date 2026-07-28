@@ -42,6 +42,7 @@ import nz.eloque.quits.resources.cd_back
 import nz.eloque.quits.resources.detail_delete_expense
 import nz.eloque.quits.resources.detail_edit_expense
 import nz.eloque.quits.resources.detail_expense_not_found
+import nz.eloque.quits.resources.detail_note
 import nz.eloque.quits.resources.detail_owed_by
 import nz.eloque.quits.resources.detail_split_summary_dated
 import nz.eloque.quits.resources.editor_expense_fallback_title
@@ -155,6 +156,14 @@ fun ExpenseDetailScreen(
                     color = MaterialTheme.colorScheme.outline,
                     textAlign = TextAlign.Center,
                 )
+                state.category?.takeIf { it.isNotBlank() }?.let { category ->
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        category,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
 
             Spacer(Modifier.height(24.dp))
@@ -172,6 +181,17 @@ fun ExpenseDetailScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
             state.owedBy.forEach { row -> ParticipantRow(row) }
+
+            state.note?.takeIf { it.isNotBlank() }?.let { note ->
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    stringResource(Res.string.detail_note),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(note, style = MaterialTheme.typography.bodyMedium)
+            }
 
             Spacer(Modifier.height(24.dp))
         }

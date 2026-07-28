@@ -51,6 +51,8 @@ internal fun ExpenseWithLines.toDomain(): Expense {
         toSplit(expense.splitType, splits, currency),
         expense.rateToBase,
         expense.spentAt,
+        expense.category,
+        expense.note,
     )
 }
 

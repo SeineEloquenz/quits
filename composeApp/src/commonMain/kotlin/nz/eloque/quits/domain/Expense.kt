@@ -25,6 +25,8 @@ class Expense(
      * [Entity]), so this can be filled in without affecting anything that compares expenses.
      */
     val spentAt: Long = 0L,
+    val category: String? = null,
+    val note: String? = null,
 ) : Entity<ExpenseId>() {
     init {
         require(payments.isNotEmpty()) { "an expense needs at least one payer" }

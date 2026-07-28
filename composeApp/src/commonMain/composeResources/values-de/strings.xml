@@ -73,6 +73,7 @@
     <string name="detail_settlement_row">%1$s hat %2$s bezahlt</string>
     <string name="detail_paid_by">bezahlt von %1$s</string>
     <string name="detail_owed_by">Geschuldet von</string>
+    <string name="detail_note">Notiz</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d Personen</string>
     <string name="detail_edit_expense">Ausgabe bearbeiten</string>
     <string name="detail_delete_expense">Ausgabe löschen</string>
@@ -106,6 +107,8 @@
     <string name="editor_title_add">Ausgabe hinzufügen</string>
     <string name="editor_title_edit">Ausgabe bearbeiten</string>
     <string name="editor_label_title">Titel</string>
+    <string name="editor_label_category">Kategorie (optional)</string>
+    <string name="editor_label_note">Notiz (optional)</string>
     <string name="editor_label_amount">Betrag</string>
     <string name="editor_label_currency">Währung</string>
     <string name="editor_label_rate">Kurs → %1$s</string>

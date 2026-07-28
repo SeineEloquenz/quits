@@ -135,15 +135,12 @@ class GroupRepository(
     /**
      * Inserts or updates [expense]. The timestamp is [expense].spentAt when set (> 0); the
      * [spentAt] parameter can still override it explicitly (existing callers keep working
-     * unchanged). Display-only fields ([category]/[note]) are kept from the existing row when not
-     * supplied, so editing the money/split parts never drops them.
+     * unchanged).
      */
     suspend fun upsertExpense(
         groupId: GroupId,
         expense: Expense,
         spentAt: Long? = null,
-        category: String? = null,
-        note: String? = null,
     ) {
         val existing = db.expenseDao().byId(expense.id.value)?.expense
         val resolvedSpentAt = spentAt ?: expense.spentAt.takeIf { it > 0L } ?: existing?.spentAt ?: now()
@@ -155,9 +152,9 @@ class GroupRepository(
                 amountMinor = expense.total.minorUnits,
                 currency = expense.currency.code,
                 rateToBase = expense.rateToBase,
-                category = category ?: existing?.category,
+                category = expense.category,
                 spentAt = resolvedSpentAt,
-                note = note ?: existing?.note,
+                note = expense.note,
                 splitType = splitTypeName(expense.split),
                 sync = meta(),
             ),

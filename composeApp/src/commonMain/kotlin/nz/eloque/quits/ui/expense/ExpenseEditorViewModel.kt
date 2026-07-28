@@ -69,6 +69,8 @@ data class ExpenseEditorUiState(
     val baseCurrency: Currency = Currency.of("EUR"),
     val members: List<MemberInput> = emptyList(),
     val title: String = "",
+    val category: String = "",
+    val note: String = "",
     /** The expense total. Payments (in either payer mode) must add up to exactly this. */
     val amount: String = "",
     val currency: Currency = Currency.of("EUR"),
@@ -158,6 +160,8 @@ class ExpenseEditorViewModel(
             baseCurrency = group.baseCurrency,
             members = members,
             title = existing.title,
+            category = existing.category.orEmpty(),
+            note = existing.note.orEmpty(),
             amount = existing.total.toDecimalString(),
             currency = existing.currency,
             rate = existing.rateToBase.toString(),
@@ -180,6 +184,10 @@ class ExpenseEditorViewModel(
     }
 
     fun setTitle(value: String) = _state.update { it.copy(title = value) }
+
+    fun setCategory(value: String) = _state.update { it.copy(category = value) }
+
+    fun setNote(value: String) = _state.update { it.copy(note = value) }
 
     fun setAmount(value: String) =
         _state.update { s ->
@@ -322,6 +330,8 @@ class ExpenseEditorViewModel(
                         validated.split,
                         validated.rate,
                         spentAt = if (s.originalSpentAt > 0L) s.originalSpentAt else nowMillis(),
+                        category = s.category.trim().ifEmpty { null },
+                        note = s.note.trim().ifEmpty { null },
                     )
                 } catch (_: IllegalArgumentException) {
                     setError(getString(Res.string.error_invalid_expense))

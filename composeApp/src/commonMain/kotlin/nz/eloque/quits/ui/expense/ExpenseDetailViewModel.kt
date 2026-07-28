@@ -30,6 +30,8 @@ data class ExpenseDetailUiState(
     /** False once the expense (or the group) no longer exists, e.g. it was deleted elsewhere. */
     val found: Boolean = true,
     val title: String = "",
+    val category: String? = null,
+    val note: String? = null,
     val total: Money = Money.zero(Currency.of("USD")),
     val splitKind: SplitKind = SplitKind.EQUAL,
     val participantCount: Int = 0,
@@ -57,6 +59,8 @@ class ExpenseDetailViewModel(
                         loaded = true,
                         found = true,
                         title = expense.title,
+                        category = expense.category,
+                        note = expense.note,
                         total = expense.total,
                         splitKind = expense.split.kind(),
                         participantCount = expense.shares.size,

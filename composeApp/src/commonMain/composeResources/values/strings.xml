@@ -79,6 +79,7 @@
     <string name="detail_settlement_row">%1$s paid %2$s</string>
     <string name="detail_paid_by">paid by %1$s</string>
     <string name="detail_owed_by">Owed by</string>
+    <string name="detail_note">Note</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d people</string>
     <string name="detail_edit_expense">Edit expense</string>
     <string name="detail_delete_expense">Delete expense</string>
@@ -112,6 +113,8 @@
     <string name="editor_title_add">Add expense</string>
     <string name="editor_title_edit">Edit expense</string>
     <string name="editor_label_title">Title</string>
+    <string name="editor_label_category">Category (optional)</string>
+    <string name="editor_label_note">Note (optional)</string>
     <string name="editor_label_amount">Amount</string>
     <string name="editor_label_currency">Currency</string>
     <string name="editor_label_rate">Rate → %1$s</string>

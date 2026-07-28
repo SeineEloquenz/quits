@@ -126,10 +126,10 @@ class GroupRepositoryTest {
             repo.saveGroup(sampleGroup())
             repo.upsertExpense(
                 GroupId("g"),
-                sampleGroup().expenses.first(),
+                sampleGroup().expenses.first().let {
+                    Expense(it.id, it.title, it.payments, it.split, category = "food", note = "split dinner")
+                },
                 spentAt = 555L,
-                category = "food",
-                note = "split dinner",
             )
 
             val stored = db.expenseDao().byId("e-equal")!!
@@ -139,6 +139,41 @@ class GroupRepositoryTest {
             assertTrue(stored.expense.sync.dirty)
             assertEquals("dev-1", stored.expense.sync.deviceId)
             assertEquals(1000L, stored.expense.sync.updatedAt)
+        }
+
+    @Test
+    fun clearing_category_and_note_persists_the_clear() =
+        runTest {
+            repo.saveGroup(sampleGroup())
+            val base = sampleGroup().expenses.first()
+            repo.upsertExpense(
+                GroupId("g"),
+                Expense(base.id, base.title, base.payments, base.split, category = "food", note = "split dinner"),
+            )
+
+            repo.upsertExpense(
+                GroupId("g"),
+                Expense(base.id, base.title, base.payments, base.split, category = null, note = null),
+            )
+
+            val stored = db.expenseDao().byId("e-equal")!!
+            assertNull(stored.expense.category)
+            assertNull(stored.expense.note)
+        }
+
+    @Test
+    fun category_and_note_survive_round_trip() =
+        runTest {
+            repo.saveGroup(sampleGroup())
+            val base = sampleGroup().expenses.first()
+            repo.upsertExpense(
+                GroupId("g"),
+                Expense(base.id, base.title, base.payments, base.split, category = "food", note = "split dinner"),
+            )
+
+            val loaded = repo.load(GroupId("g"))!!.expenses.first { it.id == base.id }
+            assertEquals("food", loaded.category)
+            assertEquals("split dinner", loaded.note)
         }
 
     @Test
