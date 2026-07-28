@@ -49,6 +49,19 @@ class SyncEngine(
         return id
     }
 
+    /**
+     * The local group already joined/shared under this share [code], or null if the user isn't a
+     * member yet
+     */
+    suspend fun localGroupFor(code: String): GroupId? {
+        val canonical = SecretCode.decode(code)?.let { SecretCode.encode(it) } ?: return null
+        return db
+            .groupSyncDao()
+            .all()
+            .firstOrNull { SecretCode.decode(it.code)?.let(SecretCode::encode) == canonical }
+            ?.let { GroupId(it.groupId) }
+    }
+
     @OptIn(ExperimentalEncodingApi::class)
     private suspend fun lookupId(secret: String): String = Base64.encode(crypto.lookupId(SecretCode.decode(secret)!!))
 

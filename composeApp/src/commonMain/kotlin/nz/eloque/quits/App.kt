@@ -22,6 +22,8 @@ import kotlinx.serialization.modules.subclass
 import nz.eloque.compose_kit.navigation.slideBackward
 import nz.eloque.compose_kit.navigation.slideForward
 import nz.eloque.quits.data.invite.PendingInvite
+import nz.eloque.quits.data.sync.SyncEngine
+import nz.eloque.quits.data.sync.SyncSettings
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
@@ -70,11 +72,18 @@ fun App() {
         ) {
             val backStack = rememberNavBackStack(navSavedStateConfiguration, GroupsHomeKey)
             val pendingInvite = koinInject<PendingInvite>()
+            val engine = koinInject<SyncEngine>()
+            val settings = koinInject<SyncSettings>()
             val pendingCode by pendingInvite.code.collectAsState()
 
             LaunchedEffect(pendingCode, backStack.lastOrNull()) {
-                val code = pendingCode
-                if (code != null && backStack.none { it is JoinInviteKey }) {
+                val code = pendingCode ?: return@LaunchedEffect
+                val existing = engine.localGroupFor(code)
+                if (existing != null) {
+                    settings.activeGroupId = existing.value
+                    while (backStack.size > 1) backStack.removeLastOrNull()
+                    pendingInvite.consume()
+                } else if (backStack.none { it is JoinInviteKey }) {
                     backStack.add(JoinInviteKey(code))
                 }
             }
