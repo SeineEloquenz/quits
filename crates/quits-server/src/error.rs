@@ -19,6 +19,9 @@ pub enum AppError {
     #[error("not found")]
     NotFound,
 
+    #[error("server at capacity")]
+    Capacity,
+
     #[error("internal error: {0}")]
     Internal(String),
 
@@ -33,6 +36,7 @@ impl IntoResponse for AppError {
             AppError::Unauthorized => StatusCode::UNAUTHORIZED,
             AppError::Forbidden => StatusCode::FORBIDDEN,
             AppError::NotFound => StatusCode::NOT_FOUND,
+            AppError::Capacity => StatusCode::SERVICE_UNAVAILABLE,
             AppError::Internal(e) => {
                 // Internal details are logged, never returned to the client.
                 tracing::error!("internal error: {e}");

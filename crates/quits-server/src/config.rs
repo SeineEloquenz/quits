@@ -21,6 +21,33 @@ pub struct Config {
     /// Optional instance lock: when set, group creation requires this secret in `X-Quits-Instance`.
     pub instance_secret: Option<String>,
 
+    // --- Abuse safeguards for a public (unlocked) instance. ---
+    /// Trust `trusted_ip_header` for the real client IP. Only enable behind a reverse proxy
+    /// that sets it; otherwise a client could spoof it and dodge per-IP limits.
+    pub behind_proxy: bool,
+    /// Header carrying the real peer IP when `behind_proxy` is set (e.g. `X-Real-IP`).
+    pub trusted_ip_header: String,
+    /// Global per-IP request limiter: burst bucket + replenish interval. `0` burst disables it.
+    pub rate_burst: u32,
+    pub rate_replenish_ms: u64,
+    /// Stricter per-IP limiter on group creation only. `0` burst disables it.
+    pub create_burst: u32,
+    pub create_replenish_secs: u64,
+    /// Hard ceiling on total groups; creation past it returns 503. `0` disables.
+    pub max_groups: u64,
+    /// Max request body size in bytes (bounds push batch size).
+    pub max_body_bytes: usize,
+    /// Max size of a single record payload after base64 decode. `0` disables.
+    pub max_record_bytes: usize,
+    /// Max records retained per group; new inserts past it are rejected. `0` disables.
+    pub max_records_per_group: u64,
+    /// Reap groups with no records older than this many seconds. `0` disables.
+    pub empty_group_ttl_secs: u64,
+    /// Reap groups whose newest record is older than this many seconds. `0` disables.
+    pub inactive_group_ttl_secs: u64,
+    /// How often the background reaper runs.
+    pub reap_interval_secs: u64,
+
     /// Android release signing SHA-256 fingerprint(s) advertised in `/.well-known/assetlinks.json`
     pub android_cert_sha256: Vec<String>,
     /// Apple `TeamID.bundleId` advertised in the AASA. Placeholder until iOS ships.
@@ -44,6 +71,22 @@ impl Config {
             instance_secret: std::env::var("QUITS_INSTANCE_SECRET")
                 .ok()
                 .filter(|s| !s.is_empty()),
+            behind_proxy: env_bool("QUITS_BEHIND_PROXY", false),
+            trusted_ip_header: env_or("QUITS_TRUSTED_IP_HEADER", "X-Real-IP"),
+            rate_burst: env_parse("QUITS_RATE_BURST", 60),
+            rate_replenish_ms: env_parse("QUITS_RATE_REPLENISH_MS", 500),
+            create_burst: env_parse("QUITS_CREATE_BURST", 5),
+            create_replenish_secs: env_parse("QUITS_CREATE_REPLENISH_SECS", 600),
+            max_groups: env_parse("QUITS_MAX_GROUPS", 0),
+            max_body_bytes: env_parse("QUITS_MAX_BODY_BYTES", 1024 * 1024),
+            max_record_bytes: env_parse("QUITS_MAX_RECORD_BYTES", 8 * 1024),
+            max_records_per_group: env_parse("QUITS_MAX_RECORDS_PER_GROUP", 5_000),
+            empty_group_ttl_secs: env_parse("QUITS_EMPTY_GROUP_TTL_SECS", 60 * 60 * 48),
+            inactive_group_ttl_secs: env_parse(
+                "QUITS_INACTIVE_GROUP_TTL_SECS",
+                60 * 60 * 24 * 180,
+            ),
+            reap_interval_secs: env_parse("QUITS_REAP_INTERVAL_SECS", 3600),
             android_cert_sha256: env_list("QUITS_ANDROID_CERT_SHA256", DEFAULT_ANDROID_CERT_SHA256),
             ios_app_id: env_or("QUITS_IOS_APP_ID", DEFAULT_IOS_APP_ID),
         }
@@ -58,6 +101,20 @@ impl Config {
             jwt_secret: b"test-jwt-secret".to_vec(),
             token_ttl_secs: 3600,
             instance_secret: None,
+            // Safeguards off by default in tests; individual tests opt in explicitly.
+            behind_proxy: false,
+            trusted_ip_header: "X-Real-IP".to_string(),
+            rate_burst: 0,
+            rate_replenish_ms: 500,
+            create_burst: 0,
+            create_replenish_secs: 600,
+            max_groups: 0,
+            max_body_bytes: 1024 * 1024,
+            max_record_bytes: 0,
+            max_records_per_group: 0,
+            empty_group_ttl_secs: 0,
+            inactive_group_ttl_secs: 0,
+            reap_interval_secs: 3600,
             android_cert_sha256: vec![DEFAULT_ANDROID_CERT_SHA256.to_string()],
             ios_app_id: DEFAULT_IOS_APP_ID.to_string(),
         }
@@ -88,6 +145,14 @@ fn env_list(key: &str, default: &str) -> Vec<String> {
         .filter(|s| !s.is_empty())
         .map(str::to_string)
         .collect()
+}
+
+/// Parses a boolean env var; accepts `1`/`true`/`yes`/`on` (case-insensitive) as true.
+fn env_bool(key: &str, default: bool) -> bool {
+    match std::env::var(key) {
+        Ok(v) => matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"),
+        Err(_) => default,
+    }
 }
 
 fn env_parse<T: FromStr>(key: &str, default: T) -> T {

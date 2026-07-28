@@ -17,7 +17,11 @@ let
       DATABASE_URL = cfg.databaseUrl;
       QUITS_DB_MAX_CONNECTIONS = toString cfg.dbMaxConnections;
       QUITS_TOKEN_TTL_SECS = toString cfg.tokenTtlSecs;
+      QUITS_BEHIND_PROXY = if cfg.behindProxy then "true" else "false";
       RUST_LOG = cfg.logLevel;
+    }
+    // lib.optionalAttrs (cfg.behindProxy && cfg.trustedIpHeader != null) {
+      QUITS_TRUSTED_IP_HEADER = cfg.trustedIpHeader;
     }
     // lib.optionalAttrs (cfg.androidCertSha256 != [ ]) {
       QUITS_ANDROID_CERT_SHA256 = lib.concatStringsSep "," cfg.androidCertSha256;
@@ -114,6 +118,26 @@ in
       '';
     };
 
+    behindProxy = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Whether the relay runs behind a reverse proxy (`QUITS_BEHIND_PROXY`). When true, the
+        real client IP for per-IP rate limiting is read from {option}`trustedIpHeader` instead of
+        the TCP peer. Only enable this if the proxy sets that header, otherwise a client could
+        spoof it and evade rate limiting.
+      '';
+    };
+
+    trustedIpHeader = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = "X-Real-IP";
+      description = ''
+        Header carrying the real client IP when {option}`behindProxy` is set
+        (`QUITS_TRUSTED_IP_HEADER`). Configure your reverse proxy to set it to the true peer IP.
+      '';
+    };
+
     openFirewall = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -131,7 +155,8 @@ in
         - `QUITS_JWT_SECRET` — HS256 key for group tokens; without it an
           ephemeral key is generated and all tokens are invalidated on restart.
         - `QUITS_INSTANCE_SECRET` — optional; when set, locks group creation
-          behind the `X-Quits-Instance` header.
+          behind the `X-Quits-Instance` header. Leave unset to run a public
+          instance (see the abuse safeguards below).
 
         Example file contents:
 
@@ -145,7 +170,28 @@ in
     extraEnvironment = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
       default = { };
-      description = "Extra environment variables for the service (overrides defaults).";
+      example = lib.literalExpression ''
+        {
+          QUITS_MAX_GROUPS = "100000";
+          QUITS_CREATE_BURST = "5";
+          QUITS_INACTIVE_GROUP_TTL_SECS = "0"; # disable destructive reaping
+        }
+      '';
+      description = ''
+        Extra environment variables for the service (overrides defaults). Public instances
+        (no `QUITS_INSTANCE_SECRET`) are protected by built-in, sensibly-defaulted abuse
+        safeguards; tune them here:
+
+        - `QUITS_RATE_BURST` / `QUITS_RATE_REPLENISH_MS` — global per-IP request limiter.
+        - `QUITS_CREATE_BURST` / `QUITS_CREATE_REPLENISH_SECS` — stricter per-IP limiter on
+          group creation. Set burst to `0` to disable a limiter.
+        - `QUITS_MAX_GROUPS` — hard ceiling on total groups (`0` = unlimited).
+        - `QUITS_MAX_BODY_BYTES` / `QUITS_MAX_RECORD_BYTES` / `QUITS_MAX_RECORDS_PER_GROUP` —
+          payload and per-group storage quotas.
+        - `QUITS_EMPTY_GROUP_TTL_SECS` / `QUITS_INACTIVE_GROUP_TTL_SECS` /
+          `QUITS_REAP_INTERVAL_SECS` — background reaping of stale groups. The inactive rule
+          deletes real (E2EE) data; set its TTL to `0` to disable.
+      '';
     };
   };
 
