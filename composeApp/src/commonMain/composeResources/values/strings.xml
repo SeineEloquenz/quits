@@ -83,6 +83,11 @@
     <string name="detail_expense_not_found">This expense no longer exists.</string>
     <string name="expense_delete_title">Delete \"%1$s\"?</string>
     <string name="expense_delete_body">This removes the expense for everyone in the group once synced. This can't be undone.</string>
+    <string name="group_leave_menu">Leave group</string>
+    <string name="group_leave_title">Leave group?</string>
+    <string name="group_leave_body_local">This removes \"%1$s\" and all its expenses from this device. It isn't shared with anyone, so this can't be undone.</string>
+    <string name="group_leave_body_shared">This removes \"%1$s\" from this device only. Other members keep their copy, and you can re-join later with the share code.</string>
+    <string name="group_leave_confirm">Leave</string>
 
     <!-- Member detail -->
     <string name="member_detail_appears_in">Appears in</string>

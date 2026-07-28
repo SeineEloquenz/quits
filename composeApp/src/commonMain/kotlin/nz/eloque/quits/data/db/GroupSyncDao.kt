@@ -16,6 +16,9 @@ interface GroupSyncDao {
     @Query("SELECT * FROM group_sync")
     suspend fun all(): List<GroupSyncEntity>
 
+    @Query("DELETE FROM group_sync WHERE groupId = :groupId")
+    suspend fun delete(groupId: String)
+
     @Query("SELECT * FROM group_sync WHERE groupId = :groupId")
     fun byGroupFlow(groupId: String): Flow<GroupSyncEntity?>
 

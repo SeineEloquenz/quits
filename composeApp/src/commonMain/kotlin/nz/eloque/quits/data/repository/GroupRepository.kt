@@ -42,6 +42,14 @@ class GroupRepository(
         )
     }
 
+    /**
+     * Leaves the group: removes it and everything under it from *this device only*
+     */
+    suspend fun leaveGroup(groupId: GroupId) {
+        db.groupSyncDao().delete(groupId.value)
+        db.groupDao().delete(groupId.value)
+    }
+
     fun groupsFlow(): Flow<List<GroupSummary>> =
         db.groupDao().allFlow().map { groups ->
             groups.map { GroupSummary(GroupId(it.id), it.name, Currency.of(it.baseCurrency)) }

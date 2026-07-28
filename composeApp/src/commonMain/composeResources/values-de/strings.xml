@@ -77,6 +77,11 @@
     <string name="detail_expense_not_found">Diese Ausgabe existiert nicht mehr.</string>
     <string name="expense_delete_title">\"%1$s\" löschen?</string>
     <string name="expense_delete_body">Dies entfernt die Ausgabe für alle in der Gruppe, sobald synchronisiert wurde. Das kann nicht rückgängig gemacht werden.</string>
+    <string name="group_leave_menu">Gruppe verlassen</string>
+    <string name="group_leave_title">Gruppe verlassen?</string>
+    <string name="group_leave_body_local">Dies entfernt \"%1$s\" und alle Ausgaben von diesem Gerät. Sie wird mit niemandem geteilt, daher kann dies nicht rückgängig gemacht werden.</string>
+    <string name="group_leave_body_shared">Dies entfernt \"%1$s\" nur von diesem Gerät. Andere Mitglieder behalten ihre Kopie, und du kannst später mit dem Freigabecode wieder beitreten.</string>
+    <string name="group_leave_confirm">Verlassen</string>
     <string name="detail_add_members_first">Erst Mitglieder hinzufügen</string>
     <string name="detail_add_expense">Ausgabe hinzufügen</string>
     <string name="dialog_rename_title">Mitglied umbenennen</string>

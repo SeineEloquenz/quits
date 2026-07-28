@@ -133,6 +133,13 @@ class GroupDetailViewModel(
         if (_syncStatus.value is SyncStatus.Failed) _syncStatus.value = SyncStatus.Idle
     }
 
+    /**
+     * Leaves the group, removing it from this device only
+     */
+    fun leave() {
+        viewModelScope.launch { repo.leaveGroup(groupId) }
+    }
+
     fun addMember(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return

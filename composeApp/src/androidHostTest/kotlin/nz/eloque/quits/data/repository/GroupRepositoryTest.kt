@@ -173,4 +173,16 @@ class GroupRepositoryTest {
             assertTrue(repo.removeMember(GroupId("g"), d))
             assertFalse(repo.load(GroupId("g"))!!.members.any { it.id == d })
         }
+
+    @Test
+    fun leaving_removes_the_group_and_all_its_data() =
+        runTest {
+            persist(sampleGroup())
+            repo.leaveGroup(GroupId("g"))
+
+            assertNull(repo.load(GroupId("g")))
+            assertTrue(db.groupDao().all().isEmpty())
+            assertTrue(db.expenseDao().forGroup("g").isEmpty())
+            assertTrue(db.settlementDao().forGroup("g").isEmpty())
+        }
 }

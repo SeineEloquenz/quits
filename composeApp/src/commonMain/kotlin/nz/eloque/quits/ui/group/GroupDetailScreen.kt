@@ -3,6 +3,7 @@ package nz.eloque.quits.ui.group
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,16 +16,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -36,6 +42,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -59,8 +66,10 @@ import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_copy
 import nz.eloque.quits.resources.action_copy_link
+import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_share_link
 import nz.eloque.quits.resources.cd_menu
+import nz.eloque.quits.resources.cd_more
 import nz.eloque.quits.resources.cd_sync
 import nz.eloque.quits.resources.detail_add_expense
 import nz.eloque.quits.resources.detail_add_member
@@ -81,6 +90,11 @@ import nz.eloque.quits.resources.detail_share_group
 import nz.eloque.quits.resources.detail_share_hint
 import nz.eloque.quits.resources.detail_sharing
 import nz.eloque.quits.resources.group_fallback_name
+import nz.eloque.quits.resources.group_leave_body_local
+import nz.eloque.quits.resources.group_leave_body_shared
+import nz.eloque.quits.resources.group_leave_confirm
+import nz.eloque.quits.resources.group_leave_menu
+import nz.eloque.quits.resources.group_leave_title
 import nz.eloque.quits.resources.label_share_code
 import nz.eloque.quits.ui.components.BalanceText
 import nz.eloque.quits.ui.components.EmptyHint
@@ -111,6 +125,8 @@ fun GroupDetailScreen(
 
     var balancesExpanded by remember(groupId) { mutableStateOf(false) }
     var showShare by remember(groupId) { mutableStateOf(false) }
+    var menuExpanded by remember(groupId) { mutableStateOf(false) }
+    var showLeave by remember(groupId) { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(syncStatus) {
@@ -122,6 +138,18 @@ fun GroupDetailScreen(
 
     if (showShare) {
         ShareSheet(state = state, onShare = viewModel::share, onDismiss = { showShare = false })
+    }
+
+    if (showLeave) {
+        LeaveGroupDialog(
+            groupName = state.name,
+            shared = state.shareCode != null,
+            onConfirm = {
+                showLeave = false
+                viewModel.leave()
+            },
+            onDismiss = { showLeave = false },
+        )
     }
 
     AppScaffold(
@@ -146,6 +174,23 @@ fun GroupDetailScreen(
             } else {
                 IconButton(onClick = viewModel::sync) {
                     Icon(Icons.Default.Refresh, contentDescription = stringResource(Res.string.cd_sync))
+                }
+            }
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.cd_more))
+                }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.group_leave_menu)) },
+                        leadingIcon = {
+                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            showLeave = true
+                        },
+                    )
                 }
             }
         },
@@ -372,6 +417,40 @@ private fun MemberBalanceRow(
         Spacer(Modifier.width(4.dp))
         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
     }
+}
+
+/**
+ * Confirms leaving the active group, which removes it from this device
+ */
+@Composable
+private fun LeaveGroupDialog(
+    groupName: String,
+    shared: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val name = groupName.ifEmpty { stringResource(Res.string.group_fallback_name) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.group_leave_title)) },
+        text = {
+            Text(
+                if (shared) {
+                    stringResource(Res.string.group_leave_body_shared, name)
+                } else {
+                    stringResource(Res.string.group_leave_body_local, name)
+                },
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(Res.string.group_leave_confirm), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
