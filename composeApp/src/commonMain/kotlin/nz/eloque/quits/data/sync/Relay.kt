@@ -17,6 +17,16 @@ data class PullResult(
     val seq: Long,
 )
 
+/**
+ * The relay answered, but not with success. [message] carries the relay's own error text (its
+ * `{"error": …}` body) when present, so the cause surfaces instead of a misleading
+ * "missing fields" deserialization failure.
+ */
+class RelayException(
+    val status: Int,
+    message: String,
+) : Exception(message)
+
 interface Relay {
     suspend fun createGroup(lookupId: String): GroupHandle
 

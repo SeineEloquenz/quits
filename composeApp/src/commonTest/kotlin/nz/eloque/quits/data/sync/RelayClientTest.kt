@@ -15,6 +15,7 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -53,6 +54,22 @@ class RelayClientTest {
         runTest {
             val relay = client { respond("", HttpStatusCode.NotFound) }
             assertNull(relay.joinGroup("NOPE"))
+        }
+
+    @Test
+    fun create_group_surfaces_relay_error_body() =
+        runTest {
+            val relay =
+                client {
+                    respond(
+                        """{"error":"forbidden"}""",
+                        HttpStatusCode.Forbidden,
+                        headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+            val error = assertFailsWith<RelayException> { relay.createGroup("look-1") }
+            assertEquals(403, error.status)
+            assertEquals("forbidden", error.message)
         }
 
     @Test

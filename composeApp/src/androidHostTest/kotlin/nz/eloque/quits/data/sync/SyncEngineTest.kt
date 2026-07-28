@@ -151,6 +151,41 @@ class SyncEngineTest {
         }
 
     @Test
+    fun re_share_uploads_full_state_to_the_fresh_relay_group() =
+        runTest {
+            val relay = FakeRelay()
+            val clock = 1000L
+            val db1 = inMemoryDatabase()
+            val repo1 = GroupRepository(db1, deviceId = "dev1", now = { clock })
+            val engine1 = SyncEngine(db1, relay, GroupCrypto(), deviceId = "dev1")
+            val db2 = inMemoryDatabase()
+            val repo2 = GroupRepository(db2, deviceId = "dev2", now = { clock })
+            val engine2 = SyncEngine(db2, relay, GroupCrypto(), deviceId = "dev2")
+
+            try {
+                val g = GroupId("g-local")
+                repo1.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
+                repo1.upsertExpense(
+                    g,
+                    Expense(ExpenseId("e1"), "Dinner", listOf(Payment(a, Money(3000, usd))), Split.Equal(listOf(a, b))),
+                    spentAt = 1,
+                )
+                // First share clears every dirty flag; re-sharing then registers a brand-new, empty
+                // relay group whose upload has no delta to send — the full state must still go up.
+                engine1.share(g)
+                val code2 = engine1.share(g)
+
+                val joined = engine2.join(code2)!!
+                val onDevice2 = repo2.load(joined)!!
+                assertEquals(2, onDevice2.members.size)
+                assertEquals(1, onDevice2.expenses.size)
+            } finally {
+                db1.close()
+                db2.close()
+            }
+        }
+
+    @Test
     fun deletions_propagate() =
         runTest {
             val relay = FakeRelay()

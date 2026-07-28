@@ -6,6 +6,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -68,13 +70,12 @@ fun App() {
         ) {
             val backStack = rememberNavBackStack(navSavedStateConfiguration, GroupsHomeKey)
             val pendingInvite = koinInject<PendingInvite>()
-            LaunchedEffect(Unit) {
-                // A link opened from outside the app surfaces here; route to a join confirmation.
-                pendingInvite.code.collect { code ->
-                    if (code != null) {
-                        backStack.add(JoinInviteKey(code))
-                        pendingInvite.consume()
-                    }
+            val pendingCode by pendingInvite.code.collectAsState()
+
+            LaunchedEffect(pendingCode, backStack.lastOrNull()) {
+                val code = pendingCode
+                if (code != null && backStack.none { it is JoinInviteKey }) {
+                    backStack.add(JoinInviteKey(code))
                 }
             }
             NavDisplay(
@@ -138,9 +139,15 @@ fun App() {
                         entry<JoinInviteKey> { key ->
                             JoinInviteScreen(
                                 code = key.code,
-                                onCancel = { backStack.removeLastOrNull() },
+                                onCancel = {
+                                    pendingInvite.consume()
+                                    backStack.removeLastOrNull()
+                                },
                                 // join() sets the new group active; Home shows it once we pop back.
-                                onJoined = { backStack.removeLastOrNull() },
+                                onJoined = {
+                                    pendingInvite.consume()
+                                    backStack.removeLastOrNull()
+                                },
                             )
                         }
                         entry<ExpenseEditorKey> { key ->

@@ -34,7 +34,7 @@ class SyncEngine(
         val secret = SecretCode.generate()
         val handle = relay.createGroup(lookupId(secret))
         db.groupSyncDao().put(GroupSyncEntity(localGroupId.value, handle.remoteId, secret, handle.token))
-        sync(localGroupId)
+        sync(localGroupId, full = true)
         return secret
     }
 
@@ -77,25 +77,33 @@ class SyncEngine(
     }
 
     /** Pushes local changes then pulls remote ones. No-op (false) for a local-only group. */
-    suspend fun sync(localGroupId: GroupId): Boolean {
+    suspend fun sync(
+        localGroupId: GroupId,
+        full: Boolean = false,
+    ): Boolean {
         val handle = db.groupSyncDao().byGroup(localGroupId.value) ?: return false
-        push(localGroupId.value, handle)
+        push(localGroupId.value, handle, full)
         pull(localGroupId.value)
         db.groupSyncDao().setLastSyncedAt(localGroupId.value, now())
         return true
     }
 
+    /**
+     * Pushes local rows to the relay. By default only the dirty delta; when [full] every current
+     * row (used on first upload to a freshly-created relay group, which holds nothing yet).
+     */
     private suspend fun push(
         gid: String,
         handle: GroupSyncEntity,
+        full: Boolean = false,
     ) {
         val group = db.groupDao().byId(gid)
-        val members = db.memberDao().dirty(gid)
-        val expenses = db.expenseDao().dirty(gid)
-        val settlements = db.settlementDao().dirty(gid)
+        val members = if (full) db.memberDao().forGroupWithDeleted(gid) else db.memberDao().dirty(gid)
+        val expenses = if (full) db.expenseDao().forGroup(gid) else db.expenseDao().dirty(gid)
+        val settlements = if (full) db.settlementDao().forGroup(gid) else db.settlementDao().dirty(gid)
 
         val records = mutableListOf<SyncRecord>()
-        if (group != null && group.sync.dirty) records += RecordMapper.record(group)
+        if (group != null && (full || group.sync.dirty)) records += RecordMapper.record(group)
         records += members.map { RecordMapper.record(it) }
         records += expenses.map { RecordMapper.record(it) }
         records += settlements.map { RecordMapper.record(it) }
@@ -134,7 +142,7 @@ class SyncEngine(
     }
 
     private suspend fun keyFor(handle: GroupSyncEntity): GroupKey =
-        keys.getOrPut(handle.groupId) {
+        keys.getOrPut(handle.code) {
             val secret = SecretCode.decode(handle.code) ?: error("invalid group secret for ${handle.groupId}")
             crypto.groupKey(secret)
         }
