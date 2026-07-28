@@ -16,5 +16,14 @@
 </head>
 <body>
 <script type="application/javascript" src="composeApp.js"></script>
+<script type="application/javascript">
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            // Absolute path pins the scope to '/', so registration works even when the app is
+            // opened at a deep link like /join.
+            navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+    }
+</script>
 </body>
 </html>
