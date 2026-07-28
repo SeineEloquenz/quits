@@ -21,9 +21,9 @@ thiserror = "2"
 sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "sqlite", "migrate", "macros"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
-jsonwebtoken = { version = "10.4.0", features = ["rust_crypto"] }
+jsonwebtoken = { version = "11.0.0", features = ["rust_crypto"] }
 uuid = { version = "1.23.3", features = ["v4"] }
-base64 = "0.22.1"
+base64 = "0.23.0"
 tower_governor = { version = "0.8.0", features = ["axum", "tracing"] }
 governor = "0.10"
 
