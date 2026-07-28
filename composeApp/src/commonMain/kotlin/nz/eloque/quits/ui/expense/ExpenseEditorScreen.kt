@@ -423,24 +423,13 @@ private fun PaidRemainingHint(state: ExpenseEditorUiState) {
     val total = Money.parse(state.amount.trim(), currency) ?: return
     val assigned = state.members.sumOf { m -> Money.parse(state.paid[m.id].orEmpty().trim(), currency)?.minorUnits ?: 0L }
     val remaining = Money(total.minorUnits - assigned, currency)
-    val text =
-        if (remaining.isZero) {
-            stringResource(Res.string.editor_remaining_done)
-        } else {
-            stringResource(Res.string.editor_remaining, remaining.display())
-        }
-    Spacer(Modifier.height(8.dp))
-    Text(
-        text,
-        style = MaterialTheme.typography.bodySmall,
-        color = if (remaining.isZero) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-    )
+    RemainingHintText(done = remaining.isZero, remainingDisplay = remaining.display())
 }
 
 /** Live "remaining to assign" feedback for the splits that must sum to a target (exact, percentage). */
 @Composable
 private fun RemainingHint(state: ExpenseEditorUiState) {
-    val text =
+    val (done, remainingDisplay) =
         when (state.splitKind) {
             SplitKind.EXACT -> {
                 val currency = state.currency
@@ -448,30 +437,31 @@ private fun RemainingHint(state: ExpenseEditorUiState) {
                 val assigned =
                     state.members.sumOf { m -> Money.parse(state.splitInput[m.id].orEmpty().trim(), currency)?.minorUnits ?: 0L }
                 val remaining = Money(total - assigned, currency)
-                if (remaining.isZero) {
-                    stringResource(Res.string.editor_remaining_done)
-                } else {
-                    stringResource(Res.string.editor_remaining, remaining.display())
-                }
+                remaining.isZero to remaining.display()
             }
 
             SplitKind.PERCENTAGE -> {
                 val assigned = state.members.sumOf { m -> state.splitInput[m.id].orEmpty().trim().toIntOrNull() ?: 0 }
                 val remaining = 100 - assigned
-                if (remaining == 0) {
-                    stringResource(Res.string.editor_remaining_done)
-                } else {
-                    stringResource(Res.string.editor_remaining, "$remaining%")
-                }
+                (remaining == 0) to "$remaining%"
             }
 
-            else -> {
-                return
-            }
+            else -> return
         }
+    RemainingHintText(done = done, remainingDisplay = remainingDisplay)
+}
 
-    val done =
-        text == stringResource(Res.string.editor_remaining_done)
+@Composable
+private fun RemainingHintText(
+    done: Boolean,
+    remainingDisplay: String,
+) {
+    val text =
+        if (done) {
+            stringResource(Res.string.editor_remaining_done)
+        } else {
+            stringResource(Res.string.editor_remaining, remainingDisplay)
+        }
     Spacer(Modifier.height(8.dp))
     Text(
         text,
