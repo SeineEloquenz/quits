@@ -34,7 +34,14 @@ jobs:
         run: ./gradlew ktlintCheck
 
       - name: Test and assemble debug
-        run: ./gradlew :androidApp:testDebugUnitTest :androidApp:assembleDebug
+        run: ./gradlew :composeApp:testAndroidHostTest :androidApp:testDebugUnitTest :androidApp:assembleDebug
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report
+          path: composeApp/build/reports/tests/testAndroidHostTest
 
       - name: Upload APK
         uses: actions/upload-artifact@v7
