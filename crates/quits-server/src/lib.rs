@@ -7,15 +7,21 @@
 pub mod auth;
 pub mod config;
 pub mod error;
+pub mod ratelimit;
+pub mod reaper;
 mod routes;
 pub mod state;
 mod wellknown;
 
+use std::net::SocketAddr;
+
 use axum::Router;
+use axum::extract::DefaultBodyLimit;
 use axum::routing::{get, post};
 use sqlx::sqlite::SqlitePoolOptions;
 use tokio::net::TcpListener;
 use tokio::signal;
+use tower_governor::GovernorLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
@@ -35,9 +41,17 @@ pub async fn build_state(config: Config) -> Result<AppState, sqlx::Error> {
 }
 
 pub fn router(state: AppState) -> Router {
-    Router::new()
+    let config = state.config.clone();
+
+    // Group creation carries an extra strict per-IP limiter, so it lives on its own sub-router.
+    let mut create = Router::new().route("/v1/groups", post(routes::create_group));
+    if let Some(conf) = ratelimit::create_config(&config) {
+        ratelimit::spawn_cleanup(conf.clone());
+        create = create.layer(GovernorLayer::new(conf));
+    }
+
+    let mut app = Router::new()
         .route("/health", get(routes::health))
-        .route("/v1/groups", post(routes::create_group))
         .route("/v1/groups/join", post(routes::join_group))
         .route(
             "/v1/groups/{id}/changes",
@@ -49,6 +63,15 @@ pub fn router(state: AppState) -> Router {
             get(wellknown::apple_app_site_association),
         )
         .route("/join", get(wellknown::join_landing))
+        .merge(create);
+
+    // Generous global limiter across every route.
+    if let Some(conf) = ratelimit::global_config(&config) {
+        ratelimit::spawn_cleanup(conf.clone());
+        app = app.layer(GovernorLayer::new(conf));
+    }
+
+    app.layer(DefaultBodyLimit::max(config.max_body_bytes))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(state)
@@ -63,6 +86,9 @@ pub async fn run() {
     let state = build_state(config)
         .await
         .expect("failed to initialize database");
+
+    reaper::spawn(state.db.clone(), state.config.clone());
+
     let app = router(state);
 
     let listener = TcpListener::bind(&addr)
@@ -70,10 +96,14 @@ pub async fn run() {
         .unwrap_or_else(|e| panic!("failed to bind {addr}: {e}"));
     tracing::info!("quits-server listening on http://{addr}");
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .expect("server error");
+    // `ConnectInfo` carries the peer IP used for rate limiting when not behind a proxy.
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await
+    .expect("server error");
 }
 
 fn init_tracing() {
@@ -81,8 +111,9 @@ fn init_tracing() {
     // `try_init` so repeated calls (e.g. in tests) don't panic.
     tracing_subscriber::fmt()
         .with_env_filter(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "quits_server=info,tower_http=info".into()),
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                "quits_server=info,tower_http=info,tower_governor=info".into()
+            }),
         )
         .init();
 }

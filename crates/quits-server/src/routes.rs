@@ -136,6 +136,21 @@ pub async fn create_group(
         return Err(AppError::Forbidden);
     }
 
+    // Global backstop against unbounded creation on a public instance. Soft (racy) by design.
+    if state.config.max_groups > 0 {
+        let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM groups")
+            .fetch_one(&state.db)
+            .await?;
+        if count as u64 >= state.config.max_groups {
+            tracing::warn!(
+                count,
+                limit = state.config.max_groups,
+                "group creation rejected: at global group cap"
+            );
+            return Err(AppError::Capacity);
+        }
+    }
+
     let id = Uuid::new_v4().to_string();
     let created_at = now_ms() as i64;
 
@@ -227,10 +242,33 @@ pub async fn post_changes(
     let mut rejected = Vec::new();
     let mut tx = state.db.begin().await?;
 
+    // Per-group storage cap: current record count, tracked as we insert new ones this batch.
+    let mut group_count: i64 = if state.config.max_records_per_group > 0 {
+        let (c,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM records WHERE group_id = ?")
+            .bind(&group_id)
+            .fetch_one(&mut *tx)
+            .await?;
+        c
+    } else {
+        0
+    };
+
     for rec in &req.records {
         let payload = B64
             .decode(rec.payload.as_bytes())
             .map_err(|_| AppError::BadRequest("payload is not valid base64".into()))?;
+
+        // Reject oversized payloads without failing the whole batch (like an LWW loser).
+        if state.config.max_record_bytes > 0 && payload.len() > state.config.max_record_bytes {
+            tracing::warn!(
+                %group_id,
+                bytes = payload.len(),
+                limit = state.config.max_record_bytes,
+                "record rejected: payload exceeds max size"
+            );
+            rejected.push(rec.id.clone());
+            continue;
+        }
 
         let existing: Option<(i64, String)> = sqlx::query_as(
             "SELECT updated_at, device_id FROM records WHERE group_id = ? AND id = ?",
@@ -250,6 +288,20 @@ pub async fn post_changes(
             }
         };
         if !wins {
+            rejected.push(rec.id.clone());
+            continue;
+        }
+
+        // New records count against the per-group cap; updates to existing records don't.
+        if existing.is_none()
+            && state.config.max_records_per_group > 0
+            && group_count as u64 >= state.config.max_records_per_group
+        {
+            tracing::warn!(
+                %group_id,
+                limit = state.config.max_records_per_group,
+                "record rejected: group at record cap"
+            );
             rejected.push(rec.id.clone());
             continue;
         }
@@ -279,6 +331,9 @@ pub async fn post_changes(
         .execute(&mut *tx)
         .await?;
 
+        if existing.is_none() {
+            group_count += 1;
+        }
         applied.push(rec.id.clone());
     }
 

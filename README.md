@@ -56,6 +56,7 @@ The flake exports `nixosModules.quits-server`..
             host = "0.0.0.0";        # default 127.0.0.1
             port = 8080;
             openFirewall = true;
+            behindProxy = true;      # trust X-Real-IP from the reverse proxy for rate limiting
             # Keep secrets out of the Nix store (managed by sops/agenix/etc).
             # Set at least QUITS_JWT_SECRET so tokens survive restarts.
             environmentFile = "/run/secrets/quits-server.env";
@@ -66,6 +67,12 @@ The flake exports `nixosModules.quits-server`..
   };
 }
 ```
+
+##### Public vs. locked instances
+
+By default anyone can create a group. To run a **private** instance, set
+`QUITS_INSTANCE_SECRET` (via `environmentFile`); clients must then send it in the
+`X-Quits-Instance` header to create groups.
 
 ### Web
 
