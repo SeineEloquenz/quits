@@ -8,7 +8,7 @@ import platform.Foundation.NSDateFormatterShortStyle
 import platform.Foundation.NSLocale
 import platform.Foundation.currentLocale
 
-private fun nsDate(epochMillis: Long): NSDate = NSDate.dateWithTimeIntervalSince1970(epochMillis / 1000.0)
+private fun nsDate(epochMillis: Long): NSDate = NSDate(timeIntervalSinceReferenceDate = epochMillis / 1000.0 - 978307200.0)
 
 actual fun formatLocalDate(epochMillis: Long): String =
     NSDateFormatter().apply {
