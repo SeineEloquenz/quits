@@ -17,6 +17,20 @@ val MIGRATION_1_2 =
     }
 
 /**
+ * v3 -> v4 (payload-versioning flag day): sync payloads are now wrapped in a versioned envelope
+ * (see [nz.eloque.quits.data.sync.CURRENT_PAYLOAD_VERSION]). Relay records written by earlier
+ * versions are bare, unversioned payloads that a new client can't decode. Clearing the sync handles
+ * reverts shared groups to local-only so no such record is ever pulled; expense data is untouched
+ * and the user re-shares to mint a fresh, versioned encrypted group. Mirrors [MIGRATION_1_2].
+ */
+val MIGRATION_3_4 =
+    object : Migration(3, 4) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("DELETE FROM group_sync")
+        }
+    }
+
+/**
  * v2 -> v3: itemized splits. Adds the `expense_item` line-item table and its `expense_item_participant`
  * join table. Purely additive — existing expenses (equal/shares/percentage/exact) are untouched.
  */

@@ -112,4 +112,14 @@ class RecordMapperTest {
         val json = SyncJson.encode(SyncPayload.Member("m1", "Alice", null))
         assertTrue(json.contains("\"type\":\"member\""), "expected a type discriminator, got: $json")
     }
+
+    @Test
+    fun payload_json_carries_the_current_schema_version() {
+        val json = SyncJson.encode(SyncPayload.Member("m1", "Alice", null))
+        assertTrue(json.contains("\"v\":$CURRENT_PAYLOAD_VERSION"), "expected a schema version, got: $json")
+
+        val decoded = SyncJson.decodeVersioned(json)
+        assertEquals(CURRENT_PAYLOAD_VERSION, decoded.v)
+        assertEquals("Alice", (decoded.payload as SyncPayload.Member).name)
+    }
 }
