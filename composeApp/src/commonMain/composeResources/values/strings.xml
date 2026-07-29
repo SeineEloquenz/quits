@@ -168,6 +168,8 @@
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_sync">Sync</string>
+    <string name="settings_advanced">Advanced</string>
+    <string name="settings_advanced_desc">Relay and sync configuration. The defaults work out of the box — change these only to point at your own relay.</string>
     <string name="settings_relay_url">Relay URL</string>
     <string name="settings_instance_secret">Instance password (optional)</string>
     <string name="settings_saved">Saved</string>
