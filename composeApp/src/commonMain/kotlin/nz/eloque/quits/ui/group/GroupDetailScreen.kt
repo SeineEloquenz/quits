@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
@@ -92,6 +93,7 @@ import nz.eloque.quits.resources.detail_last_synced
 import nz.eloque.quits.resources.detail_local_only
 import nz.eloque.quits.resources.detail_no_matches
 import nz.eloque.quits.resources.detail_not_synced
+import nz.eloque.quits.resources.detail_note
 import nz.eloque.quits.resources.detail_paid_by
 import nz.eloque.quits.resources.detail_search_hint
 import nz.eloque.quits.resources.detail_settle_up_link
@@ -489,7 +491,17 @@ private fun ExpenseRowCard(
                         color = MaterialTheme.colorScheme.outline,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
+                    if (!expense.note.isNullOrBlank()) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            Icons.AutoMirrored.Filled.Notes,
+                            contentDescription = stringResource(Res.string.detail_note),
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
                 }
             }
             MoneyText(expense.total)
