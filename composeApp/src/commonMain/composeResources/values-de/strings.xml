@@ -162,6 +162,8 @@
     <!-- Settings -->
     <string name="settings_title">Einstellungen</string>
     <string name="settings_sync">Synchronisierung</string>
+    <string name="settings_advanced">Erweitert</string>
+    <string name="settings_advanced_desc">Relay- und Sync-Konfiguration. Die Voreinstellungen funktionieren sofort — ändere sie nur, um dein eigenes Relay zu nutzen.</string>
     <string name="settings_relay_url">Relay-URL</string>
     <string name="settings_instance_secret">Relay-Passwort (optional)</string>
     <string name="settings_saved">Gespeichert</string>
