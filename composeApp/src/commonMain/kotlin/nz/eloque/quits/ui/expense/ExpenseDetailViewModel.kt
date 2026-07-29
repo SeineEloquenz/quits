@@ -48,6 +48,8 @@ data class ExpenseDetailUiState(
     val owedBy: List<ExpenseParticipantRow> = emptyList(),
     /** Line items, present only when the split is itemized. */
     val items: List<ExpenseItemRow> = emptyList(),
+    /** False for an expense whose split type this version doesn't support — read-only, no editing. */
+    val splitSupported: Boolean = true,
 )
 
 class ExpenseDetailViewModel(
@@ -93,6 +95,7 @@ class ExpenseDetailViewModel(
                                     item.participants.map { names[it] ?: "?" }.sorted(),
                                 )
                             } ?: emptyList(),
+                        splitSupported = expense.splitSupported,
                     )
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExpenseDetailUiState())

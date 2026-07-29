@@ -25,6 +25,8 @@ internal const val SPLIT_PERCENTAGE = "PERCENTAGE"
 internal const val SPLIT_EXACT = "EXACT"
 internal const val SPLIT_ITEMIZED = "ITEMIZED"
 
+private val KNOWN_SPLIT_TYPES = setOf(SPLIT_EQUAL, SPLIT_SHARES, SPLIT_PERCENTAGE, SPLIT_EXACT, SPLIT_ITEMIZED)
+
 internal fun splitTypeName(split: Split): String =
     when (split) {
         is Split.Equal -> SPLIT_EQUAL
@@ -58,6 +60,7 @@ internal fun ExpenseWithLines.toDomain(): Expense {
         expense.spentAt,
         expense.category,
         expense.note,
+        splitSupported = expense.splitType in KNOWN_SPLIT_TYPES,
     )
 }
 
@@ -84,7 +87,10 @@ private fun toSplit(
                         )
                     },
             )
-        else -> error("unknown split type: $type")
+        // Forward-compat: a split type from a newer app version. Never throw on well-formed synced
+        // data — rebuild it from the materialized per-member shares so balances stay correct. The
+        // caller flags it unsupported (see [ExpenseWithLines.toDomain]) so the UI keeps it read-only.
+        else -> Split.Exact(rows.associate { MemberId(it.memberId) to Money(it.shareMinor, currency) })
     }
 
 /** Payer lines for an expense; synthetic ids since multiple payments may share a member. */

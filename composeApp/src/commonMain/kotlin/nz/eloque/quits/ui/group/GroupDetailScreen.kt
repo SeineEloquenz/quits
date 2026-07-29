@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -102,6 +103,7 @@ import nz.eloque.quits.resources.detail_settlement_title
 import nz.eloque.quits.resources.detail_share_group
 import nz.eloque.quits.resources.detail_share_hint
 import nz.eloque.quits.resources.detail_sharing
+import nz.eloque.quits.resources.detail_split_unsupported
 import nz.eloque.quits.resources.group_fallback_name
 import nz.eloque.quits.resources.group_leave_body_local
 import nz.eloque.quits.resources.group_leave_body_shared
@@ -498,6 +500,15 @@ private fun ExpenseRowCard(
                         Icon(
                             Icons.AutoMirrored.Filled.Notes,
                             contentDescription = stringResource(Res.string.detail_note),
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                    if (!expense.splitSupported) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = stringResource(Res.string.detail_split_unsupported),
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(14.dp),
                         )

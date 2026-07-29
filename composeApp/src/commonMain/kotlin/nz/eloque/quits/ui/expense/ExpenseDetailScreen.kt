@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -49,6 +50,7 @@ import nz.eloque.quits.resources.detail_items
 import nz.eloque.quits.resources.detail_note
 import nz.eloque.quits.resources.detail_owed_by
 import nz.eloque.quits.resources.detail_split_summary_dated
+import nz.eloque.quits.resources.detail_split_unsupported
 import nz.eloque.quits.resources.editor_expense_fallback_title
 import nz.eloque.quits.resources.editor_item_label
 import nz.eloque.quits.resources.editor_paid_by
@@ -122,8 +124,12 @@ fun ExpenseDetailScreen(
         },
         actions = {
             if (state.found) {
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.detail_edit_expense))
+                // No edit for an unsupported split: re-saving here would rewrite it as a plain Exact
+                // split and downgrade it for everyone via sync. Deleting is still allowed.
+                if (state.splitSupported) {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.detail_edit_expense))
+                    }
                 }
                 IconButton(onClick = { confirmingDelete = true }) {
                     Icon(Icons.Default.Delete, contentDescription = stringResource(Res.string.detail_delete_expense))
@@ -168,6 +174,31 @@ fun ExpenseDetailScreen(
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                     )
+                }
+            }
+
+            if (!state.splitSupported) {
+                Spacer(Modifier.height(16.dp))
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            stringResource(Res.string.detail_split_unsupported),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
 

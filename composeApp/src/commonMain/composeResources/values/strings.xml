@@ -84,6 +84,7 @@
     <string name="detail_paid_by">paid by %1$s</string>
     <string name="detail_owed_by">Owed by</string>
     <string name="detail_items">Items</string>
+    <string name="detail_split_unsupported">This expense was created with a newer version of the app. Update to view and edit how it\'s split.</string>
     <string name="detail_note">Note</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d people</string>
     <string name="detail_edit_expense">Edit expense</string>

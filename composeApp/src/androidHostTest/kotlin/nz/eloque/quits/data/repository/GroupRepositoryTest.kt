@@ -1,7 +1,11 @@
 package nz.eloque.quits.data.repository
 
 import kotlinx.coroutines.test.runTest
+import nz.eloque.quits.data.db.ExpenseEntity
+import nz.eloque.quits.data.db.ExpensePayerEntity
+import nz.eloque.quits.data.db.ExpenseSplitEntity
 import nz.eloque.quits.data.db.inMemoryDatabase
+import nz.eloque.quits.data.db.meta
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
@@ -139,6 +143,30 @@ class GroupRepositoryTest {
             assertEquals(setOf(a, b, c), split.items[1].participants)
             // Shares derived from the reconstructed items match the original.
             assertEquals(itemized.shares, loaded.shares)
+        }
+
+    @Test
+    fun unknown_split_type_degrades_to_exact_and_is_marked_unsupported() =
+        runTest {
+            repo.saveGroup(sampleGroup())
+            // An expense synced from a newer version, with a split type this build doesn't recognise.
+            db.expenseDao().save(
+                ExpenseEntity("e-future", "g", "Future", 3000, "USD", 1.0, null, 10, null, "FUTURE_KIND", meta()),
+                listOf(ExpensePayerEntity("e-future:payer:0", "e-future", "a", 3000)),
+                listOf(
+                    ExpenseSplitEntity("e-future:a", "e-future", "a", 2000),
+                    ExpenseSplitEntity("e-future:b", "e-future", "b", 1000),
+                ),
+                emptyList(),
+                emptyList(),
+            )
+
+            val loaded = repo.load(GroupId("g"))!!.expenses.first { it.id == ExpenseId("e-future") }
+            // Rebuilt from the stored shares as Exact — no throw — and flagged read-only.
+            assertTrue(loaded.split is Split.Exact)
+            assertFalse(loaded.splitSupported)
+            assertEquals(Money(2000, usd), loaded.owedBy(a))
+            assertEquals(Money(1000, usd), loaded.owedBy(b))
         }
 
     @Test
