@@ -20,11 +20,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -102,6 +104,7 @@ import nz.eloque.quits.resources.detail_settlement_title
 import nz.eloque.quits.resources.detail_share_group
 import nz.eloque.quits.resources.detail_share_hint
 import nz.eloque.quits.resources.detail_sharing
+import nz.eloque.quits.resources.detail_split_unsupported
 import nz.eloque.quits.resources.group_fallback_name
 import nz.eloque.quits.resources.group_leave_body_local
 import nz.eloque.quits.resources.group_leave_body_shared
@@ -109,6 +112,7 @@ import nz.eloque.quits.resources.group_leave_confirm
 import nz.eloque.quits.resources.group_leave_menu
 import nz.eloque.quits.resources.group_leave_title
 import nz.eloque.quits.resources.label_share_code
+import nz.eloque.quits.resources.stats_title
 import nz.eloque.quits.ui.components.BalanceText
 import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.LoadingBox
@@ -116,7 +120,7 @@ import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.MoneyText
 import nz.eloque.quits.ui.components.dayGroupLabel
 import nz.eloque.quits.util.Sharer
-import nz.eloque.quits.util.formatDateTime
+import nz.eloque.quits.util.formatLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -131,6 +135,7 @@ fun GroupDetailScreen(
     onOpenExpense: (ExpenseId) -> Unit,
     onOpenMember: (MemberId) -> Unit,
     onSettleUp: () -> Unit,
+    onOpenStats: () -> Unit,
 ) {
     val viewModel = koinViewModel<GroupDetailViewModel>(key = groupId.value) { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
@@ -201,6 +206,14 @@ fun GroupDetailScreen(
                     Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.cd_more))
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.stats_title)) },
+                        leadingIcon = { Icon(Icons.Default.BarChart, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onOpenStats()
+                        },
+                    )
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.group_leave_menu)) },
                         leadingIcon = {
@@ -502,6 +515,15 @@ private fun ExpenseRowCard(
                             modifier = Modifier.size(14.dp),
                         )
                     }
+                    if (!expense.splitSupported) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = stringResource(Res.string.detail_split_unsupported),
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
                 }
             }
             MoneyText(expense.total)
@@ -625,7 +647,7 @@ private fun ShareSheet(
                 )
                 Text(
                     state.lastSyncedAt
-                        ?.let { stringResource(Res.string.detail_last_synced, formatDateTime(it)) }
+                        ?.let { stringResource(Res.string.detail_last_synced, formatLocalDateTime(it)) }
                         ?: stringResource(Res.string.detail_not_synced),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,

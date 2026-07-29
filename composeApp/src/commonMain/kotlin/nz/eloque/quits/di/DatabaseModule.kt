@@ -4,6 +4,7 @@ import androidx.room3.RoomDatabase
 import androidx.sqlite.SQLiteDriver
 import kotlinx.coroutines.Dispatchers
 import nz.eloque.quits.data.db.MIGRATION_1_2
+import nz.eloque.quits.data.db.MIGRATION_2_3
 import nz.eloque.quits.data.db.QuitsDatabase
 import org.koin.dsl.module
 
@@ -17,7 +18,7 @@ val databaseModule =
         single<QuitsDatabase> {
             get<RoomDatabase.Builder<QuitsDatabase>>()
                 .setDriver(get<SQLiteDriver>())
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .setQueryCoroutineContext(Dispatchers.Default)
                 .build()
         }

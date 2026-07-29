@@ -34,6 +34,7 @@ import nz.eloque.quits.navigation.JoinInviteKey
 import nz.eloque.quits.navigation.MemberDetailKey
 import nz.eloque.quits.navigation.SettingsKey
 import nz.eloque.quits.navigation.SettleUpKey
+import nz.eloque.quits.navigation.StatsKey
 import nz.eloque.quits.theme.QuitsTheme
 import nz.eloque.quits.ui.expense.ExpenseDetailScreen
 import nz.eloque.quits.ui.expense.ExpenseEditorScreen
@@ -43,6 +44,7 @@ import nz.eloque.quits.ui.groups.AddGroupScreen
 import nz.eloque.quits.ui.groups.JoinInviteScreen
 import nz.eloque.quits.ui.home.HomeScreen
 import nz.eloque.quits.ui.settings.SettingsScreen
+import nz.eloque.quits.ui.stats.StatsScreen
 import org.koin.compose.koinInject
 
 private val navSavedStateConfiguration =
@@ -55,6 +57,7 @@ private val navSavedStateConfiguration =
                     subclass(ExpenseDetailKey::class)
                     subclass(MemberDetailKey::class)
                     subclass(SettleUpKey::class)
+                    subclass(StatsKey::class)
                     subclass(ExpenseEditorKey::class)
                     subclass(SettingsKey::class)
                     subclass(JoinInviteKey::class)
@@ -115,6 +118,7 @@ fun App() {
                                 onOpenExpense = { groupId, expenseId -> backStack.add(ExpenseDetailKey(groupId.value, expenseId.value)) },
                                 onOpenMember = { groupId, memberId -> backStack.add(MemberDetailKey(groupId.value, memberId.value)) },
                                 onSettleUp = { groupId -> backStack.add(SettleUpKey(groupId.value)) },
+                                onOpenStats = { groupId -> backStack.add(StatsKey(groupId.value)) },
                             )
                         }
                         entry<AddGroupKey> {
@@ -142,6 +146,12 @@ fun App() {
                         }
                         entry<SettleUpKey> { key ->
                             SettleUpScreen(
+                                groupId = GroupId(key.groupId),
+                                onBack = { backStack.removeLastOrNull() },
+                            )
+                        }
+                        entry<StatsKey> { key ->
+                            StatsScreen(
                                 groupId = GroupId(key.groupId),
                                 onBack = { backStack.removeLastOrNull() },
                             )

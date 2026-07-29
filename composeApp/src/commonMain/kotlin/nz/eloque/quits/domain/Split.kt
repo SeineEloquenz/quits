@@ -67,6 +67,47 @@ sealed interface Split {
             return amounts
         }
     }
+
+    /**
+     * Itemized: a receipt's line [items], each shared equally among its own participants. The items'
+     * amounts must sum to the total (like [Exact]); each item is divided among its participants by
+     * the same largest-remainder method, then the per-item shares are summed per member. Two devices
+     * therefore compute identical shares.
+     */
+    data class Itemized(
+        val items: List<Item>,
+    ) : Split {
+        init {
+            require(items.isNotEmpty()) { "an itemized split needs at least one item" }
+        }
+
+        override fun divide(total: Money): Map<MemberId, Money> {
+            val sum = items.fold(Money.zero(total.currency)) { acc, item -> acc + item.amount }
+            require(sum == total) {
+                "items (${sum.toDecimalString()}) must equal the total (${total.toDecimalString()})"
+            }
+            val minorByMember = mutableMapOf<MemberId, Long>()
+            for (item in items) {
+                val members = item.participants.toList()
+                distribute(item.amount, members, members.map { 1L }).forEach { (member, share) ->
+                    minorByMember[member] = (minorByMember[member] ?: 0L) + share.minorUnits
+                }
+            }
+            return minorByMember.mapValues { Money(it.value, total.currency) }
+        }
+
+        /** A single receipt line: [label], costing [amount], shared equally among [participants]. */
+        data class Item(
+            val label: String,
+            val amount: Money,
+            val participants: Set<MemberId>,
+        ) {
+            init {
+                require(participants.isNotEmpty()) { "an item needs at least one participant" }
+                require(amount.isPositive) { "an item amount must be positive" }
+            }
+        }
+    }
 }
 
 /**

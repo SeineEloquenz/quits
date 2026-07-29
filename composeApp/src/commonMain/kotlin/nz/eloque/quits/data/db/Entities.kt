@@ -101,6 +101,45 @@ data class ExpenseSplitEntity(
 )
 
 @Entity(
+    tableName = "expense_item",
+    foreignKeys = [
+        ForeignKey(
+            entity = ExpenseEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["expenseId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("expenseId")],
+)
+data class ExpenseItemEntity(
+    @PrimaryKey val id: String,
+    val expenseId: String,
+    val label: String,
+    val amountMinor: Long,
+    /** Preserves the order items were entered in, so they reconstruct in the same sequence. */
+    val position: Int,
+)
+
+@Entity(
+    tableName = "expense_item_participant",
+    primaryKeys = ["itemId", "memberId"],
+    foreignKeys = [
+        ForeignKey(
+            entity = ExpenseItemEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["itemId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("itemId")],
+)
+data class ExpenseItemParticipantEntity(
+    val itemId: String,
+    val memberId: String,
+)
+
+@Entity(
     tableName = "settlement",
     foreignKeys = [
         ForeignKey(

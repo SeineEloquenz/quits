@@ -52,6 +52,8 @@ data class ExpenseRow(
     val note: String? = null,
     /** Everyone tied to the expense (payers and share-holders), for the member filter. */
     val participants: Set<MemberId> = emptySet(),
+    /** False for a split type this version doesn't support (created by a newer version). */
+    val splitSupported: Boolean = true,
 )
 
 data class SettlementRow(
@@ -64,10 +66,6 @@ data class SettlementRow(
     val toId: MemberId? = null,
 )
 
-/**
- * Feed search/filter, applied in the UI layer over the merged activity. A blank query and empty
- * selections mean "show everything".
- */
 data class ActivityFilter(
     val query: String = "",
     val category: String? = null,
@@ -242,6 +240,7 @@ private fun Group.toUiState(filter: ActivityFilter): GroupDetailUiState {
                     expense.category,
                     expense.note,
                     participants,
+                    expense.splitSupported,
                 ),
             )
         }

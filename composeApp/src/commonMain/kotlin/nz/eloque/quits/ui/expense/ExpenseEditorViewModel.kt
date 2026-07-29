@@ -37,7 +37,9 @@ import nz.eloque.quits.resources.error_invalid_rate
 import nz.eloque.quits.resources.error_invalid_share
 import nz.eloque.quits.resources.error_invalid_split
 import nz.eloque.quits.resources.error_invalid_total
+import nz.eloque.quits.resources.error_items_sum
 import nz.eloque.quits.resources.error_no_exact
+import nz.eloque.quits.resources.error_no_items
 import nz.eloque.quits.resources.error_no_participant
 import nz.eloque.quits.resources.error_no_payer
 import nz.eloque.quits.resources.error_no_share
@@ -45,7 +47,7 @@ import nz.eloque.quits.resources.error_paid_sum
 import nz.eloque.quits.resources.error_percent_sum
 import nz.eloque.quits.resources.rate_cached
 import nz.eloque.quits.resources.rate_fetch_failed
-import nz.eloque.quits.util.formatDate
+import nz.eloque.quits.util.formatLocalDate
 import nz.eloque.quits.util.newId
 import nz.eloque.quits.util.nowMillis
 import org.jetbrains.compose.resources.getString
@@ -63,6 +65,14 @@ data class MemberInput(
     val name: String,
 )
 
+/** One editable receipt line in the itemized split. [id] is a stable key for the list/UI only. */
+data class ItemInput(
+    val id: String,
+    val label: String = "",
+    val amount: String = "",
+    val participants: Set<MemberId> = emptySet(),
+)
+
 data class ExpenseEditorUiState(
     val loaded: Boolean = false,
     val editing: Boolean = false,
@@ -70,6 +80,8 @@ data class ExpenseEditorUiState(
     val members: List<MemberInput> = emptyList(),
     val title: String = "",
     val category: String = "",
+    /** Categories used before (any group), offered as tappable suggestions under the field. */
+    val categorySuggestions: List<String> = emptyList(),
     val note: String = "",
     /** The expense total. Payments (in either payer mode) must add up to exactly this. */
     val amount: String = "",
@@ -83,11 +95,17 @@ data class ExpenseEditorUiState(
     val splitKind: SplitKind = SplitKind.EQUAL,
     val equalSelected: Set<MemberId> = emptySet(),
     val splitInput: Map<MemberId, String> = emptyMap(),
+    /** Committed (read-only) line items, used only when [splitKind] is [SplitKind.ITEMIZED]. */
+    val items: List<ItemInput> = emptyList(),
+    /** The in-progress line: filled in, then committed to [items] via submit. */
+    val draftLabel: String = "",
+    val draftAmount: String = "",
+    val draftParticipants: Set<MemberId> = emptySet(),
     val error: String? = null,
     val fetchingRate: Boolean = false,
     val rateNotice: String? = null,
-    /** 0 for a new expense (save() will stamp "now"); the original spentAt when editing one. */
-    val originalSpentAt: Long = 0L,
+    /** When the expense was incurred (epoch millis); defaults to now for a new expense, editable via the date picker. */
+    val spentAt: Long = 0L,
 ) {
     val isForeign: Boolean get() = currency != baseCurrency
 }
@@ -110,7 +128,7 @@ class ExpenseEditorViewModel(
         viewModelScope.launch {
             val group = repo.load(groupId) ?: return@launch
             val existing = expenseId?.let { id -> group.expenses.firstOrNull { it.id.value == id } }
-            _state.value = initialState(group, existing)
+            _state.value = initialState(group, existing).copy(categorySuggestions = repo.categories())
         }
     }
 
@@ -121,10 +139,8 @@ class ExpenseEditorViewModel(
         val members = group.members.map { MemberInput(it.id, it.name) }
         val allIds = members.map { it.id }.toSet()
         if (existing == null) {
-            // Default to one selected payer, split "evenly" (i.e. just them) — the common case is
-            // one person paying the whole thing, so this is a one-tap avatar toggle instead of a
-            // table of N mostly-empty fields. Selecting more avatars keeps it evenly split until
-            // "Customize amounts" is used.
+            // No default payer — the user taps who paid (there's no "me" to assume). The split, by
+            // contrast, defaults to everyone, since an even split across the whole group is the norm.
             return ExpenseEditorUiState(
                 loaded = true,
                 editing = false,
@@ -132,8 +148,10 @@ class ExpenseEditorViewModel(
                 members = members,
                 currency = group.baseCurrency,
                 payerMode = PayerMode.EQUAL,
-                payerSelected = members.firstOrNull()?.let { setOf(it.id) } ?: emptySet(),
+                payerSelected = emptySet(),
                 equalSelected = allIds,
+                draftParticipants = emptySet(),
+                spentAt = nowMillis(),
             )
         }
         val paidMoney =
@@ -170,7 +188,7 @@ class ExpenseEditorViewModel(
             payerMode = if (isEvenSplit) PayerMode.EQUAL else PayerMode.CUSTOM,
             payerSelected = distinctPayers.toSet(),
             paid = paid,
-            originalSpentAt = existing.spentAt,
+            spentAt = existing.spentAt,
             splitKind = split.kind(),
             equalSelected = if (split is Split.Equal) split.participants.toSet() else allIds,
             splitInput =
@@ -179,11 +197,21 @@ class ExpenseEditorViewModel(
                     is Split.Percentage -> split.percent.entries.associate { it.key to it.value.toString() }
                     is Split.Exact -> split.amounts.entries.associate { it.key to it.value.toDecimalString() }
                     is Split.Equal -> emptyMap()
+                    is Split.Itemized -> emptyMap()
                 },
+            items =
+                if (split is Split.Itemized) {
+                    split.items.map { ItemInput(newId(), it.label, it.amount.toDecimalString(), it.participants) }
+                } else {
+                    emptyList()
+                },
+            draftParticipants = emptySet(),
         )
     }
 
     fun setTitle(value: String) = _state.update { it.copy(title = value) }
+
+    fun setSpentAt(millis: Long) = _state.update { it.copy(spentAt = millis) }
 
     fun setCategory(value: String) = _state.update { it.copy(category = value) }
 
@@ -205,7 +233,8 @@ class ExpenseEditorViewModel(
                 } else {
                     s.paid
                 }
-            s.copy(currency = value, paid = paid)
+            // Re-derive the itemized total in the new currency (a no-op for other split kinds).
+            s.copy(currency = value, paid = paid).withItemizedTotal()
         }
         val base = _state.value.baseCurrency
         if (value != base) {
@@ -231,7 +260,7 @@ class ExpenseEditorViewModel(
                             rateNotice =
                                 when (result) {
                                     is RateResult.Live -> null
-                                    is RateResult.Cached -> getString(Res.string.rate_cached, formatDate(result.asOf))
+                                    is RateResult.Cached -> getString(Res.string.rate_cached, formatLocalDate(result.asOf))
                                 },
                         )
                     }
@@ -293,7 +322,46 @@ class ExpenseEditorViewModel(
         value: String,
     ) = _state.update { it.copy(paid = it.paid + (memberId to value)) }
 
-    fun setKind(kind: SplitKind) = _state.update { it.copy(splitKind = kind) }
+    fun setKind(kind: SplitKind) =
+        _state.update { s ->
+            val next = s.copy(splitKind = kind)
+            // The itemized total is the sum of its lines, not a separately typed figure.
+            if (kind == SplitKind.ITEMIZED) next.withItemizedTotal() else next
+        }
+
+    fun removeItem(id: String) = _state.update { s -> s.copy(items = s.items.filterNot { it.id == id }).withItemizedTotal() }
+
+    fun setDraftLabel(value: String) = _state.update { it.copy(draftLabel = value) }
+
+    fun setDraftAmount(value: String) = _state.update { it.copy(draftAmount = value) }
+
+    fun toggleDraftParticipant(member: MemberId) =
+        _state.update { s ->
+            val next = if (member in s.draftParticipants) s.draftParticipants - member else s.draftParticipants + member
+            s.copy(draftParticipants = next)
+        }
+
+    /** Select-all / clear toggle for the draft line's participants. */
+    fun toggleAllDraftParticipants() =
+        _state.update { s ->
+            val all = s.members.map { it.id }.toSet()
+            s.copy(draftParticipants = if (s.draftParticipants == all) emptySet() else all)
+        }
+
+    /** Commits the draft line to [items] and resets it for the next one; a no-op if the draft is invalid. */
+    fun submitDraft() =
+        _state.update { s ->
+            if (!s.isDraftValid()) {
+                s
+            } else {
+                s.copy(
+                    items = s.items + ItemInput(newId(), s.draftLabel.trim(), s.draftAmount.trim(), s.draftParticipants),
+                    draftLabel = "",
+                    draftAmount = "",
+                    draftParticipants = emptySet(),
+                ).withItemizedTotal()
+            }
+        }
 
     fun toggleEqual(memberId: MemberId) =
         _state.update {
@@ -308,6 +376,8 @@ class ExpenseEditorViewModel(
 
     fun save() {
         viewModelScope.launch {
+            // Fold a filled-but-unsubmitted itemized line into the list so it isn't silently lost.
+            if (_state.value.splitKind == SplitKind.ITEMIZED && _state.value.isDraftValid()) submitDraft()
             val s = _state.value
             val validated =
                 when (val outcome = s.validate()) {
@@ -329,7 +399,7 @@ class ExpenseEditorViewModel(
                         validated.payments,
                         validated.split,
                         validated.rate,
-                        spentAt = if (s.originalSpentAt > 0L) s.originalSpentAt else nowMillis(),
+                        spentAt = s.spentAt.takeIf { it > 0L } ?: nowMillis(),
                         category = s.category.trim().ifEmpty { null },
                         note = s.note.trim().ifEmpty { null },
                     )
@@ -362,6 +432,8 @@ class ExpenseEditorViewModel(
             is ExpenseValidationError.InvalidAmount -> getString(Res.string.error_invalid_amount, reason.memberName)
             is ExpenseValidationError.NoExact -> getString(Res.string.error_no_exact)
             is ExpenseValidationError.ExactSum -> getString(Res.string.error_exact_sum)
+            is ExpenseValidationError.NoItems -> getString(Res.string.error_no_items)
+            is ExpenseValidationError.ItemsSum -> getString(Res.string.error_items_sum)
         }
 
     private fun setError(message: String) = _state.update { it.copy(error = message) }
@@ -407,6 +479,10 @@ sealed class ExpenseValidationError {
     data object NoExact : ExpenseValidationError()
 
     data object ExactSum : ExpenseValidationError()
+
+    data object NoItems : ExpenseValidationError()
+
+    data object ItemsSum : ExpenseValidationError()
 }
 
 /** Everything [ExpenseEditorViewModel.save] needs to build the domain [Expense] once fields check out. */
@@ -474,6 +550,36 @@ fun ExpenseEditorUiState.validate(): ExpenseValidation {
 
 /** True once [ExpenseEditorUiState.validate] would succeed — drives the save button's enabled state. */
 fun ExpenseEditorUiState.isValid(): Boolean = validate() is ExpenseValidation.Valid
+
+/** Parses one editor line into a domain item, or null if it isn't a complete, valid line yet. */
+private fun ItemInput.toItem(currency: Currency): Split.Itemized.Item? {
+    val money = Money.parse(amount.trim(), currency) ?: return null
+    if (!money.isPositive || participants.isEmpty()) return null
+    return Split.Itemized.Item(label.trim(), money, participants)
+}
+
+/** The in-progress draft as a domain item, or null if it isn't complete enough to commit yet. */
+private fun ExpenseEditorUiState.draftItem(): Split.Itemized.Item? =
+    ItemInput("draft", draftLabel, draftAmount, draftParticipants).toItem(currency)
+
+/** True once the draft line can be committed (a valid positive amount and at least one participant). */
+fun ExpenseEditorUiState.isDraftValid(): Boolean = draftItem() != null
+
+/** The committed line items an itemized split is built from. */
+private fun ExpenseEditorUiState.itemizedItems(): List<Split.Itemized.Item> = items.mapNotNull { it.toItem(currency) }
+
+/**
+ * Re-derives the expense total ([amount]) from the sum of the committed items — for an itemized
+ * split the lines *are* the total, so it's never typed separately — and refreshes the equal-payer
+ * split to match. A no-op unless the split is itemized.
+ */
+private fun ExpenseEditorUiState.withItemizedTotal(): ExpenseEditorUiState {
+    if (splitKind != SplitKind.ITEMIZED) return this
+    val totalMinor = itemizedItems().sumOf { it.amount.minorUnits }
+    val amount = if (totalMinor > 0) Money(totalMinor, currency).toDecimalString() else ""
+    val newPaid = if (payerMode == PayerMode.EQUAL) equalDistribution(amount, currency, payerSelected, members) else paid
+    return copy(amount = amount, paid = newPaid)
+}
 
 /** Result of [buildSplit]: either the [Split] to save, or why the split section isn't valid yet. */
 private sealed class SplitOutcome {
@@ -554,6 +660,19 @@ private fun buildSplit(
                 SplitOutcome.Invalid(ExpenseValidationError.ExactSum)
             } else {
                 SplitOutcome.Valid(Split.Exact(map))
+            }
+        }
+
+        SplitKind.ITEMIZED -> {
+            // Committed lines are already valid (submit enforces it) and [amount] is their sum, so
+            // this only fails when there are no lines at all.
+            val built = s.itemizedItems()
+            if (built.isEmpty()) {
+                SplitOutcome.Invalid(ExpenseValidationError.NoItems)
+            } else if (built.fold(Money.zero(currency)) { acc, i -> acc + i.amount } != total) {
+                SplitOutcome.Invalid(ExpenseValidationError.ItemsSum)
+            } else {
+                SplitOutcome.Valid(Split.Itemized(built))
             }
         }
     }

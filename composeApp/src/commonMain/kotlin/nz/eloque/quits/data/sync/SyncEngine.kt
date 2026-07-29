@@ -220,7 +220,13 @@ class SyncEngine(
             is SyncPayload.Expense -> {
                 if (wins(db.expenseDao().byId(payload.id)?.expense?.sync, record)) {
                     val entities = RecordMapper.expenseEntities(payload, gid, meta)
-                    db.expenseDao().save(entities.expense, entities.payers, entities.splits)
+                    db.expenseDao().save(
+                        entities.expense,
+                        entities.payers,
+                        entities.splits,
+                        entities.items.map { it.item },
+                        entities.items.flatMap { it.participants },
+                    )
                 }
             }
 

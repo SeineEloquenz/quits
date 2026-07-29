@@ -39,6 +39,8 @@ sealed interface SyncPayload {
         val splitType: String,
         val payers: List<Payer>,
         val splits: List<SplitLine>,
+        /** Line items for an itemized split; null/absent for every other split kind. */
+        val items: List<ItemLine>? = null,
     ) : SyncPayload
 
     @Serializable
@@ -67,5 +69,12 @@ sealed interface SyncPayload {
         val memberId: String,
         val shareMinor: Long,
         val weight: Double?,
+    )
+
+    @Serializable
+    data class ItemLine(
+        val label: String,
+        val amountMinor: Long,
+        val participants: List<String>,
     )
 }

@@ -27,6 +27,13 @@ class Expense(
     val spentAt: Long = 0L,
     val category: String? = null,
     val note: String? = null,
+    /**
+     * False when this expense was reconstructed from a split type this app version doesn't recognize
+     * (created by a newer version). Its balances are still correct — [split] is rebuilt as [Split.Exact]
+     * from the stored per-member shares — but the UI must treat it as read-only: re-saving here would
+     * rewrite it as a plain Exact split and, via last-write-wins sync, downgrade it for everyone.
+     */
+    val splitSupported: Boolean = true,
 ) : Entity<ExpenseId>() {
     init {
         require(payments.isNotEmpty()) { "an expense needs at least one payer" }

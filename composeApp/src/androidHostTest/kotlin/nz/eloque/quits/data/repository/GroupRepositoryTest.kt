@@ -1,7 +1,11 @@
 package nz.eloque.quits.data.repository
 
 import kotlinx.coroutines.test.runTest
+import nz.eloque.quits.data.db.ExpenseEntity
+import nz.eloque.quits.data.db.ExpensePayerEntity
+import nz.eloque.quits.data.db.ExpenseSplitEntity
 import nz.eloque.quits.data.db.inMemoryDatabase
+import nz.eloque.quits.data.db.meta
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
@@ -109,6 +113,73 @@ class GroupRepositoryTest {
             assertTrue(byId.getValue(ExpenseId("e-exact")).split is Split.Exact)
             assertTrue(byId.getValue(ExpenseId("e-shares")).split is Split.Shares)
             assertTrue(byId.getValue(ExpenseId("e-pct")).split is Split.Percentage)
+        }
+
+    @Test
+    fun itemized_split_round_trips_with_items() =
+        runTest {
+            repo.saveGroup(sampleGroup())
+            val itemized =
+                Expense(
+                    ExpenseId("e-items"),
+                    "Groceries",
+                    listOf(Payment(a, Money(10000, usd))),
+                    Split.Itemized(
+                        listOf(
+                            Split.Itemized.Item("Pasta", Money(3000, usd), setOf(a)),
+                            Split.Itemized.Item("Wine", Money(7000, usd), setOf(a, b, c)),
+                        ),
+                    ),
+                )
+            repo.upsertExpense(GroupId("g"), itemized)
+
+            val loaded = repo.load(GroupId("g"))!!.expenses.first { it.id == ExpenseId("e-items") }
+            val split = loaded.split
+            assertTrue(split is Split.Itemized)
+            assertEquals(2, split.items.size)
+            assertEquals("Pasta", split.items[0].label)
+            assertEquals(Money(3000, usd), split.items[0].amount)
+            assertEquals(setOf(a), split.items[0].participants)
+            assertEquals(setOf(a, b, c), split.items[1].participants)
+            // Shares derived from the reconstructed items match the original.
+            assertEquals(itemized.shares, loaded.shares)
+        }
+
+    @Test
+    fun unknown_split_type_degrades_to_exact_and_is_marked_unsupported() =
+        runTest {
+            repo.saveGroup(sampleGroup())
+            // An expense synced from a newer version, with a split type this build doesn't recognise.
+            db.expenseDao().save(
+                ExpenseEntity("e-future", "g", "Future", 3000, "USD", 1.0, null, 10, null, "FUTURE_KIND", meta()),
+                listOf(ExpensePayerEntity("e-future:payer:0", "e-future", "a", 3000)),
+                listOf(
+                    ExpenseSplitEntity("e-future:a", "e-future", "a", 2000),
+                    ExpenseSplitEntity("e-future:b", "e-future", "b", 1000),
+                ),
+                emptyList(),
+                emptyList(),
+            )
+
+            val loaded = repo.load(GroupId("g"))!!.expenses.first { it.id == ExpenseId("e-future") }
+            // Rebuilt from the stored shares as Exact — no throw — and flagged read-only.
+            assertTrue(loaded.split is Split.Exact)
+            assertFalse(loaded.splitSupported)
+            assertEquals(Money(2000, usd), loaded.owedBy(a))
+            assertEquals(Money(1000, usd), loaded.owedBy(b))
+        }
+
+    @Test
+    fun categories_lists_distinct_used_categories_sorted() =
+        runTest {
+            repo.saveGroup(sampleGroup())
+            val base = sampleGroup().expenses.first()
+            repo.upsertExpense(GroupId("g"), Expense(ExpenseId("c1"), "a", base.payments, base.split, category = "Food"))
+            repo.upsertExpense(GroupId("g"), Expense(ExpenseId("c2"), "b", base.payments, base.split, category = "Travel"))
+            repo.upsertExpense(GroupId("g"), Expense(ExpenseId("c3"), "c", base.payments, base.split, category = "Food"))
+            repo.upsertExpense(GroupId("g"), Expense(ExpenseId("c4"), "d", base.payments, base.split))
+
+            assertEquals(listOf("Food", "Travel"), repo.categories())
         }
 
     @Test

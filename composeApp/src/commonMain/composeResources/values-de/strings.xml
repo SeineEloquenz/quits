@@ -7,6 +7,8 @@
     <string name="action_create">Erstellen</string>
     <string name="action_join">Beitreten</string>
     <string name="action_save">Speichern</string>
+    <string name="action_add">Hinzufügen</string>
+    <string name="action_ok">OK</string>
     <string name="action_cancel">Abbrechen</string>
     <string name="action_reset">Zurücksetzen</string>
     <string name="action_record">Verbuchen</string>
@@ -77,6 +79,8 @@
     <string name="detail_settlement_row">%1$s hat %2$s bezahlt</string>
     <string name="detail_paid_by">bezahlt von %1$s</string>
     <string name="detail_owed_by">Geschuldet von</string>
+    <string name="detail_items">Positionen</string>
+    <string name="detail_split_unsupported">Diese Ausgabe wurde mit einer neueren App-Version erstellt. Aktualisiere die App, um ihre Aufteilung zu sehen und zu bearbeiten.</string>
     <string name="detail_note">Notiz</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d Personen</string>
     <string name="detail_edit_expense">Ausgabe bearbeiten</string>
@@ -112,6 +116,11 @@
     <string name="editor_title_edit">Ausgabe bearbeiten</string>
     <string name="editor_label_title">Titel</string>
     <string name="editor_label_category">Kategorie (optional)</string>
+    <string name="editor_label_date">Datum</string>
+    <string name="editor_label_time">Uhrzeit</string>
+    <string name="editor_category_new">Neu</string>
+    <string name="editor_category_new_title">Neue Kategorie</string>
+    <string name="editor_category_name">Kategoriename</string>
     <string name="editor_label_note">Notiz (optional)</string>
     <string name="editor_label_amount">Betrag</string>
     <string name="editor_label_currency">Währung</string>
@@ -123,12 +132,21 @@
     <string name="editor_customize_paid_link">Beträge anpassen ›</string>
     <string name="editor_equal_paid_link">‹ Gleichmäßig aufteilen</string>
     <string name="editor_split">Aufteilung</string>
+    <string name="editor_split_between">Aufteilen zwischen</string>
     <string name="editor_equal_hint">%1$d Personen · %2$s pro Person</string>
     <string name="editor_equal_count">%1$d Personen</string>
     <string name="editor_split_equal">Gleich</string>
     <string name="editor_split_shares">Anteile</string>
     <string name="editor_split_percentage">Prozent</string>
     <string name="editor_split_exact">Exakt</string>
+    <string name="editor_split_itemized">Positionen</string>
+    <string name="editor_item_label">Position</string>
+    <string name="editor_add_item">Position hinzufügen</string>
+    <string name="editor_remove_item">Position entfernen</string>
+    <string name="editor_items_total">Gesamt</string>
+    <string name="editor_item_shared_by">Geteilt von</string>
+    <string name="editor_item_select_all">Alle auswählen</string>
+    <string name="editor_item_deselect_all">Alle abwählen</string>
     <string name="editor_placeholder_shares">Anteile</string>
     <string name="editor_shares_suffix">×</string>
     <string name="editor_shares_decrease">Anteile verringern</string>
@@ -172,4 +190,14 @@
     <string name="error_no_exact">Gib exakte Beträge ein</string>
     <string name="error_percent_sum">Prozentsätze müssen zusammen 100 ergeben</string>
     <string name="error_exact_sum">Exakte Beträge müssen zusammen den Gesamtbetrag ergeben</string>
+    <string name="error_no_items">Füge mindestens eine Position hinzu</string>
+    <string name="error_items_sum">Positionen müssen zusammen den Gesamtbetrag ergeben</string>
+
+    <!-- Statistik -->
+    <string name="stats_title">Statistik</string>
+    <string name="stats_total">Gesamt ausgegeben</string>
+    <string name="stats_by_category">Nach Kategorie</string>
+    <string name="stats_by_member">Nach Person</string>
+    <string name="stats_uncategorized">Ohne Kategorie</string>
+    <string name="stats_empty">Noch keine Ausgaben zum Auswerten.</string>
 </resources>

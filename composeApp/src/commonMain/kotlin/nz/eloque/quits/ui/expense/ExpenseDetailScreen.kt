@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,10 +46,13 @@ import nz.eloque.quits.resources.cd_back
 import nz.eloque.quits.resources.detail_delete_expense
 import nz.eloque.quits.resources.detail_edit_expense
 import nz.eloque.quits.resources.detail_expense_not_found
+import nz.eloque.quits.resources.detail_items
 import nz.eloque.quits.resources.detail_note
 import nz.eloque.quits.resources.detail_owed_by
 import nz.eloque.quits.resources.detail_split_summary_dated
+import nz.eloque.quits.resources.detail_split_unsupported
 import nz.eloque.quits.resources.editor_expense_fallback_title
+import nz.eloque.quits.resources.editor_item_label
 import nz.eloque.quits.resources.editor_paid_by
 import nz.eloque.quits.resources.expense_delete_body
 import nz.eloque.quits.resources.expense_delete_title
@@ -120,8 +124,12 @@ fun ExpenseDetailScreen(
         },
         actions = {
             if (state.found) {
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.detail_edit_expense))
+                // No edit for an unsupported split: re-saving here would rewrite it as a plain Exact
+                // split and downgrade it for everyone via sync. Deleting is still allowed.
+                if (state.splitSupported) {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.detail_edit_expense))
+                    }
                 }
                 IconButton(onClick = { confirmingDelete = true }) {
                     Icon(Icons.Default.Delete, contentDescription = stringResource(Res.string.detail_delete_expense))
@@ -169,6 +177,31 @@ fun ExpenseDetailScreen(
                 }
             }
 
+            if (!state.splitSupported) {
+                Spacer(Modifier.height(16.dp))
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            stringResource(Res.string.detail_split_unsupported),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(24.dp))
             Text(
                 stringResource(Res.string.editor_paid_by),
@@ -176,6 +209,16 @@ fun ExpenseDetailScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
             state.paidBy.forEach { row -> ParticipantRow(row) }
+
+            if (state.items.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    stringResource(Res.string.detail_items),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                state.items.forEach { item -> ItemRow(item) }
+            }
 
             Spacer(Modifier.height(16.dp))
             Text(
@@ -224,5 +267,23 @@ private fun ParticipantRow(row: ExpenseParticipantRow) {
         MemberAvatar(name = row.name, id = row.id, size = 32.dp)
         Text(row.name, Modifier.weight(1f).padding(start = 12.dp))
         MoneyText(row.amount)
+    }
+}
+
+@Composable
+private fun ItemRow(item: ExpenseItemRow) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(item.label.ifEmpty { stringResource(Res.string.editor_item_label) })
+            Text(
+                item.participants.joinToString(", "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+        MoneyText(item.amount)
     }
 }

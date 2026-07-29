@@ -50,6 +50,7 @@ fun HomeScreen(
     onOpenExpense: (GroupId, ExpenseId) -> Unit,
     onOpenMember: (GroupId, MemberId) -> Unit,
     onSettleUp: (GroupId) -> Unit,
+    onOpenStats: (GroupId) -> Unit,
 ) {
     val viewModel = koinViewModel<GroupsViewModel>()
     val state by viewModel.state.collectAsState()
@@ -110,6 +111,7 @@ fun HomeScreen(
             onOpenExpense = { onOpenExpense(active, it) },
             onOpenMember = { onOpenMember(active, it) },
             onSettleUp = { onSettleUp(active) },
+            onOpenStats = { onOpenStats(active) },
         )
     }
 }

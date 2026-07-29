@@ -1,10 +1,13 @@
 package nz.eloque.quits.data.sync
 
 import nz.eloque.quits.data.db.ExpenseEntity
+import nz.eloque.quits.data.db.ExpenseItemEntity
+import nz.eloque.quits.data.db.ExpenseItemParticipantEntity
 import nz.eloque.quits.data.db.ExpensePayerEntity
 import nz.eloque.quits.data.db.ExpenseSplitEntity
 import nz.eloque.quits.data.db.ExpenseWithLines
 import nz.eloque.quits.data.db.GroupEntity
+import nz.eloque.quits.data.db.ItemWithParticipants
 import nz.eloque.quits.data.db.MemberEntity
 import nz.eloque.quits.data.db.SettlementEntity
 import nz.eloque.quits.data.db.SyncMeta
@@ -55,6 +58,16 @@ object RecordMapper {
                     splitType = e.splitType,
                     payers = expense.payers.map { SyncPayload.Payer(it.id, it.memberId, it.amountMinor) },
                     splits = expense.splits.map { SyncPayload.SplitLine(it.id, it.memberId, it.shareMinor, it.weight) },
+                    items =
+                        expense.items
+                            .sortedBy { it.item.position }
+                            .map { iwp ->
+                                SyncPayload.ItemLine(
+                                    iwp.item.label,
+                                    iwp.item.amountMinor,
+                                    iwp.participants.map { it.memberId },
+                                )
+                            }.ifEmpty { null },
                 ),
         )
     }
@@ -117,6 +130,13 @@ object RecordMapper {
             ),
             payload.payers.map { ExpensePayerEntity(it.id, payload.id, it.memberId, it.amountMinor) },
             payload.splits.map { ExpenseSplitEntity(it.id, payload.id, it.memberId, it.shareMinor, it.weight) },
+            (payload.items ?: emptyList()).mapIndexed { i, line ->
+                val itemId = "${payload.id}:item:$i"
+                ItemWithParticipants(
+                    ExpenseItemEntity(itemId, payload.id, line.label, line.amountMinor, i),
+                    line.participants.map { ExpenseItemParticipantEntity(itemId, it) },
+                )
+            },
         )
 
     fun settlementEntity(

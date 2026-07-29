@@ -6,14 +6,14 @@ import nz.eloque.quits.resources.date_today
 import nz.eloque.quits.resources.date_yesterday
 import nz.eloque.quits.util.DayBucket
 import nz.eloque.quits.util.dayBucket
-import nz.eloque.quits.util.formatDate
+import nz.eloque.quits.util.formatLocalDate
 import org.jetbrains.compose.resources.stringResource
 
-/** "Today" / "Yesterday" / a plain date, in the device's local timezone. */
+/** "Today" / "Yesterday" / a locale-formatted date, in the device's local timezone. */
 @Composable
 fun dayGroupLabel(epochMillis: Long): String =
     when (dayBucket(epochMillis)) {
         DayBucket.TODAY -> stringResource(Res.string.date_today)
         DayBucket.YESTERDAY -> stringResource(Res.string.date_yesterday)
-        DayBucket.OTHER -> formatDate(epochMillis)
+        DayBucket.OTHER -> formatLocalDate(epochMillis)
     }

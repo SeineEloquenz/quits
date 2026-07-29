@@ -77,12 +77,20 @@ interface MemberDao {
     )
 }
 
+data class ItemWithParticipants(
+    @Embedded val item: ExpenseItemEntity,
+    @Relation(parentColumns = ["id"], entityColumns = ["itemId"])
+    val participants: List<ExpenseItemParticipantEntity>,
+)
+
 data class ExpenseWithLines(
     @Embedded val expense: ExpenseEntity,
     @Relation(parentColumns = ["id"], entityColumns = ["expenseId"])
     val payers: List<ExpensePayerEntity>,
     @Relation(parentColumns = ["id"], entityColumns = ["expenseId"])
     val splits: List<ExpenseSplitEntity>,
+    @Relation(entity = ExpenseItemEntity::class, parentColumns = ["id"], entityColumns = ["expenseId"])
+    val items: List<ItemWithParticipants>,
 )
 
 @Dao
@@ -96,23 +104,38 @@ interface ExpenseDao {
     @Upsert
     suspend fun upsertSplits(splits: List<ExpenseSplitEntity>)
 
+    @Upsert
+    suspend fun upsertItems(items: List<ExpenseItemEntity>)
+
+    @Upsert
+    suspend fun upsertItemParticipants(participants: List<ExpenseItemParticipantEntity>)
+
     @Query("DELETE FROM expense_payer WHERE expenseId = :expenseId")
     suspend fun clearPayers(expenseId: String)
 
     @Query("DELETE FROM expense_split WHERE expenseId = :expenseId")
     suspend fun clearSplits(expenseId: String)
 
+    /** Cascades to expense_item_participant via the item foreign key. */
+    @Query("DELETE FROM expense_item WHERE expenseId = :expenseId")
+    suspend fun clearItems(expenseId: String)
+
     @Transaction
     suspend fun save(
         expense: ExpenseEntity,
         payers: List<ExpensePayerEntity>,
         splits: List<ExpenseSplitEntity>,
+        items: List<ExpenseItemEntity>,
+        itemParticipants: List<ExpenseItemParticipantEntity>,
     ) {
         upsertExpense(expense)
         clearPayers(expense.id)
         clearSplits(expense.id)
+        clearItems(expense.id)
         upsertPayers(payers)
         upsertSplits(splits)
+        upsertItems(items)
+        upsertItemParticipants(itemParticipants)
     }
 
     @Transaction
@@ -126,6 +149,13 @@ interface ExpenseDao {
     @Transaction
     @Query("SELECT * FROM expense WHERE id = :id")
     suspend fun byId(id: String): ExpenseWithLines?
+
+    /** Distinct non-empty categories across all live expenses, for the editor's category suggestions. */
+    @Query(
+        "SELECT DISTINCT category FROM expense WHERE category IS NOT NULL AND category != '' AND deleted = 0 " +
+            "ORDER BY category COLLATE NOCASE",
+    )
+    suspend fun distinctCategories(): List<String>
 
     @Transaction
     @Query("SELECT * FROM expense WHERE groupId = :groupId AND dirty = 1")
