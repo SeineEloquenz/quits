@@ -170,6 +170,19 @@ class GroupRepositoryTest {
         }
 
     @Test
+    fun categories_lists_distinct_used_categories_sorted() =
+        runTest {
+            repo.saveGroup(sampleGroup())
+            val base = sampleGroup().expenses.first()
+            repo.upsertExpense(GroupId("g"), Expense(ExpenseId("c1"), "a", base.payments, base.split, category = "Food"))
+            repo.upsertExpense(GroupId("g"), Expense(ExpenseId("c2"), "b", base.payments, base.split, category = "Travel"))
+            repo.upsertExpense(GroupId("g"), Expense(ExpenseId("c3"), "c", base.payments, base.split, category = "Food"))
+            repo.upsertExpense(GroupId("g"), Expense(ExpenseId("c4"), "d", base.payments, base.split))
+
+            assertEquals(listOf("Food", "Travel"), repo.categories())
+        }
+
+    @Test
     fun multiple_payers_survive_round_trip() =
         runTest {
             persist(sampleGroup())

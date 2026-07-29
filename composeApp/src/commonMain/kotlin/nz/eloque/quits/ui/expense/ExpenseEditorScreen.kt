@@ -25,6 +25,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -41,7 +43,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -62,8 +66,12 @@ import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Split
 import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.action_add
 import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.editor_add_item
+import nz.eloque.quits.resources.editor_category_name
+import nz.eloque.quits.resources.editor_category_new
+import nz.eloque.quits.resources.editor_category_new_title
 import nz.eloque.quits.resources.editor_customize_paid_link
 import nz.eloque.quits.resources.editor_equal_count
 import nz.eloque.quits.resources.editor_equal_hint
@@ -165,12 +173,10 @@ fun ExpenseEditorScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
+                    CategoryField(
                         value = state.category,
                         onValueChange = viewModel::setCategory,
-                        label = { Text(stringResource(Res.string.editor_label_category)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        suggestions = state.categorySuggestions,
                     )
                     Spacer(Modifier.height(8.dp))
                     CurrencyPicker(
@@ -423,6 +429,92 @@ fun ExpenseEditorScreen(
             Spacer(Modifier.height(24.dp))
         }
     }
+}
+
+/**
+ * Category picker, chip-first to match the rest of the editor. Categories used before (any group)
+ * show as single-select chips — tap to choose, tap the chosen one again to clear. "New" opens a
+ * dialog to create one, so a category is only ever created by a deliberate action, never as a side
+ * effect of leaving typed text behind. No fixed preset list.
+ */
+@Composable
+private fun CategoryField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    suggestions: List<String>,
+) {
+    var showAdd by remember { mutableStateOf(false) }
+    // Include the chosen category even if it isn't a saved suggestion yet (created earlier this session).
+    val chips =
+        if (value.isNotBlank() && suggestions.none { it.equals(value, ignoreCase = true) }) {
+            suggestions + value
+        } else {
+            suggestions
+        }
+
+    Text(
+        stringResource(Res.string.editor_label_category),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.outline,
+    )
+    Spacer(Modifier.height(4.dp))
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        chips.forEach { category ->
+            val selected = category.equals(value, ignoreCase = true)
+            FilterChip(
+                selected = selected,
+                onClick = { onValueChange(if (selected) "" else category) },
+                label = { Text(category) },
+            )
+        }
+        AssistChip(
+            onClick = { showAdd = true },
+            label = { Text(stringResource(Res.string.editor_category_new)) },
+            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp)) },
+        )
+    }
+
+    if (showAdd) {
+        NewCategoryDialog(
+            onConfirm = {
+                onValueChange(it)
+                showAdd = false
+            },
+            onDismiss = { showAdd = false },
+        )
+    }
+}
+
+@Composable
+private fun NewCategoryDialog(
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.editor_category_new_title)) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text(stringResource(Res.string.editor_category_name)) },
+                singleLine = true,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(text.trim()) }, enabled = text.isNotBlank()) {
+                Text(stringResource(Res.string.action_add))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
+        },
+    )
 }
 
 /** One tappable avatar chip; a checkmark badge marks selection. Used for both single-payer pick and equal-split toggle. */

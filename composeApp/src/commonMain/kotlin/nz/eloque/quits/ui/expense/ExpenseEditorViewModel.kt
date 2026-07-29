@@ -80,6 +80,8 @@ data class ExpenseEditorUiState(
     val members: List<MemberInput> = emptyList(),
     val title: String = "",
     val category: String = "",
+    /** Categories used before (any group), offered as tappable suggestions under the field. */
+    val categorySuggestions: List<String> = emptyList(),
     val note: String = "",
     /** The expense total. Payments (in either payer mode) must add up to exactly this. */
     val amount: String = "",
@@ -126,7 +128,7 @@ class ExpenseEditorViewModel(
         viewModelScope.launch {
             val group = repo.load(groupId) ?: return@launch
             val existing = expenseId?.let { id -> group.expenses.firstOrNull { it.id.value == id } }
-            _state.value = initialState(group, existing)
+            _state.value = initialState(group, existing).copy(categorySuggestions = repo.categories())
         }
     }
 

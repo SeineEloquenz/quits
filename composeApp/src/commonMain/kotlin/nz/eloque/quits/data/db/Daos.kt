@@ -150,6 +150,13 @@ interface ExpenseDao {
     @Query("SELECT * FROM expense WHERE id = :id")
     suspend fun byId(id: String): ExpenseWithLines?
 
+    /** Distinct non-empty categories across all live expenses, for the editor's category suggestions. */
+    @Query(
+        "SELECT DISTINCT category FROM expense WHERE category IS NOT NULL AND category != '' AND deleted = 0 " +
+            "ORDER BY category COLLATE NOCASE",
+    )
+    suspend fun distinctCategories(): List<String>
+
     @Transaction
     @Query("SELECT * FROM expense WHERE groupId = :groupId AND dirty = 1")
     suspend fun dirty(groupId: String): List<ExpenseWithLines>

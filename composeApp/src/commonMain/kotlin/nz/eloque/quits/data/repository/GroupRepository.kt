@@ -132,6 +132,9 @@ class GroupRepository(
         )
     }
 
+    /** Every category the user has used, across all groups — the editor offers these as suggestions. */
+    suspend fun categories(): List<String> = db.expenseDao().distinctCategories()
+
     /**
      * Inserts or updates [expense]. The timestamp is [expense].spentAt when set (> 0); the
      * [spentAt] parameter can still override it explicitly (existing callers keep working
