@@ -39,6 +39,12 @@ data class SettleUpKey(
     val groupId: String,
 ) : NavKey
 
+/** Read-only spending breakdown for a group: total, by category, by member. */
+@Serializable
+data class StatsKey(
+    val groupId: String,
+) : NavKey
+
 @Serializable
 data class ExpenseEditorKey(
     val groupId: String,

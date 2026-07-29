@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -111,6 +112,7 @@ import nz.eloque.quits.resources.group_leave_confirm
 import nz.eloque.quits.resources.group_leave_menu
 import nz.eloque.quits.resources.group_leave_title
 import nz.eloque.quits.resources.label_share_code
+import nz.eloque.quits.resources.stats_title
 import nz.eloque.quits.ui.components.BalanceText
 import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.LoadingBox
@@ -133,6 +135,7 @@ fun GroupDetailScreen(
     onOpenExpense: (ExpenseId) -> Unit,
     onOpenMember: (MemberId) -> Unit,
     onSettleUp: () -> Unit,
+    onOpenStats: () -> Unit,
 ) {
     val viewModel = koinViewModel<GroupDetailViewModel>(key = groupId.value) { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
@@ -203,6 +206,14 @@ fun GroupDetailScreen(
                     Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.cd_more))
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.stats_title)) },
+                        leadingIcon = { Icon(Icons.Default.BarChart, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onOpenStats()
+                        },
+                    )
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.group_leave_menu)) },
                         leadingIcon = {

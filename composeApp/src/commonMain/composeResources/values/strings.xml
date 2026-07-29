@@ -195,4 +195,12 @@
     <string name="error_exact_sum">Exact amounts must add up to the total</string>
     <string name="error_no_items">Add at least one item</string>
     <string name="error_items_sum">Items must add up to the total</string>
+
+    <!-- Statistics -->
+    <string name="stats_title">Statistics</string>
+    <string name="stats_total">Total spent</string>
+    <string name="stats_by_category">By category</string>
+    <string name="stats_by_member">By member</string>
+    <string name="stats_uncategorized">Uncategorized</string>
+    <string name="stats_empty">No expenses to summarize yet.</string>
 </resources>
