@@ -206,4 +206,8 @@
     <string name="stats_by_member">By member</string>
     <string name="stats_uncategorized">Uncategorized</string>
     <string name="stats_empty">No expenses to summarize yet.</string>
+
+    <!-- Export -->
+    <string name="export_csv_menu">Export CSV</string>
+    <string name="export_empty">No expenses to export yet.</string>
 </resources>

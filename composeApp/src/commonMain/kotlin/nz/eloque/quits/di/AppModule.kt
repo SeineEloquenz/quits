@@ -25,7 +25,7 @@ val appModule =
         singleOf(::InviteResolver)
         viewModelOf(::GroupsViewModel)
         viewModelOf(::SettingsViewModel)
-        viewModel { params -> GroupDetailViewModel(get(), get(), params.get<GroupId>()) }
+        viewModel { params -> GroupDetailViewModel(get(), get(), get(), params.get<GroupId>()) }
         viewModel { params -> ExpenseEditorViewModel(get(), get(), get(), params.get<GroupId>(), params.getOrNull<String>()) }
         viewModel { params -> ExpenseDetailViewModel(get(), get(), params.get<GroupId>(), params.get<ExpenseId>()) }
         viewModel { params -> MemberDetailViewModel(get(), get(), params.get<GroupId>(), params.get<MemberId>()) }

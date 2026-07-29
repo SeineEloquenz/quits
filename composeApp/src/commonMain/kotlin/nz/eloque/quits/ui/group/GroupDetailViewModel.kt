@@ -3,9 +3,12 @@ package nz.eloque.quits.ui.group
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -26,6 +29,10 @@ import nz.eloque.quits.domain.Transfer
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.error_relay_unreachable
 import nz.eloque.quits.resources.error_sync_failed
+import nz.eloque.quits.resources.export_empty
+import nz.eloque.quits.util.FileExporter
+import nz.eloque.quits.util.csvFileName
+import nz.eloque.quits.util.expensesToCsv
 import nz.eloque.quits.util.newId
 import nz.eloque.quits.util.nowMillis
 import org.jetbrains.compose.resources.getString
@@ -114,6 +121,7 @@ data class GroupDetailUiState(
 class GroupDetailViewModel(
     private val repo: GroupRepository,
     private val engine: SyncEngine,
+    private val exporter: FileExporter,
     private val groupId: GroupId,
 ) : ViewModel() {
     private val filter = MutableStateFlow(ActivityFilter())
@@ -126,6 +134,11 @@ class GroupDetailViewModel(
 
     private val _syncStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
     val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
+
+    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 1)
+
+    /** One-shot user-facing messages (e.g. "nothing to export") for a snackbar. */
+    val messages: SharedFlow<String> = _messages.asSharedFlow()
 
     fun setQuery(value: String) = filter.update { it.copy(query = value) }
 
@@ -154,6 +167,18 @@ class GroupDetailViewModel(
             } catch (e: Exception) {
                 _syncStatus.value = SyncStatus.Failed(getString(Res.string.error_relay_unreachable, e.message ?: ""))
             }
+        }
+    }
+
+    /** Exports the group's expenses as a CSV file via the platform share/save sheet. */
+    fun exportCsv() {
+        viewModelScope.launch {
+            val group = repo.load(groupId) ?: return@launch
+            if (group.expenses.isEmpty()) {
+                _messages.emit(getString(Res.string.export_empty))
+                return@launch
+            }
+            exporter.export(csvFileName(group.name), "text/csv", group.expensesToCsv())
         }
     }
 

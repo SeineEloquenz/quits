@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -105,6 +106,7 @@ import nz.eloque.quits.resources.detail_share_group
 import nz.eloque.quits.resources.detail_share_hint
 import nz.eloque.quits.resources.detail_sharing
 import nz.eloque.quits.resources.detail_split_unsupported
+import nz.eloque.quits.resources.export_csv_menu
 import nz.eloque.quits.resources.group_fallback_name
 import nz.eloque.quits.resources.group_leave_body_local
 import nz.eloque.quits.resources.group_leave_body_shared
@@ -153,6 +155,10 @@ fun GroupDetailScreen(
             snackbarHostState.showSnackbar(it.message)
             viewModel.dismissError()
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.messages.collect { snackbarHostState.showSnackbar(it) }
     }
 
     if (showShare) {
@@ -212,6 +218,14 @@ fun GroupDetailScreen(
                         onClick = {
                             menuExpanded = false
                             onOpenStats()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.export_csv_menu)) },
+                        leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            viewModel.exportCsv()
                         },
                     )
                     DropdownMenuItem(
