@@ -7,7 +7,6 @@ composeMaterialIconsExtended = "1.7.3"
 
 androidxActivity = "1.13.0"
 koin = "4.2.2"
-lifecycle = "2.10.0"
 kotlinxCoroutines = "1.11.0"
 kotlinxSerialization = "1.11.0"
 kotlinxDatetime = "0.8.0"
