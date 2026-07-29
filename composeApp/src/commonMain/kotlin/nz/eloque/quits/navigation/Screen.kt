@@ -55,6 +55,9 @@ data class ExpenseEditorKey(
 data object SettingsKey : NavKey
 
 @Serializable
+data object AboutKey : NavKey
+
+@Serializable
 data class JoinInviteKey(
     val code: String,
 ) : NavKey
