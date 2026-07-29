@@ -1,5 +1,6 @@
 package nz.eloque.quits.util
 
+import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSString
 import platform.Foundation.NSTemporaryDirectory
 import platform.Foundation.NSURL
@@ -16,6 +17,7 @@ import platform.UIKit.popoverPresentationController
 
 /** Writes the file to the temp directory and shares its URL via a `UIActivityViewController`. */
 class IosFileExporter : FileExporter {
+    @OptIn(ExperimentalForeignApi::class)
     override fun export(
         fileName: String,
         mimeType: String,
