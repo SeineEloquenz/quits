@@ -25,6 +25,8 @@ result-*
 *.db-wal
 *.db-shm
 
+/composeApp/src/commonMain/composeResources/files/aboutlibraries.json
+
 # IDE
 .idea/
 *.iml

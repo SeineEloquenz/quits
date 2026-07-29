@@ -2,6 +2,7 @@ package nz.eloque.quits.ui.about
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Balance
 import androidx.compose.material.icons.filled.Construction
 import androidx.compose.material.icons.filled.Source
@@ -17,6 +18,7 @@ import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.BuildInfo
 import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.about_libraries
 import nz.eloque.quits.resources.about_license
 import nz.eloque.quits.resources.about_source_code
 import nz.eloque.quits.resources.about_tagline
@@ -31,7 +33,10 @@ private const val REPO_URL = "https://github.com/SeineEloquenz/quits"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutScreen(onBack: () -> Unit) {
+fun AboutScreen(
+    onBack: () -> Unit,
+    onOpenLibraries: () -> Unit,
+) {
     AppScaffold(
         title = {
             AbbreviatingText(
@@ -64,6 +69,11 @@ fun AboutScreen(onBack: () -> Unit) {
                         icon = Icons.Default.Balance,
                         label = stringResource(Res.string.about_license),
                         url = "$REPO_URL/blob/main/LICENSE",
+                    ),
+                    AboutLink.Action(
+                        icon = Icons.AutoMirrored.Filled.LibraryBooks,
+                        label = stringResource(Res.string.about_libraries),
+                        onClick = onOpenLibraries,
                     ),
                 ),
         )

@@ -9,10 +9,21 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    alias(libs.plugins.aboutLibraries)
 }
 
 room3 {
     schemaDirectory("$projectDir/schemas")
+}
+
+aboutLibraries {
+    export {
+        outputFile = file("src/commonMain/composeResources/files/aboutlibraries.json")
+    }
+}
+
+tasks.named("copyNonXmlValueResourcesForCommonMain") {
+    dependsOn("exportLibraryDefinitions")
 }
 
 val generateBuildInfo by tasks.registering {
@@ -116,6 +127,8 @@ kotlin {
             implementation(libs.cryptography.core)
             implementation(libs.cryptography.provider.optimal)
             implementation(libs.kermit)
+            implementation(libs.aboutlibraries.core)
+            implementation(libs.aboutlibraries.compose.m3)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)

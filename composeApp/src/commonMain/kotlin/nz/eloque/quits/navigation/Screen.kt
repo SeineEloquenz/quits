@@ -58,6 +58,9 @@ data object SettingsKey : NavKey
 data object AboutKey : NavKey
 
 @Serializable
+data object LibrariesKey : NavKey
+
+@Serializable
 data class JoinInviteKey(
     val code: String,
 ) : NavKey

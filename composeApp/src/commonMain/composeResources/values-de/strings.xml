@@ -173,6 +173,7 @@
     <string name="about_tagline">Mit ❤ gemacht in Deutschland</string>
     <string name="about_source_code">Quellcode</string>
     <string name="about_license">Lizenz</string>
+    <string name="about_libraries">Bibliotheken</string>
 
     <!-- Currency picker -->
     <string name="search_currency">Währung suchen</string>

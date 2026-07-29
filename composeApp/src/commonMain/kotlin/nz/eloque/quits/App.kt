@@ -32,12 +32,14 @@ import nz.eloque.quits.navigation.ExpenseDetailKey
 import nz.eloque.quits.navigation.ExpenseEditorKey
 import nz.eloque.quits.navigation.GroupsHomeKey
 import nz.eloque.quits.navigation.JoinInviteKey
+import nz.eloque.quits.navigation.LibrariesKey
 import nz.eloque.quits.navigation.MemberDetailKey
 import nz.eloque.quits.navigation.SettingsKey
 import nz.eloque.quits.navigation.SettleUpKey
 import nz.eloque.quits.navigation.StatsKey
 import nz.eloque.quits.theme.QuitsTheme
 import nz.eloque.quits.ui.about.AboutScreen
+import nz.eloque.quits.ui.about.LibrariesScreen
 import nz.eloque.quits.ui.expense.ExpenseDetailScreen
 import nz.eloque.quits.ui.expense.ExpenseEditorScreen
 import nz.eloque.quits.ui.group.MemberDetailScreen
@@ -63,6 +65,7 @@ private val navSavedStateConfiguration =
                     subclass(ExpenseEditorKey::class)
                     subclass(SettingsKey::class)
                     subclass(AboutKey::class)
+                    subclass(LibrariesKey::class)
                     subclass(JoinInviteKey::class)
                 }
             }
@@ -164,7 +167,13 @@ fun App() {
                             SettingsScreen(onBack = { backStack.removeLastOrNull() })
                         }
                         entry<AboutKey> {
-                            AboutScreen(onBack = { backStack.removeLastOrNull() })
+                            AboutScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                                onOpenLibraries = { backStack.add(LibrariesKey) },
+                            )
+                        }
+                        entry<LibrariesKey> {
+                            LibrariesScreen(onBack = { backStack.removeLastOrNull() })
                         }
                         entry<JoinInviteKey> { key ->
                             JoinInviteScreen(
