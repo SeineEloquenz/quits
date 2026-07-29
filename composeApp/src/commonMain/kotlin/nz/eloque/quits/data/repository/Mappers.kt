@@ -46,6 +46,7 @@ internal fun SettlementEntity.toDomain(): Settlement =
         Money(amountMinor, Currency.of(currency)),
         rateToBase,
         paidAt,
+        note,
     )
 
 internal fun ExpenseWithLines.toDomain(): Expense {

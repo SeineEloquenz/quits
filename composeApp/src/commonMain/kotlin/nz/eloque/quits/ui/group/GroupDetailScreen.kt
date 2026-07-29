@@ -74,6 +74,7 @@ import nz.eloque.quits.data.invite.InviteLink
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
+import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_copy
@@ -136,6 +137,7 @@ fun GroupDetailScreen(
     onAddExpense: () -> Unit,
     onOpenExpense: (ExpenseId) -> Unit,
     onOpenMember: (MemberId) -> Unit,
+    onOpenSettlement: (SettlementId) -> Unit,
     onSettleUp: () -> Unit,
     onOpenStats: () -> Unit,
 ) {
@@ -325,7 +327,8 @@ fun GroupDetailScreen(
                             }
 
                             is ActivityEntry.SettlementEntry -> {
-                                SettlementRowCard(entry.row)
+                                val settlement = entry.row
+                                SettlementRowCard(settlement, onClick = { onOpenSettlement(settlement.id) })
                             }
                         }
                         Spacer(Modifier.height(8.dp))
@@ -397,8 +400,11 @@ private fun ActivitySearchBar(
 }
 
 @Composable
-private fun SettlementRowCard(row: SettlementRow) {
-    ElevatedCard(Modifier.fillMaxWidth()) {
+private fun SettlementRowCard(
+    row: SettlementRow,
+    onClick: () -> Unit,
+) {
+    ElevatedCard(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Row(
             Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,

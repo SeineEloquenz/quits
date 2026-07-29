@@ -77,6 +77,10 @@
     <string name="date_yesterday">Gestern</string>
     <string name="detail_settlement_title">Ausgleich</string>
     <string name="detail_settlement_row">%1$s hat %2$s bezahlt</string>
+    <string name="settlement_editor_title">Ausgleich bearbeiten</string>
+    <string name="settlement_not_found">Dieser Ausgleich existiert nicht mehr.</string>
+    <string name="settlement_delete_title">Ausgleich löschen?</string>
+    <string name="settlement_delete_body">Dies entfernt den Ausgleich für alle in der Gruppe, sobald synchronisiert wurde. Das kann nicht rückgängig gemacht werden.</string>
     <string name="detail_paid_by">bezahlt von %1$s</string>
     <string name="detail_owed_by">Geschuldet von</string>
     <string name="detail_items">Positionen</string>

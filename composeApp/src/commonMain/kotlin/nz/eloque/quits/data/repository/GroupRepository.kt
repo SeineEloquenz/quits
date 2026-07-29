@@ -18,6 +18,7 @@ import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Member
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Settlement
+import nz.eloque.quits.domain.SettlementId
 
 /** Lightweight projection for the groups list (avoids loading each full aggregate). */
 data class GroupSummary(
@@ -174,9 +175,9 @@ class GroupRepository(
     }
 
     /**
-     * Inserts or updates [settlement]. The timestamp is [settlement].paidAt when set (> 0); the
-     * [paidAt] parameter can still override it explicitly (existing callers keep working
-     * unchanged).
+     * Inserts or updates [settlement]. The timestamp is [settlement].paidAt when set (> 0), and the
+     * note is [settlement].note; the [paidAt]/[note] parameters can still override them explicitly
+     * (existing callers keep working unchanged).
      */
     suspend fun upsertSettlement(
         groupId: GroupId,
@@ -195,9 +196,14 @@ class GroupRepository(
                 currency = settlement.amount.currency.code,
                 rateToBase = settlement.rateToBase,
                 paidAt = resolvedPaidAt,
-                note = note,
+                note = note ?: settlement.note,
                 sync = meta(),
             ),
         )
+    }
+
+    /** Soft-deletes (tombstones) a settlement so it drops out of queries and syncs as a deletion. */
+    suspend fun deleteSettlement(settlementId: SettlementId) {
+        db.settlementDao().tombstone(settlementId.value, now(), deviceId)
     }
 }

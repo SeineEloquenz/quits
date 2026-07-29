@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
+import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.about_title
 import nz.eloque.quits.resources.app_name
@@ -52,6 +53,7 @@ fun HomeScreen(
     onAddExpense: (GroupId) -> Unit,
     onOpenExpense: (GroupId, ExpenseId) -> Unit,
     onOpenMember: (GroupId, MemberId) -> Unit,
+    onOpenSettlement: (GroupId, SettlementId) -> Unit,
     onSettleUp: (GroupId) -> Unit,
     onOpenStats: (GroupId) -> Unit,
 ) {
@@ -117,6 +119,7 @@ fun HomeScreen(
             onAddExpense = { onAddExpense(active) },
             onOpenExpense = { onOpenExpense(active, it) },
             onOpenMember = { onOpenMember(active, it) },
+            onOpenSettlement = { onOpenSettlement(active, it) },
             onSettleUp = { onSettleUp(active) },
             onOpenStats = { onOpenStats(active) },
         )

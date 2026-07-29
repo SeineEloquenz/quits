@@ -51,6 +51,13 @@ data class ExpenseEditorKey(
     val expenseId: String? = null,
 ) : NavKey
 
+/** Edit an existing recorded settlement (amount, who paid whom, date, note) or delete it. */
+@Serializable
+data class SettlementEditorKey(
+    val groupId: String,
+    val settlementId: String,
+) : NavKey
+
 @Serializable
 data object SettingsKey : NavKey
 

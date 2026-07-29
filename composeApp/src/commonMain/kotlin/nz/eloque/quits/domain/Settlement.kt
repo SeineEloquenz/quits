@@ -15,6 +15,8 @@ class Settlement(
      * [Entity]), so this can be filled in without affecting anything that compares settlements.
      */
     val paidAt: Long = 0L,
+    /** Free-text note (optional). Like [paidAt], not part of identity/equality. */
+    val note: String? = null,
 ) : Entity<SettlementId>() {
     init {
         require(from != to) { "a settlement must be between two different members" }

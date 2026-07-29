@@ -201,6 +201,13 @@ interface SettlementDao {
         updatedAt: Long,
         deviceId: String,
     )
+
+    @Query("UPDATE settlement SET deleted = 1, dirty = 1, updatedAt = :updatedAt, deviceId = :deviceId WHERE id = :id")
+    suspend fun tombstone(
+        id: String,
+        updatedAt: Long,
+        deviceId: String,
+    )
 }
 
 @Dao

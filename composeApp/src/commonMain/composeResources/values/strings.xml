@@ -83,6 +83,10 @@
     <string name="date_yesterday">Yesterday</string>
     <string name="detail_settlement_title">Settlement</string>
     <string name="detail_settlement_row">%1$s paid %2$s</string>
+    <string name="settlement_editor_title">Edit settlement</string>
+    <string name="settlement_not_found">This settlement no longer exists.</string>
+    <string name="settlement_delete_title">Delete settlement?</string>
+    <string name="settlement_delete_body">This removes the settlement for everyone in the group once synced. This can\'t be undone.</string>
     <string name="detail_paid_by">paid by %1$s</string>
     <string name="detail_owed_by">Owed by</string>
     <string name="detail_items">Items</string>
