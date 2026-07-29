@@ -10,7 +10,9 @@ import com.russhwolf.settings.SharedPreferencesSettings
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.okhttp.OkHttp
 import nz.eloque.quits.data.db.QuitsDatabase
+import nz.eloque.quits.util.AndroidFileExporter
 import nz.eloque.quits.util.AndroidSharer
+import nz.eloque.quits.util.FileExporter
 import nz.eloque.quits.util.Sharer
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
@@ -31,4 +33,5 @@ actual val platformModule: Module =
         }
         single<HttpClientEngine> { OkHttp.create() }
         single<Sharer> { AndroidSharer(androidContext()) }
+        single<FileExporter> { AndroidFileExporter(androidContext()) }
     }

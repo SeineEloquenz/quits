@@ -10,6 +10,8 @@ import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.darwin.Darwin
 import kotlinx.cinterop.ExperimentalForeignApi
 import nz.eloque.quits.data.db.QuitsDatabase
+import nz.eloque.quits.util.FileExporter
+import nz.eloque.quits.util.IosFileExporter
 import nz.eloque.quits.util.IosSharer
 import nz.eloque.quits.util.Sharer
 import org.koin.core.module.Module
@@ -38,4 +40,5 @@ actual val platformModule: Module =
         single<Settings> { NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults) }
         single<HttpClientEngine> { Darwin.create() }
         single<Sharer> { IosSharer() }
+        single<FileExporter> { IosFileExporter() }
     }

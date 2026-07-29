@@ -200,4 +200,8 @@
     <string name="stats_by_member">Nach Person</string>
     <string name="stats_uncategorized">Ohne Kategorie</string>
     <string name="stats_empty">Noch keine Ausgaben zum Auswerten.</string>
+
+    <!-- Export -->
+    <string name="export_csv_menu">CSV exportieren</string>
+    <string name="export_empty">Noch keine Ausgaben zum Exportieren.</string>
 </resources>
