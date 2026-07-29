@@ -47,7 +47,7 @@ import nz.eloque.quits.resources.error_paid_sum
 import nz.eloque.quits.resources.error_percent_sum
 import nz.eloque.quits.resources.rate_cached
 import nz.eloque.quits.resources.rate_fetch_failed
-import nz.eloque.quits.util.formatDate
+import nz.eloque.quits.util.formatLocalDate
 import nz.eloque.quits.util.newId
 import nz.eloque.quits.util.nowMillis
 import org.jetbrains.compose.resources.getString
@@ -104,8 +104,8 @@ data class ExpenseEditorUiState(
     val error: String? = null,
     val fetchingRate: Boolean = false,
     val rateNotice: String? = null,
-    /** 0 for a new expense (save() will stamp "now"); the original spentAt when editing one. */
-    val originalSpentAt: Long = 0L,
+    /** When the expense was incurred (epoch millis); defaults to now for a new expense, editable via the date picker. */
+    val spentAt: Long = 0L,
 ) {
     val isForeign: Boolean get() = currency != baseCurrency
 }
@@ -151,6 +151,7 @@ class ExpenseEditorViewModel(
                 payerSelected = emptySet(),
                 equalSelected = allIds,
                 draftParticipants = emptySet(),
+                spentAt = nowMillis(),
             )
         }
         val paidMoney =
@@ -187,7 +188,7 @@ class ExpenseEditorViewModel(
             payerMode = if (isEvenSplit) PayerMode.EQUAL else PayerMode.CUSTOM,
             payerSelected = distinctPayers.toSet(),
             paid = paid,
-            originalSpentAt = existing.spentAt,
+            spentAt = existing.spentAt,
             splitKind = split.kind(),
             equalSelected = if (split is Split.Equal) split.participants.toSet() else allIds,
             splitInput =
@@ -209,6 +210,8 @@ class ExpenseEditorViewModel(
     }
 
     fun setTitle(value: String) = _state.update { it.copy(title = value) }
+
+    fun setSpentAt(millis: Long) = _state.update { it.copy(spentAt = millis) }
 
     fun setCategory(value: String) = _state.update { it.copy(category = value) }
 
@@ -257,7 +260,7 @@ class ExpenseEditorViewModel(
                             rateNotice =
                                 when (result) {
                                     is RateResult.Live -> null
-                                    is RateResult.Cached -> getString(Res.string.rate_cached, formatDate(result.asOf))
+                                    is RateResult.Cached -> getString(Res.string.rate_cached, formatLocalDate(result.asOf))
                                 },
                         )
                     }
@@ -396,7 +399,7 @@ class ExpenseEditorViewModel(
                         validated.payments,
                         validated.split,
                         validated.rate,
-                        spentAt = if (s.originalSpentAt > 0L) s.originalSpentAt else nowMillis(),
+                        spentAt = s.spentAt.takeIf { it > 0L } ?: nowMillis(),
                         category = s.category.trim().ifEmpty { null },
                         note = s.note.trim().ifEmpty { null },
                     )

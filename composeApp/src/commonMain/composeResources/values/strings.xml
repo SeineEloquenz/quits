@@ -8,6 +8,7 @@
     <string name="action_join">Join</string>
     <string name="action_save">Save</string>
     <string name="action_add">Add</string>
+    <string name="action_ok">OK</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_reset">Reset</string>
     <string name="action_record">Record</string>
@@ -121,6 +122,8 @@
     <string name="editor_title_edit">Edit expense</string>
     <string name="editor_label_title">Title</string>
     <string name="editor_label_category">Category (optional)</string>
+    <string name="editor_label_date">Date</string>
+    <string name="editor_label_time">Time</string>
     <string name="editor_category_new">New</string>
     <string name="editor_category_new_title">New category</string>
     <string name="editor_category_name">Category name</string>

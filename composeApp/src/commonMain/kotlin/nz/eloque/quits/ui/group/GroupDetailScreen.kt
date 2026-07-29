@@ -120,7 +120,7 @@ import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.MoneyText
 import nz.eloque.quits.ui.components.dayGroupLabel
 import nz.eloque.quits.util.Sharer
-import nz.eloque.quits.util.formatDateTime
+import nz.eloque.quits.util.formatLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -647,7 +647,7 @@ private fun ShareSheet(
                 )
                 Text(
                     state.lastSyncedAt
-                        ?.let { stringResource(Res.string.detail_last_synced, formatDateTime(it)) }
+                        ?.let { stringResource(Res.string.detail_last_synced, formatLocalDateTime(it)) }
                         ?: stringResource(Res.string.detail_not_synced),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,

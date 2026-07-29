@@ -22,12 +22,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -37,8 +41,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,6 +63,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.datetime.TimeZone
 import nz.eloque.compose_kit.chip.ChipSelector
 import nz.eloque.compose_kit.components.SectionCard
 import nz.eloque.compose_kit.input.AbbreviatingText
@@ -68,6 +77,7 @@ import nz.eloque.quits.domain.Split
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_add
 import nz.eloque.quits.resources.action_cancel
+import nz.eloque.quits.resources.action_ok
 import nz.eloque.quits.resources.editor_add_item
 import nz.eloque.quits.resources.editor_category_name
 import nz.eloque.quits.resources.editor_category_new
@@ -84,8 +94,10 @@ import nz.eloque.quits.resources.editor_items_total
 import nz.eloque.quits.resources.editor_label_amount
 import nz.eloque.quits.resources.editor_label_category
 import nz.eloque.quits.resources.editor_label_currency
+import nz.eloque.quits.resources.editor_label_date
 import nz.eloque.quits.resources.editor_label_note
 import nz.eloque.quits.resources.editor_label_rate
+import nz.eloque.quits.resources.editor_label_time
 import nz.eloque.quits.resources.editor_label_title
 import nz.eloque.quits.resources.editor_paid_by
 import nz.eloque.quits.resources.editor_paid_by_hint
@@ -113,6 +125,12 @@ import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.display
 import nz.eloque.quits.ui.components.isValidAmountInput
+import nz.eloque.quits.util.formatLocalDate
+import nz.eloque.quits.util.formatLocalTime
+import nz.eloque.quits.util.localDateMillisUtc
+import nz.eloque.quits.util.localHourMinute
+import nz.eloque.quits.util.withPickedDate
+import nz.eloque.quits.util.withPickedTime
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -127,9 +145,53 @@ fun ExpenseEditorScreen(
 ) {
     val viewModel = koinViewModel<ExpenseEditorViewModel> { parametersOf(groupId, expenseId) }
     val state by viewModel.state.collectAsState()
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.saved.collect { onDone() }
+    }
+
+    if (showDatePicker) {
+        val zone = remember { TimeZone.currentSystemDefault() }
+        val pickerState = rememberDatePickerState(initialSelectedDateMillis = localDateMillisUtc(state.spentAt, zone))
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { viewModel.setSpentAt(withPickedDate(state.spentAt, it, zone)) }
+                    showDatePicker = false
+                }) { Text(stringResource(Res.string.action_ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(Res.string.action_cancel)) }
+            },
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        val zone = remember { TimeZone.currentSystemDefault() }
+        val (initialHour, initialMinute) = remember { localHourMinute(state.spentAt, zone) }
+        // No is24Hour argument: rememberTimePickerState defaults to the device's clock setting.
+        val timeState = rememberTimePickerState(initialHour = initialHour, initialMinute = initialMinute)
+        BasicAlertDialog(onDismissRequest = { showTimePicker = false }) {
+            Surface(shape = MaterialTheme.shapes.extraLarge, tonalElevation = 6.dp) {
+                Column(Modifier.padding(20.dp)) {
+                    TimePicker(state = timeState)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { showTimePicker = false }) {
+                            Text(stringResource(Res.string.action_cancel))
+                        }
+                        TextButton(onClick = {
+                            viewModel.setSpentAt(withPickedTime(state.spentAt, timeState.hour, timeState.minute, zone))
+                            showTimePicker = false
+                        }) { Text(stringResource(Res.string.action_ok)) }
+                    }
+                }
+            }
+        }
     }
 
     AppScaffold(
@@ -178,6 +240,32 @@ fun ExpenseEditorScreen(
                         onValueChange = viewModel::setCategory,
                         suggestions = state.categorySuggestions,
                     )
+                    Spacer(Modifier.height(8.dp))
+                    // Read-only fields; a transparent overlay opens the relevant picker on tap.
+                    Row(verticalAlignment = Alignment.Top) {
+                        Box(Modifier.weight(1f)) {
+                            OutlinedTextField(
+                                value = formatLocalDate(state.spentAt),
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text(stringResource(Res.string.editor_label_date)) },
+                                trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Box(Modifier.matchParentSize().clickable { showDatePicker = true })
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Box {
+                            OutlinedTextField(
+                                value = formatLocalTime(state.spentAt),
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text(stringResource(Res.string.editor_label_time)) },
+                                modifier = Modifier.width(116.dp),
+                            )
+                            Box(Modifier.matchParentSize().clickable { showTimePicker = true })
+                        }
+                    }
                     Spacer(Modifier.height(8.dp))
                     CurrencyPicker(
                         label = stringResource(Res.string.editor_label_currency),

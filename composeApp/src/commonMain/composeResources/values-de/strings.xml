@@ -8,6 +8,7 @@
     <string name="action_join">Beitreten</string>
     <string name="action_save">Speichern</string>
     <string name="action_add">Hinzufügen</string>
+    <string name="action_ok">OK</string>
     <string name="action_cancel">Abbrechen</string>
     <string name="action_reset">Zurücksetzen</string>
     <string name="action_record">Verbuchen</string>
@@ -115,6 +116,8 @@
     <string name="editor_title_edit">Ausgabe bearbeiten</string>
     <string name="editor_label_title">Titel</string>
     <string name="editor_label_category">Kategorie (optional)</string>
+    <string name="editor_label_date">Datum</string>
+    <string name="editor_label_time">Uhrzeit</string>
     <string name="editor_category_new">Neu</string>
     <string name="editor_category_new_title">Neue Kategorie</string>
     <string name="editor_category_name">Kategoriename</string>
