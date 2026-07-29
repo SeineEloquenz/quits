@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -31,6 +32,7 @@ import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.about_title
 import nz.eloque.quits.resources.app_name
 import nz.eloque.quits.resources.cd_add_group
 import nz.eloque.quits.resources.cd_settings
@@ -45,6 +47,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun HomeScreen(
     onOpenSettings: () -> Unit,
+    onOpenAbout: () -> Unit,
     onAddGroup: () -> Unit,
     onAddExpense: (GroupId) -> Unit,
     onOpenExpense: (GroupId, ExpenseId) -> Unit,
@@ -100,6 +103,10 @@ fun HomeScreen(
                         closeDrawer()
                         onOpenSettings()
                     },
+                    onOpenAbout = {
+                        closeDrawer()
+                        onOpenAbout()
+                    },
                 )
             }
         },
@@ -123,6 +130,7 @@ private fun GroupDrawer(
     onSelect: (GroupId) -> Unit,
     onAddGroup: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenAbout: () -> Unit,
 ) {
     val rows by viewModel.homeRows.collectAsState()
 
@@ -160,6 +168,14 @@ private fun GroupDrawer(
             selected = false,
             icon = { Icon(Icons.Default.Settings, contentDescription = stringResource(Res.string.cd_settings)) },
             onClick = onOpenSettings,
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+        )
+
+        NavigationDrawerItem(
+            label = { Text(stringResource(Res.string.about_title)) },
+            selected = false,
+            icon = { Icon(Icons.Default.Info, contentDescription = null) },
+            onClick = onOpenAbout,
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
         )
 

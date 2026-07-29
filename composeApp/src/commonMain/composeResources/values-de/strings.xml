@@ -168,6 +168,12 @@
     <string name="settings_instance_secret">Relay-Passwort (optional)</string>
     <string name="settings_saved">Gespeichert</string>
 
+    <!-- About -->
+    <string name="about_title">Über</string>
+    <string name="about_tagline">Mit ❤ gemacht in Deutschland</string>
+    <string name="about_source_code">Quellcode</string>
+    <string name="about_license">Lizenz</string>
+
     <!-- Currency picker -->
     <string name="search_currency">Währung suchen</string>
 

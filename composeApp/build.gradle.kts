@@ -15,6 +15,31 @@ room3 {
     schemaDirectory("$projectDir/schemas")
 }
 
+val generateBuildInfo by tasks.registering {
+    val versionName = providers.gradleProperty("quits.versionName").getOrElse("0.0.0")
+    val versionCode = providers.gradleProperty("quits.versionCode").getOrElse("0")
+    val outputDir = layout.buildDirectory.dir("generated/buildinfo/kotlin")
+    inputs.property("versionName", versionName)
+    inputs.property("versionCode", versionCode)
+    outputs.dir(outputDir)
+    doLast {
+        val file = outputDir.get().file("nz/eloque/quits/BuildInfo.kt").asFile
+        file.parentFile.mkdirs()
+        file.writeText(
+            """
+            |package nz.eloque.quits
+            |
+            |/** Generated from the quits.version* gradle properties — do not edit by hand. */
+            |object BuildInfo {
+            |    const val VERSION: String = "$versionName"
+            |    const val VERSION_CODE: Int = $versionCode
+            |}
+            |
+            """.trimMargin(),
+        )
+    }
+}
+
 compose.resources {
     publicResClass = true
     packageOfResClass = "nz.eloque.quits.resources"
@@ -63,6 +88,9 @@ kotlin {
     }
 
     sourceSets {
+        commonMain {
+            kotlin.srcDir(generateBuildInfo)
+        }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)

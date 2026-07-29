@@ -26,6 +26,7 @@ import nz.eloque.quits.data.sync.SyncSettings
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
+import nz.eloque.quits.navigation.AboutKey
 import nz.eloque.quits.navigation.AddGroupKey
 import nz.eloque.quits.navigation.ExpenseDetailKey
 import nz.eloque.quits.navigation.ExpenseEditorKey
@@ -36,6 +37,7 @@ import nz.eloque.quits.navigation.SettingsKey
 import nz.eloque.quits.navigation.SettleUpKey
 import nz.eloque.quits.navigation.StatsKey
 import nz.eloque.quits.theme.QuitsTheme
+import nz.eloque.quits.ui.about.AboutScreen
 import nz.eloque.quits.ui.expense.ExpenseDetailScreen
 import nz.eloque.quits.ui.expense.ExpenseEditorScreen
 import nz.eloque.quits.ui.group.MemberDetailScreen
@@ -60,6 +62,7 @@ private val navSavedStateConfiguration =
                     subclass(StatsKey::class)
                     subclass(ExpenseEditorKey::class)
                     subclass(SettingsKey::class)
+                    subclass(AboutKey::class)
                     subclass(JoinInviteKey::class)
                 }
             }
@@ -113,6 +116,7 @@ fun App() {
                         entry<GroupsHomeKey> {
                             HomeScreen(
                                 onOpenSettings = { backStack.add(SettingsKey) },
+                                onOpenAbout = { backStack.add(AboutKey) },
                                 onAddGroup = { backStack.add(AddGroupKey) },
                                 onAddExpense = { groupId -> backStack.add(ExpenseEditorKey(groupId.value)) },
                                 onOpenExpense = { groupId, expenseId -> backStack.add(ExpenseDetailKey(groupId.value, expenseId.value)) },
@@ -158,6 +162,9 @@ fun App() {
                         }
                         entry<SettingsKey> {
                             SettingsScreen(onBack = { backStack.removeLastOrNull() })
+                        }
+                        entry<AboutKey> {
+                            AboutScreen(onBack = { backStack.removeLastOrNull() })
                         }
                         entry<JoinInviteKey> { key ->
                             JoinInviteScreen(
