@@ -24,7 +24,7 @@ androidxWork = "2.11.2"
 composeKit = "0.5.3"
 ktlint = "14.2.0"
 cryptography = "0.6.0"
-kermit = "2.0.8"
+kermit = "2.1.0"
 
 # Android SDK
 compileSdk = "37"
