@@ -18,11 +18,19 @@ import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
+import nz.eloque.quits.domain.Split
 
 data class ExpenseParticipantRow(
     val id: MemberId,
     val name: String,
     val amount: Money,
+)
+
+/** A receipt line on the detail screen: what it cost and who shared it. */
+data class ExpenseItemRow(
+    val label: String,
+    val amount: Money,
+    val participants: List<String>,
 )
 
 data class ExpenseDetailUiState(
@@ -38,6 +46,8 @@ data class ExpenseDetailUiState(
     val spentAt: Long = 0L,
     val paidBy: List<ExpenseParticipantRow> = emptyList(),
     val owedBy: List<ExpenseParticipantRow> = emptyList(),
+    /** Line items, present only when the split is itemized. */
+    val items: List<ExpenseItemRow> = emptyList(),
 )
 
 class ExpenseDetailViewModel(
@@ -75,6 +85,14 @@ class ExpenseDetailViewModel(
                             expense.shares.keys
                                 .sortedBy { names[it] ?: "" }
                                 .map { ExpenseParticipantRow(it, names[it] ?: "?", expense.owedBy(it)) },
+                        items =
+                            (expense.split as? Split.Itemized)?.items?.map { item ->
+                                ExpenseItemRow(
+                                    item.label,
+                                    item.amount,
+                                    item.participants.map { names[it] ?: "?" }.sorted(),
+                                )
+                            } ?: emptyList(),
                     )
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExpenseDetailUiState())

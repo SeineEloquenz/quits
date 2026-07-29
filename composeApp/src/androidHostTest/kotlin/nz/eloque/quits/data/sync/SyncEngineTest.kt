@@ -151,6 +151,56 @@ class SyncEngineTest {
         }
 
     @Test
+    fun itemized_expense_syncs_with_items_intact() =
+        runTest {
+            val relay = FakeRelay()
+            val clock = 1000L
+            val db1 = inMemoryDatabase()
+            val repo1 = GroupRepository(db1, deviceId = "dev1", now = { clock })
+            val engine1 = SyncEngine(db1, relay, GroupCrypto(), deviceId = "dev1")
+            val db2 = inMemoryDatabase()
+            val repo2 = GroupRepository(db2, deviceId = "dev2", now = { clock })
+            val engine2 = SyncEngine(db2, relay, GroupCrypto(), deviceId = "dev2")
+
+            try {
+                val g = GroupId("g-local")
+                repo1.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
+                repo1.upsertExpense(
+                    g,
+                    Expense(
+                        ExpenseId("e-items"),
+                        "Groceries",
+                        listOf(Payment(a, Money(5000, usd))),
+                        Split.Itemized(
+                            listOf(
+                                Split.Itemized.Item("Pasta", Money(2000, usd), setOf(a)),
+                                Split.Itemized.Item("Wine", Money(3000, usd), setOf(a, b)),
+                            ),
+                        ),
+                    ),
+                    spentAt = 1,
+                )
+                val code = engine1.share(g)
+
+                val joined = engine2.join(code)!!
+                val synced = repo2.load(joined)!!.expenses.first { it.id == ExpenseId("e-items") }
+                val split = synced.split
+                assertTrue(split is Split.Itemized)
+                assertEquals(2, split.items.size)
+                assertEquals("Wine", split.items[1].label)
+                assertEquals(setOf(a, b), split.items[1].participants)
+                // The shares the second device computes from the synced items match the first device's.
+                assertEquals(
+                    repo1.load(g)!!.expenses.first { it.id == ExpenseId("e-items") }.shares,
+                    synced.shares,
+                )
+            } finally {
+                db1.close()
+                db2.close()
+            }
+        }
+
+    @Test
     fun re_share_uploads_full_state_to_the_fresh_relay_group() =
         runTest {
             val relay = FakeRelay()

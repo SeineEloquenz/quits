@@ -45,10 +45,12 @@ import nz.eloque.quits.resources.cd_back
 import nz.eloque.quits.resources.detail_delete_expense
 import nz.eloque.quits.resources.detail_edit_expense
 import nz.eloque.quits.resources.detail_expense_not_found
+import nz.eloque.quits.resources.detail_items
 import nz.eloque.quits.resources.detail_note
 import nz.eloque.quits.resources.detail_owed_by
 import nz.eloque.quits.resources.detail_split_summary_dated
 import nz.eloque.quits.resources.editor_expense_fallback_title
+import nz.eloque.quits.resources.editor_item_label
 import nz.eloque.quits.resources.editor_paid_by
 import nz.eloque.quits.resources.expense_delete_body
 import nz.eloque.quits.resources.expense_delete_title
@@ -177,6 +179,16 @@ fun ExpenseDetailScreen(
             )
             state.paidBy.forEach { row -> ParticipantRow(row) }
 
+            if (state.items.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    stringResource(Res.string.detail_items),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                state.items.forEach { item -> ItemRow(item) }
+            }
+
             Spacer(Modifier.height(16.dp))
             Text(
                 stringResource(Res.string.detail_owed_by),
@@ -224,5 +236,23 @@ private fun ParticipantRow(row: ExpenseParticipantRow) {
         MemberAvatar(name = row.name, id = row.id, size = 32.dp)
         Text(row.name, Modifier.weight(1f).padding(start = 12.dp))
         MoneyText(row.amount)
+    }
+}
+
+@Composable
+private fun ItemRow(item: ExpenseItemRow) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(item.label.ifEmpty { stringResource(Res.string.editor_item_label) })
+            Text(
+                item.participants.joinToString(", "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+        MoneyText(item.amount)
     }
 }

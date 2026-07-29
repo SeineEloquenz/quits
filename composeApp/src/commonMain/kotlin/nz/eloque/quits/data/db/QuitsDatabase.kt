@@ -13,10 +13,12 @@ import androidx.room3.RoomDatabaseConstructor
         ExpenseEntity::class,
         ExpensePayerEntity::class,
         ExpenseSplitEntity::class,
+        ExpenseItemEntity::class,
+        ExpenseItemParticipantEntity::class,
         SettlementEntity::class,
         FxRateEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @ConstructedBy(QuitsDatabaseConstructor::class)

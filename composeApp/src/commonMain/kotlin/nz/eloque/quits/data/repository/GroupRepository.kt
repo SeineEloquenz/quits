@@ -160,6 +160,8 @@ class GroupRepository(
             ),
             payerRows(expense),
             splitRows(expense),
+            itemRows(expense),
+            itemParticipantRows(expense),
         )
     }
 

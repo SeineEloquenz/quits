@@ -83,6 +83,7 @@
     <string name="detail_settlement_row">%1$s paid %2$s</string>
     <string name="detail_paid_by">paid by %1$s</string>
     <string name="detail_owed_by">Owed by</string>
+    <string name="detail_items">Items</string>
     <string name="detail_note">Note</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d people</string>
     <string name="detail_edit_expense">Edit expense</string>
@@ -129,12 +130,21 @@
     <string name="editor_customize_paid_link">Customize amounts ›</string>
     <string name="editor_equal_paid_link">‹ Split evenly</string>
     <string name="editor_split">Split</string>
+    <string name="editor_split_between">Split between</string>
     <string name="editor_equal_hint">%1$d people · %2$s each</string>
     <string name="editor_equal_count">%1$d people</string>
     <string name="editor_split_equal">Equal</string>
     <string name="editor_split_shares">Shares</string>
     <string name="editor_split_percentage">Percentage</string>
     <string name="editor_split_exact">Exact</string>
+    <string name="editor_split_itemized">Items</string>
+    <string name="editor_item_label">Item</string>
+    <string name="editor_add_item">Add item</string>
+    <string name="editor_remove_item">Remove item</string>
+    <string name="editor_items_total">Total</string>
+    <string name="editor_item_shared_by">Shared by</string>
+    <string name="editor_item_select_all">Select all</string>
+    <string name="editor_item_deselect_all">Deselect all</string>
     <string name="editor_placeholder_shares">shares</string>
     <string name="editor_shares_suffix">×</string>
     <string name="editor_shares_decrease">Decrease shares</string>
@@ -178,4 +188,6 @@
     <string name="error_no_exact">Enter exact amounts</string>
     <string name="error_percent_sum">Percentages must add up to 100</string>
     <string name="error_exact_sum">Exact amounts must add up to the total</string>
+    <string name="error_no_items">Add at least one item</string>
+    <string name="error_items_sum">Items must add up to the total</string>
 </resources>

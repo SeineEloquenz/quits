@@ -1,10 +1,13 @@
 package nz.eloque.quits.data.sync
 
 import nz.eloque.quits.data.db.ExpenseEntity
+import nz.eloque.quits.data.db.ExpenseItemEntity
+import nz.eloque.quits.data.db.ExpenseItemParticipantEntity
 import nz.eloque.quits.data.db.ExpensePayerEntity
 import nz.eloque.quits.data.db.ExpenseSplitEntity
 import nz.eloque.quits.data.db.ExpenseWithLines
 import nz.eloque.quits.data.db.GroupEntity
+import nz.eloque.quits.data.db.ItemWithParticipants
 import nz.eloque.quits.data.db.MemberEntity
 import nz.eloque.quits.data.db.SettlementEntity
 import nz.eloque.quits.data.db.SyncMeta
@@ -49,9 +52,39 @@ class RecordMapperTest {
                     ExpenseSplitEntity("e1:m1", "e1", "m1", 5000, weight = 2.0),
                     ExpenseSplitEntity("e1:m2", "e1", "m2", 5000, weight = 1.0),
                 ),
+                emptyList(),
             )
         val record = reencode(RecordMapper.record(expense))
         assertEquals("e1", record.id)
+        val back = RecordMapper.expenseEntities(record.payload as SyncPayload.Expense, "g1", RecordMapper.meta(record, dirty = false))
+        assertEquals(expense, back)
+    }
+
+    @Test
+    fun itemized_expense_with_items_round_trips() {
+        val expense =
+            ExpenseWithLines(
+                ExpenseEntity("e2", "g1", "Groceries", 5000, "USD", 1.0, null, 3, null, "ITEMIZED", meta),
+                listOf(ExpensePayerEntity("e2:payer:0", "e2", "m1", 5000)),
+                listOf(
+                    ExpenseSplitEntity("e2:m1", "e2", "m1", 3500, weight = null),
+                    ExpenseSplitEntity("e2:m2", "e2", "m2", 1500, weight = null),
+                ),
+                listOf(
+                    ItemWithParticipants(
+                        ExpenseItemEntity("e2:item:0", "e2", "Pasta", 2000, 0),
+                        listOf(ExpenseItemParticipantEntity("e2:item:0", "m1")),
+                    ),
+                    ItemWithParticipants(
+                        ExpenseItemEntity("e2:item:1", "e2", "Wine", 3000, 1),
+                        listOf(
+                            ExpenseItemParticipantEntity("e2:item:1", "m1"),
+                            ExpenseItemParticipantEntity("e2:item:1", "m2"),
+                        ),
+                    ),
+                ),
+            )
+        val record = reencode(RecordMapper.record(expense))
         val back = RecordMapper.expenseEntities(record.payload as SyncPayload.Expense, "g1", RecordMapper.meta(record, dirty = false))
         assertEquals(expense, back)
     }

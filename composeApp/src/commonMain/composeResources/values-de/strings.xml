@@ -77,6 +77,7 @@
     <string name="detail_settlement_row">%1$s hat %2$s bezahlt</string>
     <string name="detail_paid_by">bezahlt von %1$s</string>
     <string name="detail_owed_by">Geschuldet von</string>
+    <string name="detail_items">Positionen</string>
     <string name="detail_note">Notiz</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d Personen</string>
     <string name="detail_edit_expense">Ausgabe bearbeiten</string>
@@ -123,12 +124,21 @@
     <string name="editor_customize_paid_link">Beträge anpassen ›</string>
     <string name="editor_equal_paid_link">‹ Gleichmäßig aufteilen</string>
     <string name="editor_split">Aufteilung</string>
+    <string name="editor_split_between">Aufteilen zwischen</string>
     <string name="editor_equal_hint">%1$d Personen · %2$s pro Person</string>
     <string name="editor_equal_count">%1$d Personen</string>
     <string name="editor_split_equal">Gleich</string>
     <string name="editor_split_shares">Anteile</string>
     <string name="editor_split_percentage">Prozent</string>
     <string name="editor_split_exact">Exakt</string>
+    <string name="editor_split_itemized">Positionen</string>
+    <string name="editor_item_label">Position</string>
+    <string name="editor_add_item">Position hinzufügen</string>
+    <string name="editor_remove_item">Position entfernen</string>
+    <string name="editor_items_total">Gesamt</string>
+    <string name="editor_item_shared_by">Geteilt von</string>
+    <string name="editor_item_select_all">Alle auswählen</string>
+    <string name="editor_item_deselect_all">Alle abwählen</string>
     <string name="editor_placeholder_shares">Anteile</string>
     <string name="editor_shares_suffix">×</string>
     <string name="editor_shares_decrease">Anteile verringern</string>
@@ -172,4 +182,6 @@
     <string name="error_no_exact">Gib exakte Beträge ein</string>
     <string name="error_percent_sum">Prozentsätze müssen zusammen 100 ergeben</string>
     <string name="error_exact_sum">Exakte Beträge müssen zusammen den Gesamtbetrag ergeben</string>
+    <string name="error_no_items">Füge mindestens eine Position hinzu</string>
+    <string name="error_items_sum">Positionen müssen zusammen den Gesamtbetrag ergeben</string>
 </resources>

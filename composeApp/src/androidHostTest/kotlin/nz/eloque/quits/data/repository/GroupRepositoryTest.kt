@@ -112,6 +112,36 @@ class GroupRepositoryTest {
         }
 
     @Test
+    fun itemized_split_round_trips_with_items() =
+        runTest {
+            repo.saveGroup(sampleGroup())
+            val itemized =
+                Expense(
+                    ExpenseId("e-items"),
+                    "Groceries",
+                    listOf(Payment(a, Money(10000, usd))),
+                    Split.Itemized(
+                        listOf(
+                            Split.Itemized.Item("Pasta", Money(3000, usd), setOf(a)),
+                            Split.Itemized.Item("Wine", Money(7000, usd), setOf(a, b, c)),
+                        ),
+                    ),
+                )
+            repo.upsertExpense(GroupId("g"), itemized)
+
+            val loaded = repo.load(GroupId("g"))!!.expenses.first { it.id == ExpenseId("e-items") }
+            val split = loaded.split
+            assertTrue(split is Split.Itemized)
+            assertEquals(2, split.items.size)
+            assertEquals("Pasta", split.items[0].label)
+            assertEquals(Money(3000, usd), split.items[0].amount)
+            assertEquals(setOf(a), split.items[0].participants)
+            assertEquals(setOf(a, b, c), split.items[1].participants)
+            // Shares derived from the reconstructed items match the original.
+            assertEquals(itemized.shares, loaded.shares)
+        }
+
+    @Test
     fun multiple_payers_survive_round_trip() =
         runTest {
             persist(sampleGroup())

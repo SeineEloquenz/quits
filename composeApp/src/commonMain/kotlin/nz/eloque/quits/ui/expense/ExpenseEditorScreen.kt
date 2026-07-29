@@ -3,6 +3,7 @@ package nz.eloque.quits.ui.expense
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -25,9 +27,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,9 +41,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,16 +56,23 @@ import nz.eloque.compose_kit.components.SectionCard
 import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.domain.Currencies
+import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Split
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_cancel
+import nz.eloque.quits.resources.editor_add_item
 import nz.eloque.quits.resources.editor_customize_paid_link
 import nz.eloque.quits.resources.editor_equal_count
 import nz.eloque.quits.resources.editor_equal_hint
 import nz.eloque.quits.resources.editor_equal_paid_link
+import nz.eloque.quits.resources.editor_item_deselect_all
+import nz.eloque.quits.resources.editor_item_label
+import nz.eloque.quits.resources.editor_item_select_all
+import nz.eloque.quits.resources.editor_item_shared_by
+import nz.eloque.quits.resources.editor_items_total
 import nz.eloque.quits.resources.editor_label_amount
 import nz.eloque.quits.resources.editor_label_category
 import nz.eloque.quits.resources.editor_label_currency
@@ -71,11 +88,13 @@ import nz.eloque.quits.resources.editor_placeholder_shares
 import nz.eloque.quits.resources.editor_rate_fetching
 import nz.eloque.quits.resources.editor_remaining
 import nz.eloque.quits.resources.editor_remaining_done
+import nz.eloque.quits.resources.editor_remove_item
 import nz.eloque.quits.resources.editor_save_changes
 import nz.eloque.quits.resources.editor_save_expense
 import nz.eloque.quits.resources.editor_shares_decrease
 import nz.eloque.quits.resources.editor_shares_increase
 import nz.eloque.quits.resources.editor_split
+import nz.eloque.quits.resources.editor_split_between
 import nz.eloque.quits.resources.editor_title_add
 import nz.eloque.quits.resources.editor_title_edit
 import nz.eloque.quits.resources.error_invalid_amount
@@ -154,19 +173,6 @@ fun ExpenseEditorScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(8.dp))
-                    val amountValid = isValidAmountInput(state.amount, state.currency)
-                    OutlinedTextField(
-                        value = state.amount,
-                        onValueChange = viewModel::setAmount,
-                        label = { Text(stringResource(Res.string.editor_label_amount)) },
-                        singleLine = true,
-                        isError = !amountValid,
-                        supportingText =
-                            if (!amountValid) ({ Text(stringResource(Res.string.error_invalid_total)) }) else null,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(8.dp))
                     CurrencyPicker(
                         label = stringResource(Res.string.editor_label_currency),
                         selected = state.currency,
@@ -200,72 +206,6 @@ fun ExpenseEditorScreen(
                 }
             }
 
-            SectionCard(heading = stringResource(Res.string.editor_paid_by)) {
-                Column(Modifier.padding(16.dp)) {
-                    when (state.payerMode) {
-                        PayerMode.EQUAL -> {
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                                state.members.forEachIndexed { index, member ->
-                                    if (index > 0) Spacer(Modifier.width(12.dp))
-                                    MemberChip(
-                                        member = member,
-                                        selected = member.id in state.payerSelected,
-                                        onClick = { viewModel.togglePayer(member.id) },
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                paidByEqualHint(state),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline,
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            TextButton(
-                                onClick = { viewModel.setPayerMode(PayerMode.CUSTOM) },
-                                contentPadding = PaddingValues(0.dp),
-                            ) {
-                                Text(stringResource(Res.string.editor_customize_paid_link), style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-
-                        PayerMode.CUSTOM -> {
-                            val currency = state.currency
-                            state.members.forEach { member ->
-                                val text = state.paid[member.id].orEmpty()
-                                val valid = isValidAmountInput(text, currency)
-                                SplitInputRow(member = member, preview = null) {
-                                    OutlinedTextField(
-                                        value = text,
-                                        onValueChange = { viewModel.setPaid(member.id, it) },
-                                        placeholder = { Text("0") },
-                                        suffix = { Text(Currencies.symbol(currency)) },
-                                        singleLine = true,
-                                        isError = !valid,
-                                        supportingText =
-                                            if (!valid) {
-                                                { Text(stringResource(Res.string.error_invalid_paid, member.name)) }
-                                            } else {
-                                                null
-                                            },
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                        modifier = Modifier.width(140.dp),
-                                    )
-                                }
-                            }
-                            PaidRemainingHint(state)
-                            Spacer(Modifier.height(4.dp))
-                            TextButton(
-                                onClick = { viewModel.setPayerMode(PayerMode.EQUAL) },
-                                contentPadding = PaddingValues(0.dp),
-                            ) {
-                                Text(stringResource(Res.string.editor_equal_paid_link), style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                    }
-                }
-            }
-
             SectionCard(heading = stringResource(Res.string.editor_split)) {
                 Column(Modifier.padding(16.dp)) {
                     val splitLabels = SplitKind.entries.associateWith { it.label() }
@@ -276,10 +216,34 @@ fun ExpenseEditorScreen(
                         onOptionDeselected = {},
                         optionLabel = { splitLabels.getValue(it) },
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(12.dp))
+
+                    // The total lives with the split for every method that needs one. Items has no
+                    // total to type — it's the sum of the lines entered below.
+                    if (state.splitKind != SplitKind.ITEMIZED) {
+                        val amountValid = isValidAmountInput(state.amount, state.currency)
+                        OutlinedTextField(
+                            value = state.amount,
+                            onValueChange = viewModel::setAmount,
+                            label = { Text(stringResource(Res.string.editor_label_amount)) },
+                            singleLine = true,
+                            isError = !amountValid,
+                            supportingText =
+                                if (!amountValid) ({ Text(stringResource(Res.string.error_invalid_total)) }) else null,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(12.dp))
+                    }
 
                     when (state.splitKind) {
                         SplitKind.EQUAL -> {
+                            Text(
+                                stringResource(Res.string.editor_split_between),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                            Spacer(Modifier.height(8.dp))
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                                 state.members.forEachIndexed { index, member ->
                                     if (index > 0) Spacer(Modifier.width(12.dp))
@@ -350,9 +314,93 @@ fun ExpenseEditorScreen(
                                 }
                             }
                         }
+
+                        SplitKind.ITEMIZED -> {
+                            ItemizedEditor(
+                                committed = state.items,
+                                draftLabel = state.draftLabel,
+                                draftAmount = state.draftAmount,
+                                draftParticipants = state.draftParticipants,
+                                members = state.members,
+                                currency = state.currency,
+                                draftValid = state.isDraftValid(),
+                                onDraftLabel = viewModel::setDraftLabel,
+                                onDraftAmount = viewModel::setDraftAmount,
+                                onToggleParticipant = viewModel::toggleDraftParticipant,
+                                onToggleAll = viewModel::toggleAllDraftParticipants,
+                                onSubmit = viewModel::submitDraft,
+                                onRemove = viewModel::removeItem,
+                            )
+                        }
                     }
 
                     RemainingHint(state)
+                }
+            }
+
+            SectionCard(heading = stringResource(Res.string.editor_paid_by)) {
+                Column(Modifier.padding(16.dp)) {
+                    when (state.payerMode) {
+                        PayerMode.EQUAL -> {
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                                state.members.forEachIndexed { index, member ->
+                                    if (index > 0) Spacer(Modifier.width(12.dp))
+                                    MemberChip(
+                                        member = member,
+                                        selected = member.id in state.payerSelected,
+                                        onClick = { viewModel.togglePayer(member.id) },
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                paidByEqualHint(state),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            TextButton(
+                                onClick = { viewModel.setPayerMode(PayerMode.CUSTOM) },
+                                contentPadding = PaddingValues(0.dp),
+                            ) {
+                                Text(stringResource(Res.string.editor_customize_paid_link), style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+
+                        PayerMode.CUSTOM -> {
+                            val currency = state.currency
+                            state.members.forEach { member ->
+                                val text = state.paid[member.id].orEmpty()
+                                val valid = isValidAmountInput(text, currency)
+                                SplitInputRow(member = member, preview = null) {
+                                    OutlinedTextField(
+                                        value = text,
+                                        onValueChange = { viewModel.setPaid(member.id, it) },
+                                        placeholder = { Text("0") },
+                                        suffix = { Text(Currencies.symbol(currency)) },
+                                        singleLine = true,
+                                        isError = !valid,
+                                        supportingText =
+                                            if (!valid) {
+                                                { Text(stringResource(Res.string.error_invalid_paid, member.name)) }
+                                            } else {
+                                                null
+                                            },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                        modifier = Modifier.width(140.dp),
+                                    )
+                                }
+                            }
+                            PaidRemainingHint(state)
+                            Spacer(Modifier.height(4.dp))
+                            TextButton(
+                                onClick = { viewModel.setPayerMode(PayerMode.EQUAL) },
+                                contentPadding = PaddingValues(0.dp),
+                            ) {
+                                Text(stringResource(Res.string.editor_equal_paid_link), style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -513,6 +561,141 @@ private fun SplitInputRow(
 }
 
 /**
+ * The itemized-split editor. The running total sits at the top; committed lines show as read-only
+ * rows (each removable); and a framed draft card at the bottom builds the next line — a label, an
+ * amount, who shares it, then "Add item" (or Enter on the amount) commits it and resets for another.
+ */
+@Composable
+private fun ItemizedEditor(
+    committed: List<ItemInput>,
+    draftLabel: String,
+    draftAmount: String,
+    draftParticipants: Set<MemberId>,
+    members: List<MemberInput>,
+    currency: Currency,
+    draftValid: Boolean,
+    onDraftLabel: (String) -> Unit,
+    onDraftAmount: (String) -> Unit,
+    onToggleParticipant: (MemberId) -> Unit,
+    onToggleAll: () -> Unit,
+    onSubmit: () -> Unit,
+    onRemove: (String) -> Unit,
+) {
+    committed.forEach { item ->
+        CommittedItemRow(item = item, members = members, currency = currency, onRemove = { onRemove(item.id) })
+    }
+
+    // Total sits under the lines, receipt-style.
+    if (committed.isNotEmpty()) {
+        val totalMinor = committed.sumOf { Money.parse(it.amount.trim(), currency)?.minorUnits ?: 0L }
+        HorizontalDivider(Modifier.padding(top = 4.dp, bottom = 8.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(Res.string.editor_items_total), style = MaterialTheme.typography.titleLarge)
+            Text(Money(totalMinor, currency).display(), style = MaterialTheme.typography.titleLarge)
+        }
+    }
+
+    val labelFocus = remember { FocusRequester() }
+    // Commit, then jump back to the label field so the next line can be typed without reaching up.
+    val submit = {
+        if (draftValid) {
+            onSubmit()
+            labelFocus.requestFocus()
+        }
+    }
+    val allSelected = members.isNotEmpty() && draftParticipants.size == members.size
+
+    OutlinedCard(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = draftLabel,
+                    onValueChange = onDraftLabel,
+                    placeholder = { Text(stringResource(Res.string.editor_item_label)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.weight(1f).focusRequester(labelFocus),
+                )
+                Spacer(Modifier.width(8.dp))
+                OutlinedTextField(
+                    value = draftAmount,
+                    onValueChange = onDraftAmount,
+                    placeholder = { Text(stringResource(Res.string.editor_placeholder_amount)) },
+                    suffix = { Text(Currencies.symbol(currency)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
+                    modifier = Modifier.width(130.dp),
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(Res.string.editor_item_shared_by),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onToggleAll, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                    Text(
+                        stringResource(
+                            if (allSelected) Res.string.editor_item_deselect_all else Res.string.editor_item_select_all,
+                        ),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                members.forEach { member ->
+                    FilterChip(
+                        selected = member.id in draftParticipants,
+                        onClick = { onToggleParticipant(member.id) },
+                        label = { Text(member.name) },
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            FilledTonalButton(onClick = { submit() }, enabled = draftValid, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.editor_add_item))
+            }
+        }
+    }
+}
+
+/** A committed, read-only receipt line: its label, who shares it, and its cost, with a remove button. */
+@Composable
+private fun CommittedItemRow(
+    item: ItemInput,
+    members: List<MemberInput>,
+    currency: Currency,
+    onRemove: () -> Unit,
+) {
+    val names = members.filter { it.id in item.participants }.joinToString(", ") { it.name }
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(item.label.ifEmpty { stringResource(Res.string.editor_item_label) })
+            Text(names, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+        }
+        Money.parse(item.amount.trim(), currency)?.let { Text(it.display()) }
+        IconButton(onClick = onRemove) {
+            Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.editor_remove_item))
+        }
+    }
+}
+
+/**
  * −/+ stepper for the Shares split field. Replaces free-text entry: shares are always a small
  * non-negative whole number, so tapping is faster and less error-prone than opening a keyboard.
  */
@@ -620,4 +803,5 @@ private fun splitPlaceholder(kind: SplitKind): String =
         SplitKind.PERCENTAGE -> stringResource(Res.string.editor_placeholder_percent)
         SplitKind.EXACT -> stringResource(Res.string.editor_placeholder_amount)
         SplitKind.EQUAL -> ""
+        SplitKind.ITEMIZED -> ""
     }

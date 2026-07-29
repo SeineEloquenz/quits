@@ -77,12 +77,20 @@ interface MemberDao {
     )
 }
 
+data class ItemWithParticipants(
+    @Embedded val item: ExpenseItemEntity,
+    @Relation(parentColumns = ["id"], entityColumns = ["itemId"])
+    val participants: List<ExpenseItemParticipantEntity>,
+)
+
 data class ExpenseWithLines(
     @Embedded val expense: ExpenseEntity,
     @Relation(parentColumns = ["id"], entityColumns = ["expenseId"])
     val payers: List<ExpensePayerEntity>,
     @Relation(parentColumns = ["id"], entityColumns = ["expenseId"])
     val splits: List<ExpenseSplitEntity>,
+    @Relation(entity = ExpenseItemEntity::class, parentColumns = ["id"], entityColumns = ["expenseId"])
+    val items: List<ItemWithParticipants>,
 )
 
 @Dao
@@ -96,23 +104,38 @@ interface ExpenseDao {
     @Upsert
     suspend fun upsertSplits(splits: List<ExpenseSplitEntity>)
 
+    @Upsert
+    suspend fun upsertItems(items: List<ExpenseItemEntity>)
+
+    @Upsert
+    suspend fun upsertItemParticipants(participants: List<ExpenseItemParticipantEntity>)
+
     @Query("DELETE FROM expense_payer WHERE expenseId = :expenseId")
     suspend fun clearPayers(expenseId: String)
 
     @Query("DELETE FROM expense_split WHERE expenseId = :expenseId")
     suspend fun clearSplits(expenseId: String)
 
+    /** Cascades to expense_item_participant via the item foreign key. */
+    @Query("DELETE FROM expense_item WHERE expenseId = :expenseId")
+    suspend fun clearItems(expenseId: String)
+
     @Transaction
     suspend fun save(
         expense: ExpenseEntity,
         payers: List<ExpensePayerEntity>,
         splits: List<ExpenseSplitEntity>,
+        items: List<ExpenseItemEntity>,
+        itemParticipants: List<ExpenseItemParticipantEntity>,
     ) {
         upsertExpense(expense)
         clearPayers(expense.id)
         clearSplits(expense.id)
+        clearItems(expense.id)
         upsertPayers(payers)
         upsertSplits(splits)
+        upsertItems(items)
+        upsertItemParticipants(itemParticipants)
     }
 
     @Transaction

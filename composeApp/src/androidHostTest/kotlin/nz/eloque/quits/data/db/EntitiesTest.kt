@@ -45,6 +45,8 @@ class EntitiesTest {
                 ExpenseEntity("e", "g", "Dinner", 3000, "USD", 1.0, null, 10, null, "EQUAL", meta()),
                 listOf(ExpensePayerEntity("p", "e", "m1", 3000)),
                 listOf(ExpenseSplitEntity("s", "e", "m1", 3000)),
+                emptyList(),
+                emptyList(),
             )
 
             db.groupDao().delete("g")
@@ -68,6 +70,8 @@ class EntitiesTest {
                     ExpenseSplitEntity("s1", "e", "m1", 5000, weight = 1.0),
                     ExpenseSplitEntity("s2", "e", "m2", 5000, weight = 1.0),
                 ),
+                emptyList(),
+                emptyList(),
             )
 
             val loaded = db.expenseDao().byId("e")!!
@@ -85,11 +89,15 @@ class EntitiesTest {
                 base,
                 listOf(ExpensePayerEntity("p1", "e", "m1", 100)),
                 listOf(ExpenseSplitEntity("s1", "e", "m1", 100)),
+                emptyList(),
+                emptyList(),
             )
             db.expenseDao().save(
                 base,
                 listOf(ExpensePayerEntity("p2", "e", "m2", 100)),
                 listOf(ExpenseSplitEntity("s2", "e", "m2", 100)),
+                emptyList(),
+                emptyList(),
             )
 
             val loaded = db.expenseDao().byId("e")!!
