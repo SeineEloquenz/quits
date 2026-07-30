@@ -45,6 +45,11 @@ To verify the authenticity of a Quits APK, use the following SHA-256 fingerprint
 > The Google Play releases are signed by Google and use a different signing key.
 > Prefer using builds from GitHub or F-Droid if possible.
 -->
+
+## Backend
+The quits relay is a Rust server that you can either self-host directly by building a binary via cargo, or install via the provided nix module.
+The web frontend is continuously built by CI onto the `web` branch.
+
 ## License
 
 This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
