@@ -40,10 +40,11 @@ To verify the authenticity of a Quits APK, use the following SHA-256 fingerprint
 
 `23:F2:05:A9:19:B0:8F:F7:29:BA:E4:21:51:22:47:D9:FF:0E:FC:16:8B:21:A0:1F:A4:C7:47:C1:8A:A9:8B:47`
 
+<!--
 > [!NOTE]
 > The Google Play releases are signed by Google and use a different signing key.
 > Prefer using builds from GitHub or F-Droid if possible.
-
+-->
 ## License
 
 This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
