@@ -7,7 +7,7 @@
 
 # <img alt="Logo" src="icon/quits-icon.svg" width="40" height="40"/> Quits
 
-Quits is a free and open source (FOSS) expense splitting application for Android and Web/PWA (and iOS, should Apple ever change their ridiculous developer fees).
+Quits is a free and open source (FOSS) expense splitting application for Android and [Web/PWA](https://app.quits.eloque.nz) (and iOS, should Apple ever change their ridiculous developer fees).
 Inspired by splitwise, splid, tricount and others, this application allows expense splitting
 while being fully free as in beer (and in freedom) forever, with
 end-to-end encrypted synchronization for a better privacy footprint
