@@ -1,125 +1,55 @@
-# Quits
+> [!Warning]
+> **Free and Open-Source Android is under threat.**
+>
+> Google will turn Android into a locked-down platform, restricting your essential freedom to install apps of your choice. Make your voice heard
+>
+> [**Keep Android Open**](https://keepandroidopen.org/).
 
-Split expenses with friends — custom fractions, multiple payers, multiple currencies — that stay
-in sync across devices. No account required: create a group, share a code/link, done.
+# <img alt="Logo" src="icon/quits-icon.svg" width="40" height="40"/> Quits
 
-- **App:** Compose Multiplatform (Android, iOS, and web via Kotlin/Wasm), offline-first, local
-  Room database (OPFS on the web).
-- **Backend:** Rust/Axum sync relay. It stores **opaque records** per group
-  and relays deltas; it has **no domain logic** and cannot read your data — groundwork for
-  end-to-end encryption. All money/split/balance/FX logic lives in the app.
+Quits is a free and open source (FOSS) expense splitting application for Android and Web/PWA (and iOS, should Apple ever change their ridiculous developer fees).
+Inspired by splitwise, splid, tricount and others, this application allows expense splitting
+while being fully free as in beer (and in freedom) forever, with
+end-to-end encrypted synchronization for a better privacy footprint
+compared to snooping, tracker-infested corporate apps.
 
-This is a monorepo: a Rust workspace and a Gradle build share the root.
+Features (non-exhaustive):
+* Split expenses via different split types: equal, exact, shares, percentage or itemized
+* e2e-encrypted synchronization via a relay server (free public instance or self-hosted)
+* Statistics
+* CSV export
+* Full offline usage
 
-```
-quits/
-├── flake.nix / shell.nix     # Nix devshell (toolchain) + Nix-built server package & OCI image
-├── Cargo.toml, crates/       # Rust workspace — the sync relay (crates/quits-server)
-├── settings.gradle.kts …     # Compose Multiplatform app
-└── composeApp/, iosApp/      # shared app + iOS Xcode shell
-```
+## Installation
 
-## Development
+[<img src="https://raw.githubusercontent.com/SeineEloquenz/quits/refs/heads/main/.github/badges/github.png"
+alt="Get it on GitHub"
+height="80">](https://github.com/SeineEloquenz/quits/releases)
+<!--
+[<img src="https://raw.githubusercontent.com/SeineEloquenz/quits/refs/heads/main/.github/badges/fdroid.png"
+alt="Get it on F-Droid"
+height="80">](https://f-droid.org/packages/nz.eloque.quits/)
+[<img src="https://raw.githubusercontent.com/SeineEloquenz/quits/refs/heads/main/.github/badges/play.png"
+alt="Get it on Google Play"
+height="80">](https://play.google.com/store/apps/details?id=nz.eloque.quits)
+-->
 
-Nix provides the whole toolchain (JDK 21, Android SDK, Gradle, Rust, sqlx-cli). With `direnv`:
+### Verification
+To verify the authenticity of a Quits APK, use the following SHA-256 fingerprint:
 
-```bash
-direnv allow      # or: nix develop
-```
 
-### Backend
+`23:F2:05:A9:19:B0:8F:F7:29:BA:E4:21:51:22:47:D9:FF:0E:FC:16:8B:21:A0:1F:A4:C7:47:C1:8A:A9:8B:47`
 
-```bash
-nix build .#server                 # hermetic build of the relay
-nix run .                          # run it (serves /health on :8080)
-# inside the devshell:
-cargo run -p quits-server
-cargo test
-nix build .#server-image           # OCI image: docker load < result
-```
+<!--
+> [!NOTE]
+> The Google Play releases are signed by Google and use a different signing key.
+> Prefer using builds from GitHub or F-Droid if possible.
+-->
 
-#### Deploying on NixOS
-
-The flake exports `nixosModules.quits-server`..
-
-```nix
-{
-  inputs.quits.url = "github:SeineEloquenz/quits";
-
-  outputs = { nixpkgs, quits, ... }: {
-    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
-      modules = [
-        quits.nixosModules.quits-server
-        {
-          services.quits-server = {
-            enable = true;
-            host = "0.0.0.0";        # default 127.0.0.1
-            port = 8080;
-            openFirewall = true;
-            behindProxy = true;      # trust X-Real-IP from the reverse proxy for rate limiting
-            # Keep secrets out of the Nix store (managed by sops/agenix/etc).
-            # Set at least QUITS_JWT_SECRET so tokens survive restarts.
-            environmentFile = "/run/secrets/quits-server.env";
-          };
-        }
-      ];
-    };
-  };
-}
-```
-
-##### Public vs. locked instances
-
-By default anyone can create a group. To run a **private** instance, set
-`QUITS_INSTANCE_SECRET` (via `environmentFile`); clients must then send it in the
-`X-Quits-Instance` header to create groups.
-
-### Web
-
-The app also builds for the browser via Kotlin/Wasm (Compose for Web), reusing the shared UI and
-sync logic. Room persists locally through a Web Worker SQLite driver backed by the Origin Private
-File System (OPFS).
-
-```bash
-# inside the devshell (provides Node + Yarn, and points Kotlin at the Nix node):
-./gradlew :composeApp:wasmJsBrowserDistribution   # -> composeApp/build/dist/wasmJs/productionExecutable
-./gradlew :composeApp:wasmJsBrowserDevelopmentRun # serve with hot reload
-nix build .#web                                   # hermetic bundle (see note below)
-```
-
-`nix build .#web` is a pure build: a single mitm-cache fixed-output derivation captures the Maven
-and npm dependencies under `nix/web-deps.json`. Regenerate that lock — without hand-editing a hash —
-with the package's `updateScript` (the `update-web-deps` workflow runs it on a schedule). The build
-also requires `compose-kit` to publish a `wasmJs` target.
-
-#### Deploying the web app on NixOS
-
-The flake exports `nixosModules.quits-web`, an nginx vhost serving the static bundle with the
-cross-origin-isolation headers OPFS needs. The web client talks to the relay directly (the relay
-sends permissive CORS), so the web host and relay host are independent.
-
-```nix
-{
-  inputs.quits.url = "github:SeineEloquenz/quits";
-
-  outputs = { nixpkgs, quits, ... }: {
-    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        quits.nixosModules.quits-web
-        {
-          services.quits-web = {
-            enable = true;
-            serverName = "app.quits.eloque.nz";
-            package = quits.packages.x86_64-linux.web;
-          };
-        }
-      ];
-    };
-  };
-}
-```
+## Backend
+The quits relay is a Rust server that you can either self-host directly by building a binary via cargo, or install via the provided nix module.
+The web frontend is continuously built by CI onto the `web` branch.
 
 ## License
 
-AGPL-3.0-or-later.
+This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
