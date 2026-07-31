@@ -42,7 +42,7 @@ class EntitiesTest {
             seedGroup()
             db.memberDao().upsert(listOf(MemberEntity("m1", "g", "Alice", null, meta())))
             db.expenseDao().save(
-                ExpenseEntity("e", "g", "Dinner", 3000, "USD", 1.0, null, 10, null, "EQUAL", meta()),
+                ExpenseEntity("e", "g", "Dinner", 3000, "USD", 1.0, null, 10, 0, null, "EQUAL", meta()),
                 listOf(ExpensePayerEntity("p", "e", "m1", 3000)),
                 listOf(ExpenseSplitEntity("s", "e", "m1", 3000)),
                 emptyList(),
@@ -61,7 +61,7 @@ class EntitiesTest {
         runTest {
             seedGroup()
             db.expenseDao().save(
-                ExpenseEntity("e", "g", "Hotel", 10000, "EUR", 1.1, "lodging", 5, "two nights", "SHARES", meta()),
+                ExpenseEntity("e", "g", "Hotel", 10000, "EUR", 1.1, "lodging", 5, 0, "two nights", "SHARES", meta()),
                 listOf(
                     ExpensePayerEntity("p1", "e", "m1", 6000),
                     ExpensePayerEntity("p2", "e", "m2", 4000),
@@ -84,7 +84,7 @@ class EntitiesTest {
     fun saving_an_expense_replaces_old_lines() =
         runTest {
             seedGroup()
-            val base = ExpenseEntity("e", "g", "x", 100, "USD", 1.0, null, 0, null, "EQUAL", meta())
+            val base = ExpenseEntity("e", "g", "x", 100, "USD", 1.0, null, 0, 0, null, "EQUAL", meta())
             db.expenseDao().save(
                 base,
                 listOf(ExpensePayerEntity("p1", "e", "m1", 100)),
@@ -110,7 +110,7 @@ class EntitiesTest {
         runTest {
             seedGroup()
             db.settlementDao().upsert(
-                SettlementEntity("st", "g", "m2", "m1", 2500, "USD", 1.0, 7, null, meta()),
+                SettlementEntity("st", "g", "m2", "m1", 2500, "USD", 1.0, 7, 0, null, meta()),
             )
             val settlements = db.settlementDao().forGroup("g")
             assertEquals(1, settlements.size)

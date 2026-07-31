@@ -34,6 +34,8 @@ data class SettlementEditorUiState(
     val note: String = "",
     /** When the payment was made (epoch millis), editable via the date/time pickers. */
     val paidAt: Long = 0L,
+    /** UTC offset the date was entered in; preserved on edit so the day/time renders consistently. */
+    val tzOffsetMinutes: Int = 0,
     /** The currency the settlement was recorded in; not editable here, only displayed. */
     val currency: Currency = Currency.of("EUR"),
 ) {
@@ -84,6 +86,7 @@ class SettlementEditorViewModel(
                     amount = existing.amount.toDecimalString(),
                     note = existing.note.orEmpty(),
                     paidAt = existing.paidAt,
+                    tzOffsetMinutes = existing.tzOffsetMinutes,
                     currency = existing.amount.currency,
                 )
         }
@@ -115,6 +118,7 @@ class SettlementEditorViewModel(
                         money,
                         rateToBase = original.rateToBase,
                         paidAt = s.paidAt.takeIf { it > 0L } ?: nowMillis(),
+                        tzOffsetMinutes = s.tzOffsetMinutes,
                         note = s.note.trim().ifEmpty { null },
                     )
                 } catch (_: IllegalArgumentException) {

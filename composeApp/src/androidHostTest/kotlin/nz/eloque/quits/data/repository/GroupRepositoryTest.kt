@@ -151,7 +151,7 @@ class GroupRepositoryTest {
             repo.saveGroup(sampleGroup())
             // An expense synced from a newer version, with a split type this build doesn't recognise.
             db.expenseDao().save(
-                ExpenseEntity("e-future", "g", "Future", 3000, "USD", 1.0, null, 10, null, "FUTURE_KIND", meta()),
+                ExpenseEntity("e-future", "g", "Future", 3000, "USD", 1.0, null, 10, 0, null, "FUTURE_KIND", meta()),
                 listOf(ExpensePayerEntity("e-future:payer:0", "e-future", "a", 3000)),
                 listOf(
                     ExpenseSplitEntity("e-future:a", "e-future", "a", 2000),

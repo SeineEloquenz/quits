@@ -15,6 +15,11 @@ class Settlement(
      * [Entity]), so this can be filled in without affecting anything that compares settlements.
      */
     val paidAt: Long = 0L,
+    /**
+     * UTC offset in minutes captured when [paidAt] was entered, so the day/time renders as the
+     * enterer meant it regardless of the viewer's timezone. Like [paidAt], not part of identity.
+     */
+    val tzOffsetMinutes: Int = 0,
     /** Free-text note (optional). Like [paidAt], not part of identity/equality. */
     val note: String? = null,
 ) : Entity<SettlementId>() {

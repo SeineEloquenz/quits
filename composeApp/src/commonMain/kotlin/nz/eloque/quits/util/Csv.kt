@@ -2,7 +2,6 @@
 
 package nz.eloque.quits.util
 
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.NumberFormatSymbols
@@ -29,17 +28,17 @@ private fun csvField(value: String): String =
 private fun two(value: Int): String = value.toString().padStart(2, '0')
 
 /**
- * Renders this group's expenses as an RFC-4180 CSV (CRLF line endings), newest first.
- * Date and time are ISO in [timeZone]
+ * Renders this group's expenses as an RFC-4180 CSV (CRLF line endings), newest first. Date and time
+ * are ISO, each rendered in the offset the expense was entered in, so they read as the enterer meant.
  */
-fun Group.expensesToCsv(timeZone: TimeZone = TimeZone.currentSystemDefault()): String {
+fun Group.expensesToCsv(): String {
     val names = members.associate { it.id to it.name }
     val header = listOf("Date", "Time", "Title", "Category", "Amount", "Currency", "Paid by", "Note")
     val rows =
         expenses
             .sortedByDescending { it.spentAt }
             .map { expense ->
-                val at = Instant.fromEpochMilliseconds(expense.spentAt).toLocalDateTime(timeZone)
+                val at = Instant.fromEpochMilliseconds(expense.spentAt).toLocalDateTime(offsetZone(expense.tzOffsetMinutes))
                 val payer =
                     expense.payments
                         .map { names[it.payer] ?: "?" }

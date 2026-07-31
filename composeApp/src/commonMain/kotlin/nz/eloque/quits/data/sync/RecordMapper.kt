@@ -54,6 +54,7 @@ object RecordMapper {
                     rateToBase = e.rateToBase,
                     category = e.category,
                     spentAt = e.spentAt,
+                    tzOffsetMinutes = e.tzOffsetMinutes,
                     note = e.note,
                     splitType = e.splitType,
                     payers = expense.payers.map { SyncPayload.Payer(it.id, it.memberId, it.amountMinor) },
@@ -87,6 +88,7 @@ object RecordMapper {
                     currency = settlement.currency,
                     rateToBase = settlement.rateToBase,
                     paidAt = settlement.paidAt,
+                    tzOffsetMinutes = settlement.tzOffsetMinutes,
                     note = settlement.note,
                 ),
         )
@@ -124,6 +126,7 @@ object RecordMapper {
                 rateToBase = payload.rateToBase,
                 category = payload.category,
                 spentAt = payload.spentAt,
+                tzOffsetMinutes = payload.tzOffsetMinutes,
                 note = payload.note,
                 splitType = payload.splitType,
                 sync = meta,
@@ -153,6 +156,7 @@ object RecordMapper {
             currency = payload.currency,
             rateToBase = payload.rateToBase,
             paidAt = payload.paidAt,
+            tzOffsetMinutes = payload.tzOffsetMinutes,
             note = payload.note,
             sync = meta,
         )

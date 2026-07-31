@@ -6,13 +6,23 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.UtcOffset
+import kotlinx.datetime.asTimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
+import kotlinx.datetime.offsetAt
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+
+/** The device's current UTC offset in minutes at [atMillis] (defaults to now). */
+fun currentOffsetMinutes(atMillis: Long = nowMillis()): Int =
+    TimeZone.currentSystemDefault().offsetAt(Instant.fromEpochMilliseconds(atMillis)).totalSeconds / 60
+
+/** A fixed-offset timezone for [offsetMinutes] — used to render a captured wall-clock consistently. */
+fun offsetZone(offsetMinutes: Int): TimeZone = UtcOffset(minutes = offsetMinutes).asTimeZone()
 
 /** [spentAt]'s local hour and minute — used to seed the time picker. */
 fun localHourMinute(
@@ -66,11 +76,16 @@ fun withPickedDate(
 
 enum class DayBucket { TODAY, YESTERDAY, OTHER }
 
-/** Which relative-day bucket [epochMillis] falls into, in the device's local timezone. */
-fun dayBucket(epochMillis: Long): DayBucket {
-    val tz = TimeZone.currentSystemDefault()
-    val day = Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(tz).date
-    val today = Clock.System.now().toLocalDateTime(tz).date
+/**
+ * Which relative-day bucket [epochMillis] falls into. The record's day is read in its captured
+ * [offsetMinutes] (so it matches the date shown), while "today" is the viewer's own current day.
+ */
+fun dayBucket(
+    epochMillis: Long,
+    offsetMinutes: Int = currentOffsetMinutes(epochMillis),
+): DayBucket {
+    val day = Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(offsetZone(offsetMinutes)).date
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     return when (day) {
         today -> DayBucket.TODAY
         today.minus(DatePeriod(days = 1)) -> DayBucket.YESTERDAY

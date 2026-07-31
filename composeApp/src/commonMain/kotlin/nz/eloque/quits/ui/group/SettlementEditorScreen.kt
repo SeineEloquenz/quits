@@ -46,7 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import kotlinx.datetime.TimeZone
 import nz.eloque.compose_kit.input.SearchablePickerField
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.domain.GroupId
@@ -74,6 +73,7 @@ import nz.eloque.quits.util.formatLocalDate
 import nz.eloque.quits.util.formatLocalTime
 import nz.eloque.quits.util.localDateMillisUtc
 import nz.eloque.quits.util.localHourMinute
+import nz.eloque.quits.util.offsetZone
 import nz.eloque.quits.util.withPickedDate
 import nz.eloque.quits.util.withPickedTime
 import org.jetbrains.compose.resources.stringResource
@@ -101,7 +101,7 @@ fun SettlementEditorScreen(
     }
 
     if (showDatePicker) {
-        val zone = remember { TimeZone.currentSystemDefault() }
+        val zone = offsetZone(state.tzOffsetMinutes)
         val pickerState = rememberDatePickerState(initialSelectedDateMillis = localDateMillisUtc(state.paidAt, zone))
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -120,7 +120,7 @@ fun SettlementEditorScreen(
     }
 
     if (showTimePicker) {
-        val zone = remember { TimeZone.currentSystemDefault() }
+        val zone = offsetZone(state.tzOffsetMinutes)
         val (initialHour, initialMinute) = remember { localHourMinute(state.paidAt, zone) }
         val timeState = rememberTimePickerState(initialHour = initialHour, initialMinute = initialMinute)
         BasicAlertDialog(onDismissRequest = { showTimePicker = false }) {
@@ -241,7 +241,7 @@ fun SettlementEditorScreen(
             Row(verticalAlignment = Alignment.Top) {
                 Box(Modifier.weight(1f)) {
                     OutlinedTextField(
-                        value = formatLocalDate(state.paidAt),
+                        value = formatLocalDate(state.paidAt, state.tzOffsetMinutes),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(stringResource(Res.string.editor_label_date)) },
@@ -253,7 +253,7 @@ fun SettlementEditorScreen(
                 Spacer(Modifier.width(8.dp))
                 Box {
                     OutlinedTextField(
-                        value = formatLocalTime(state.paidAt),
+                        value = formatLocalTime(state.paidAt, state.tzOffsetMinutes),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(stringResource(Res.string.editor_label_time)) },

@@ -309,7 +309,7 @@ fun GroupDetailScreen(
                 Column(Modifier.padding(horizontal = 16.dp)) {
                     var lastDayLabel: String? = null
                     state.activity.forEach { entry ->
-                        val dayLabel = dayGroupLabel(entry.timestamp)
+                        val dayLabel = dayGroupLabel(entry.timestamp, entry.offsetMinutes)
                         if (dayLabel != lastDayLabel) {
                             if (lastDayLabel != null) Spacer(Modifier.height(8.dp))
                             Text(

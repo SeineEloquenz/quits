@@ -32,6 +32,7 @@ import nz.eloque.quits.resources.error_sync_failed
 import nz.eloque.quits.resources.export_empty
 import nz.eloque.quits.util.FileExporter
 import nz.eloque.quits.util.csvFileName
+import nz.eloque.quits.util.currentOffsetMinutes
 import nz.eloque.quits.util.expensesToCsv
 import nz.eloque.quits.util.newId
 import nz.eloque.quits.util.nowMillis
@@ -55,6 +56,7 @@ data class ExpenseRow(
     val total: Money,
     val paidBy: String,
     val spentAt: Long,
+    val offsetMinutes: Int = 0,
     val category: String? = null,
     val note: String? = null,
     /** Everyone tied to the expense (payers and share-holders), for the member filter. */
@@ -69,6 +71,7 @@ data class SettlementRow(
     val to: String,
     val amount: Money,
     val paidAt: Long,
+    val offsetMinutes: Int = 0,
     val fromId: MemberId? = null,
     val toId: MemberId? = null,
 )
@@ -88,17 +91,20 @@ data class ActivityFilter(
  */
 sealed interface ActivityEntry {
     val timestamp: Long
+    val offsetMinutes: Int
 
     data class ExpenseEntry(
         val row: ExpenseRow,
     ) : ActivityEntry {
         override val timestamp: Long get() = row.spentAt
+        override val offsetMinutes: Int get() = row.offsetMinutes
     }
 
     data class SettlementEntry(
         val row: SettlementRow,
     ) : ActivityEntry {
         override val timestamp: Long get() = row.paidAt
+        override val offsetMinutes: Int get() = row.offsetMinutes
     }
 }
 
@@ -213,7 +219,14 @@ class GroupDetailViewModel(
             // override, but recording always means "now" here, so this is the single source of truth.
             repo.upsertSettlement(
                 groupId,
-                Settlement(SettlementId(newId()), transfer.from, transfer.to, transfer.amount, paidAt = nowMillis()),
+                Settlement(
+                    SettlementId(newId()),
+                    transfer.from,
+                    transfer.to,
+                    transfer.amount,
+                    paidAt = nowMillis(),
+                    tzOffsetMinutes = currentOffsetMinutes(),
+                ),
             )
             trySync()
         }
@@ -262,6 +275,7 @@ private fun Group.toUiState(filter: ActivityFilter): GroupDetailUiState {
                     expense.total,
                     paidBy,
                     expense.spentAt,
+                    expense.tzOffsetMinutes,
                     expense.category,
                     expense.note,
                     participants,
@@ -278,6 +292,7 @@ private fun Group.toUiState(filter: ActivityFilter): GroupDetailUiState {
                     names[settlement.to] ?: "?",
                     settlement.amount,
                     settlement.paidAt,
+                    settlement.tzOffsetMinutes,
                     settlement.from,
                     settlement.to,
                 ),

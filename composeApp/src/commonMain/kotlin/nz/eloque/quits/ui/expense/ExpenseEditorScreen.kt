@@ -63,7 +63,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlinx.datetime.TimeZone
 import nz.eloque.compose_kit.chip.ChipSelector
 import nz.eloque.compose_kit.components.SectionCard
 import nz.eloque.compose_kit.input.AbbreviatingText
@@ -129,6 +128,7 @@ import nz.eloque.quits.util.formatLocalDate
 import nz.eloque.quits.util.formatLocalTime
 import nz.eloque.quits.util.localDateMillisUtc
 import nz.eloque.quits.util.localHourMinute
+import nz.eloque.quits.util.offsetZone
 import nz.eloque.quits.util.withPickedDate
 import nz.eloque.quits.util.withPickedTime
 import org.jetbrains.compose.resources.stringResource
@@ -153,7 +153,7 @@ fun ExpenseEditorScreen(
     }
 
     if (showDatePicker) {
-        val zone = remember { TimeZone.currentSystemDefault() }
+        val zone = offsetZone(state.tzOffsetMinutes)
         val pickerState = rememberDatePickerState(initialSelectedDateMillis = localDateMillisUtc(state.spentAt, zone))
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -172,7 +172,7 @@ fun ExpenseEditorScreen(
     }
 
     if (showTimePicker) {
-        val zone = remember { TimeZone.currentSystemDefault() }
+        val zone = offsetZone(state.tzOffsetMinutes)
         val (initialHour, initialMinute) = remember { localHourMinute(state.spentAt, zone) }
         // No is24Hour argument: rememberTimePickerState defaults to the device's clock setting.
         val timeState = rememberTimePickerState(initialHour = initialHour, initialMinute = initialMinute)
@@ -245,7 +245,7 @@ fun ExpenseEditorScreen(
                     Row(verticalAlignment = Alignment.Top) {
                         Box(Modifier.weight(1f)) {
                             OutlinedTextField(
-                                value = formatLocalDate(state.spentAt),
+                                value = formatLocalDate(state.spentAt, state.tzOffsetMinutes),
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text(stringResource(Res.string.editor_label_date)) },
@@ -257,7 +257,7 @@ fun ExpenseEditorScreen(
                         Spacer(Modifier.width(8.dp))
                         Box {
                             OutlinedTextField(
-                                value = formatLocalTime(state.spentAt),
+                                value = formatLocalTime(state.spentAt, state.tzOffsetMinutes),
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text(stringResource(Res.string.editor_label_time)) },

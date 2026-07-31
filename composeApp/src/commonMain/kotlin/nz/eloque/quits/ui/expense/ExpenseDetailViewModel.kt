@@ -44,6 +44,7 @@ data class ExpenseDetailUiState(
     val splitKind: SplitKind = SplitKind.EQUAL,
     val participantCount: Int = 0,
     val spentAt: Long = 0L,
+    val tzOffsetMinutes: Int = 0,
     val paidBy: List<ExpenseParticipantRow> = emptyList(),
     val owedBy: List<ExpenseParticipantRow> = emptyList(),
     /** Line items, present only when the split is itemized. */
@@ -77,6 +78,7 @@ class ExpenseDetailViewModel(
                         splitKind = expense.split.kind(),
                         participantCount = expense.shares.size,
                         spentAt = expense.spentAt,
+                        tzOffsetMinutes = expense.tzOffsetMinutes,
                         paidBy =
                             expense.payments
                                 .map { it.payer }

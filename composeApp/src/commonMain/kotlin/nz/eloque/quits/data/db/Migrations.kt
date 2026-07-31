@@ -31,6 +31,19 @@ val MIGRATION_3_4 =
     }
 
 /**
+ * v4 -> v5: timezone-aware dates. Adds `tzOffsetMinutes` to `expense` and `settlement` — the UTC
+ * offset captured when the date was entered, so the day/time renders as the enterer meant it
+ * regardless of the viewer's timezone. Additive; existing rows default to 0 (UTC).
+ */
+val MIGRATION_4_5 =
+    object : Migration(4, 5) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE expense ADD COLUMN tzOffsetMinutes INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE settlement ADD COLUMN tzOffsetMinutes INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+/**
  * v2 -> v3: itemized splits. Adds the `expense_item` line-item table and its `expense_item_participant`
  * join table. Purely additive — existing expenses (equal/shares/percentage/exact) are untouched.
  */

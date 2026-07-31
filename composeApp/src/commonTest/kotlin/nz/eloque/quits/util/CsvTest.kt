@@ -47,7 +47,7 @@ class CsvTest {
                 Split.Equal(listOf(a, b)),
                 spentAt = at("2026-07-29T08:05"),
             )
-        val csv = group(older, newer).expensesToCsv(TimeZone.UTC)
+        val csv = group(older, newer).expensesToCsv()
 
         assertEquals(
             "Date,Time,Title,Category,Amount,Currency,Paid by,Note\r\n" +
@@ -68,7 +68,7 @@ class CsvTest {
                 spentAt = at("2026-07-29T12:00"),
                 note = "say \"hi\"\nsecond line",
             )
-        val csv = group(expense).expensesToCsv(TimeZone.UTC)
+        val csv = group(expense).expensesToCsv()
 
         assertEquals(
             "Date,Time,Title,Category,Amount,Currency,Paid by,Note\r\n" +
@@ -90,9 +90,26 @@ class CsvTest {
                 spentAt = at("2026-07-29T12:00"),
             )
         val group = Group(GroupId("g"), "Trip", jpy, members, listOf(expense))
-        val line = group.expensesToCsv(TimeZone.UTC).lines()[1]
+        val line = group.expensesToCsv().lines()[1]
 
         assertEquals("2026-07-29,12:00,Sushi,,1500,JPY,Alice,", line)
+    }
+
+    @Test
+    fun date_and_time_render_in_the_captured_offset() {
+        // 23:30 UTC with a +60 min offset is 00:30 the next day where it was entered.
+        val expense =
+            Expense(
+                ExpenseId("e1"),
+                "Late snack",
+                listOf(Payment(a, Money(500, usd))),
+                Split.Equal(listOf(a, b)),
+                spentAt = at("2026-07-29T23:30"),
+                tzOffsetMinutes = 60,
+            )
+        val line = group(expense).expensesToCsv().lines()[1]
+
+        assertEquals("2026-07-30,00:30,Late snack,,5.00,USD,Alice,", line)
     }
 
     @Test

@@ -25,6 +25,12 @@ class Expense(
      * [Entity]), so this can be filled in without affecting anything that compares expenses.
      */
     val spentAt: Long = 0L,
+    /**
+     * UTC offset in minutes captured when [spentAt] was entered, so the day/time can be rendered as
+     * the enterer meant it regardless of the viewer's timezone. Like [spentAt], not part of
+     * [equals]/[hashCode].
+     */
+    val tzOffsetMinutes: Int = 0,
     val category: String? = null,
     val note: String? = null,
     /**

@@ -159,7 +159,7 @@ fun ExpenseDetailScreen(
                 Text(
                     stringResource(
                         Res.string.detail_split_summary_dated,
-                        dayGroupLabel(state.spentAt),
+                        dayGroupLabel(state.spentAt, state.tzOffsetMinutes),
                         state.splitKind.label(),
                         state.participantCount,
                     ),

@@ -46,6 +46,7 @@ internal fun SettlementEntity.toDomain(): Settlement =
         Money(amountMinor, Currency.of(currency)),
         rateToBase,
         paidAt,
+        tzOffsetMinutes,
         note,
     )
 
@@ -59,6 +60,7 @@ internal fun ExpenseWithLines.toDomain(): Expense {
         toSplit(expense.splitType, splits, items, currency),
         expense.rateToBase,
         expense.spentAt,
+        expense.tzOffsetMinutes,
         expense.category,
         expense.note,
         splitSupported = expense.splitType in KNOWN_SPLIT_TYPES,

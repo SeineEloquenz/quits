@@ -35,6 +35,7 @@ sealed interface SyncPayload {
         val rateToBase: Double,
         val category: String?,
         val spentAt: Long,
+        val tzOffsetMinutes: Int = 0,
         val note: String?,
         val splitType: String,
         val payers: List<Payer>,
@@ -53,6 +54,7 @@ sealed interface SyncPayload {
         val currency: String,
         val rateToBase: Double,
         val paidAt: Long,
+        val tzOffsetMinutes: Int = 0,
         val note: String?,
     ) : SyncPayload
 

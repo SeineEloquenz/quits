@@ -47,6 +47,7 @@ import nz.eloque.quits.resources.error_paid_sum
 import nz.eloque.quits.resources.error_percent_sum
 import nz.eloque.quits.resources.rate_cached
 import nz.eloque.quits.resources.rate_fetch_failed
+import nz.eloque.quits.util.currentOffsetMinutes
 import nz.eloque.quits.util.formatLocalDate
 import nz.eloque.quits.util.newId
 import nz.eloque.quits.util.nowMillis
@@ -106,6 +107,8 @@ data class ExpenseEditorUiState(
     val rateNotice: String? = null,
     /** When the expense was incurred (epoch millis); defaults to now for a new expense, editable via the date picker. */
     val spentAt: Long = 0L,
+    /** UTC offset the date was entered in; captured on create, preserved on edit. */
+    val tzOffsetMinutes: Int = 0,
 ) {
     val isForeign: Boolean get() = currency != baseCurrency
 }
@@ -152,6 +155,7 @@ class ExpenseEditorViewModel(
                 equalSelected = allIds,
                 draftParticipants = emptySet(),
                 spentAt = nowMillis(),
+                tzOffsetMinutes = currentOffsetMinutes(),
             )
         }
         val paidMoney =
@@ -189,6 +193,7 @@ class ExpenseEditorViewModel(
             payerSelected = distinctPayers.toSet(),
             paid = paid,
             spentAt = existing.spentAt,
+            tzOffsetMinutes = existing.tzOffsetMinutes,
             splitKind = split.kind(),
             equalSelected = if (split is Split.Equal) split.participants.toSet() else allIds,
             splitInput =
@@ -400,6 +405,7 @@ class ExpenseEditorViewModel(
                         validated.split,
                         validated.rate,
                         spentAt = s.spentAt.takeIf { it > 0L } ?: nowMillis(),
+                        tzOffsetMinutes = s.tzOffsetMinutes,
                         category = s.category.trim().ifEmpty { null },
                         note = s.note.trim().ifEmpty { null },
                     )
