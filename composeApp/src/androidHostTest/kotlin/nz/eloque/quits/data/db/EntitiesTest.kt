@@ -41,10 +41,10 @@ class EntitiesTest {
         runTest {
             seedGroup()
             db.memberDao().upsert(listOf(MemberEntity("m1", "g", "Alice", null, meta())))
-            db.expenseDao().save(
-                ExpenseEntity("e", "g", "Dinner", 3000, "USD", 1.0, null, 10, 0, null, "EQUAL", "EXPENSE", meta()),
-                listOf(ExpensePayerEntity("p", "e", "m1", 3000)),
-                listOf(ExpenseSplitEntity("s", "e", "m1", 3000)),
+            db.entryDao().save(
+                EntryEntity("e", "g", "Dinner", 3000, "USD", 1.0, null, 10, 0, null, "EQUAL", "EXPENSE", meta()),
+                listOf(EntryPayerEntity("p", "e", "m1", 3000)),
+                listOf(EntrySplitEntity("s", "e", "m1", 3000)),
                 emptyList(),
                 emptyList(),
             )
@@ -53,29 +53,29 @@ class EntitiesTest {
 
             assertNull(db.groupDao().byId("g"))
             assertTrue(db.memberDao().forGroup("g").isEmpty())
-            assertNull(db.expenseDao().byId("e")) // expense + its payer/split lines gone
+            assertNull(db.entryDao().byId("e")) // entry + its payer/split lines gone
         }
 
     @Test
     fun expense_with_payers_and_splits_round_trips() =
         runTest {
             seedGroup()
-            db.expenseDao().save(
-                ExpenseEntity("e", "g", "Hotel", 10000, "EUR", 1.1, "lodging", 5, 0, "two nights", "SHARES", "EXPENSE", meta()),
+            db.entryDao().save(
+                EntryEntity("e", "g", "Hotel", 10000, "EUR", 1.1, "lodging", 5, 0, "two nights", "SHARES", "EXPENSE", meta()),
                 listOf(
-                    ExpensePayerEntity("p1", "e", "m1", 6000),
-                    ExpensePayerEntity("p2", "e", "m2", 4000),
+                    EntryPayerEntity("p1", "e", "m1", 6000),
+                    EntryPayerEntity("p2", "e", "m2", 4000),
                 ),
                 listOf(
-                    ExpenseSplitEntity("s1", "e", "m1", 5000, weight = 1.0),
-                    ExpenseSplitEntity("s2", "e", "m2", 5000, weight = 1.0),
+                    EntrySplitEntity("s1", "e", "m1", 5000, weight = 1.0),
+                    EntrySplitEntity("s2", "e", "m2", 5000, weight = 1.0),
                 ),
                 emptyList(),
                 emptyList(),
             )
 
-            val loaded = db.expenseDao().byId("e")!!
-            assertEquals("Hotel", loaded.expense.title)
+            val loaded = db.entryDao().byId("e")!!
+            assertEquals("Hotel", loaded.entry.title)
             assertEquals(10000, loaded.payers.sumOf { it.amountMinor })
             assertEquals(2, loaded.splits.size)
         }
@@ -84,23 +84,23 @@ class EntitiesTest {
     fun saving_an_expense_replaces_old_lines() =
         runTest {
             seedGroup()
-            val base = ExpenseEntity("e", "g", "x", 100, "USD", 1.0, null, 0, 0, null, "EQUAL", "EXPENSE", meta())
-            db.expenseDao().save(
+            val base = EntryEntity("e", "g", "x", 100, "USD", 1.0, null, 0, 0, null, "EQUAL", "EXPENSE", meta())
+            db.entryDao().save(
                 base,
-                listOf(ExpensePayerEntity("p1", "e", "m1", 100)),
-                listOf(ExpenseSplitEntity("s1", "e", "m1", 100)),
+                listOf(EntryPayerEntity("p1", "e", "m1", 100)),
+                listOf(EntrySplitEntity("s1", "e", "m1", 100)),
                 emptyList(),
                 emptyList(),
             )
-            db.expenseDao().save(
+            db.entryDao().save(
                 base,
-                listOf(ExpensePayerEntity("p2", "e", "m2", 100)),
-                listOf(ExpenseSplitEntity("s2", "e", "m2", 100)),
+                listOf(EntryPayerEntity("p2", "e", "m2", 100)),
+                listOf(EntrySplitEntity("s2", "e", "m2", 100)),
                 emptyList(),
                 emptyList(),
             )
 
-            val loaded = db.expenseDao().byId("e")!!
+            val loaded = db.entryDao().byId("e")!!
             assertEquals(listOf("p2"), loaded.payers.map { it.id })
             assertEquals(listOf("s2"), loaded.splits.map { it.id })
         }

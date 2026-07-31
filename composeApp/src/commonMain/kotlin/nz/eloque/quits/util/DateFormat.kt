@@ -46,7 +46,7 @@ fun withPickedTime(
 
 /**
  * The UTC-midnight millis of [spentAt]'s *local* calendar day — the form Material's DatePicker wants
- * as its selected date, so the picker highlights the day the user actually sees for this expense.
+ * as its selected date, so the picker highlights the day the user actually sees for this entry.
  */
 fun localDateMillisUtc(
     spentAt: Long,

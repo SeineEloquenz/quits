@@ -1,4 +1,4 @@
-package nz.eloque.quits.ui.expense
+package nz.eloque.quits.ui.entry
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -81,6 +81,7 @@ import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Split
+import nz.eloque.quits.domain.isIncome
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_add
 import nz.eloque.quits.resources.action_cancel
@@ -110,27 +111,17 @@ import nz.eloque.quits.resources.editor_label_note
 import nz.eloque.quits.resources.editor_label_rate
 import nz.eloque.quits.resources.editor_label_time
 import nz.eloque.quits.resources.editor_label_title
-import nz.eloque.quits.resources.editor_paid_by
-import nz.eloque.quits.resources.editor_paid_by_hint
-import nz.eloque.quits.resources.editor_paid_by_prompt
 import nz.eloque.quits.resources.editor_placeholder_amount
 import nz.eloque.quits.resources.editor_placeholder_percent
 import nz.eloque.quits.resources.editor_placeholder_shares
 import nz.eloque.quits.resources.editor_rate_fetching
-import nz.eloque.quits.resources.editor_received_by
 import nz.eloque.quits.resources.editor_remaining
 import nz.eloque.quits.resources.editor_remaining_done
 import nz.eloque.quits.resources.editor_remove_item
-import nz.eloque.quits.resources.editor_save_changes
-import nz.eloque.quits.resources.editor_save_expense
 import nz.eloque.quits.resources.editor_shares_decrease
 import nz.eloque.quits.resources.editor_shares_increase
 import nz.eloque.quits.resources.editor_split
 import nz.eloque.quits.resources.editor_split_between
-import nz.eloque.quits.resources.editor_title_add
-import nz.eloque.quits.resources.editor_title_add_income
-import nz.eloque.quits.resources.editor_title_edit
-import nz.eloque.quits.resources.editor_title_edit_income
 import nz.eloque.quits.resources.error_invalid_amount
 import nz.eloque.quits.resources.error_invalid_paid
 import nz.eloque.quits.resources.error_invalid_total
@@ -159,14 +150,14 @@ import org.koin.core.parameter.parametersOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpenseEditorScreen(
+fun EntryEditorScreen(
     groupId: GroupId,
-    expenseId: String?,
+    entryId: String?,
     kind: EntryKind,
     onDone: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    val viewModel = koinViewModel<ExpenseEditorViewModel> { parametersOf(groupId, expenseId, kind) }
+    val viewModel = koinViewModel<EntryEditorViewModel> { parametersOf(groupId, entryId, kind) }
     val state by viewModel.state.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -220,12 +211,7 @@ fun ExpenseEditorScreen(
     AppScaffold(
         title = {
             AbbreviatingText(
-                when {
-                    state.kind == EntryKind.INCOME && state.editing -> stringResource(Res.string.editor_title_edit_income)
-                    state.kind == EntryKind.INCOME -> stringResource(Res.string.editor_title_add_income)
-                    state.editing -> stringResource(Res.string.editor_title_edit)
-                    else -> stringResource(Res.string.editor_title_add)
-                },
+                stringResource(state.kind.titleRes(state.editing)),
                 style = MaterialTheme.typography.headlineMedium,
                 maxLines = 1,
             )
@@ -332,7 +318,7 @@ fun ExpenseEditorScreen(
                 Column(Modifier.padding(16.dp)) {
                     // Itemized (receipt line-items) doesn't apply to money coming in.
                     val splitOptions =
-                        if (state.kind == EntryKind.INCOME) SplitKind.entries.filter { it != SplitKind.ITEMIZED } else SplitKind.entries
+                        if (state.kind.isIncome) SplitKind.entries.filter { it != SplitKind.ITEMIZED } else SplitKind.entries
                     val splitLabels = splitOptions.associateWith { it.label() }
                     ChipSelector(
                         options = splitOptions,
@@ -463,13 +449,7 @@ fun ExpenseEditorScreen(
                 }
             }
 
-            val paidByHeading =
-                if (state.kind == EntryKind.INCOME) {
-                    stringResource(Res.string.editor_received_by)
-                } else {
-                    stringResource(Res.string.editor_paid_by)
-                }
-            SectionCard(heading = paidByHeading) {
+            SectionCard(heading = stringResource(state.kind.payerHeadingRes())) {
                 Column(Modifier.padding(16.dp)) {
                     when (state.payerMode) {
                         PayerMode.EQUAL -> {
@@ -543,13 +523,7 @@ fun ExpenseEditorScreen(
             Spacer(Modifier.height(16.dp))
 
             Button(onClick = viewModel::save, enabled = state.isValid(), modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    if (state.editing) {
-                        stringResource(Res.string.editor_save_changes)
-                    } else {
-                        stringResource(Res.string.editor_save_expense)
-                    },
-                )
+                Text(stringResource(state.kind.saveActionRes(state.editing)))
             }
             Spacer(Modifier.height(24.dp))
         }
@@ -804,20 +778,20 @@ private fun MemberChip(
  * prompt with nobody selected yet.
  */
 @Composable
-private fun paidByEqualHint(state: ExpenseEditorUiState): String {
+private fun paidByEqualHint(state: EntryEditorUiState): String {
     val selected = state.members.filter { it.id in state.payerSelected }
-    if (selected.isEmpty()) return stringResource(Res.string.editor_paid_by_prompt)
+    if (selected.isEmpty()) return stringResource(state.kind.payerPromptRes())
 
     val total = Money.parse(state.amount.trim(), state.currency)
     if (total == null || !total.isPositive) {
         return if (selected.size == 1) {
-            stringResource(Res.string.editor_paid_by_prompt)
+            stringResource(state.kind.payerPromptRes())
         } else {
             stringResource(Res.string.editor_equal_count, selected.size)
         }
     }
     return if (selected.size == 1) {
-        stringResource(Res.string.editor_paid_by_hint, selected.first().name, total.display())
+        stringResource(state.kind.payerHintRes(), selected.first().name, total.display())
     } else {
         val each = Money(total.minorUnits / selected.size, total.currency)
         stringResource(Res.string.editor_equal_hint, selected.size, each.display())
@@ -826,7 +800,7 @@ private fun paidByEqualHint(state: ExpenseEditorUiState): String {
 
 /** Split-payer mode's "remaining to assign" — mirrors the split section's own hint below. */
 @Composable
-private fun PaidRemainingHint(state: ExpenseEditorUiState) {
+private fun PaidRemainingHint(state: EntryEditorUiState) {
     val currency = state.currency
     val total = Money.parse(state.amount.trim(), currency) ?: return
     val assigned = state.members.sumOf { m -> Money.parse(state.paid[m.id].orEmpty().trim(), currency)?.minorUnits ?: 0L }
@@ -836,7 +810,7 @@ private fun PaidRemainingHint(state: ExpenseEditorUiState) {
 
 /** Live "remaining to assign" feedback for the splits that must sum to a target (exact, percentage). */
 @Composable
-private fun RemainingHint(state: ExpenseEditorUiState) {
+private fun RemainingHint(state: EntryEditorUiState) {
     val (done, remainingDisplay) =
         when (state.splitKind) {
             SplitKind.EXACT -> {
@@ -1071,7 +1045,7 @@ private fun SharesStepper(
 
 /** "4 people · ¥1,200 each" once the amount is valid; a plain count otherwise. */
 @Composable
-private fun equalSplitHint(state: ExpenseEditorUiState): String {
+private fun equalSplitHint(state: EntryEditorUiState): String {
     val count = state.equalSelected.size
     val total = Money.parse(state.amount.trim(), state.currency)
     return if (count > 0 && total != null && total.isPositive) {
@@ -1090,7 +1064,7 @@ private fun equalSplitHint(state: ExpenseEditorUiState): String {
  */
 @Composable
 private fun percentagePreview(
-    state: ExpenseEditorUiState,
+    state: EntryEditorUiState,
     memberId: MemberId,
 ): Money? {
     val currency = state.currency
@@ -1117,7 +1091,7 @@ private fun percentagePreview(
  */
 @Composable
 private fun sharesPreview(
-    state: ExpenseEditorUiState,
+    state: EntryEditorUiState,
     memberId: MemberId,
 ): Money? {
     val currency = state.currency

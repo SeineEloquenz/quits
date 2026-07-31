@@ -1,4 +1,4 @@
-package nz.eloque.quits.ui.expense
+package nz.eloque.quits.ui.entry
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,29 +16,29 @@ import nz.eloque.quits.data.sync.syncQuietly
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.EntryKind
-import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Split
 
-data class ExpenseParticipantRow(
+data class EntryParticipantRow(
     val id: MemberId,
     val name: String,
     val amount: Money,
 )
 
 /** A receipt line on the detail screen: what it cost and who shared it. */
-data class ExpenseItemRow(
+data class EntryItemRow(
     val label: String,
     val amount: Money,
     val participants: List<String>,
 )
 
-data class ExpenseDetailUiState(
+data class EntryDetailUiState(
     val loaded: Boolean = false,
-    /** False once the expense (or the group) no longer exists, e.g. it was deleted elsewhere. */
+    /** False once the entry (or the group) no longer exists, e.g. it was deleted elsewhere. */
     val found: Boolean = true,
     val title: String = "",
     val kind: EntryKind = EntryKind.EXPENSE,
@@ -51,64 +51,64 @@ data class ExpenseDetailUiState(
     val participantCount: Int = 0,
     val spentAt: Long = 0L,
     val tzOffsetMinutes: Int = 0,
-    val paidBy: List<ExpenseParticipantRow> = emptyList(),
-    val owedBy: List<ExpenseParticipantRow> = emptyList(),
+    val paidBy: List<EntryParticipantRow> = emptyList(),
+    val owedBy: List<EntryParticipantRow> = emptyList(),
     /** Line items, present only when the split is itemized. */
-    val items: List<ExpenseItemRow> = emptyList(),
-    /** False for an expense whose split type this version doesn't support — read-only, no editing. */
+    val items: List<EntryItemRow> = emptyList(),
+    /** False for an entry whose split type this version doesn't support — read-only, no editing. */
     val splitSupported: Boolean = true,
 )
 
-class ExpenseDetailViewModel(
+class EntryDetailViewModel(
     private val repo: GroupRepository,
     private val engine: SyncEngine,
     private val groupId: GroupId,
-    private val expenseId: ExpenseId,
+    private val entryId: EntryId,
 ) : ViewModel() {
-    val state: StateFlow<ExpenseDetailUiState> =
+    val state: StateFlow<EntryDetailUiState> =
         repo
             .groupFlow(groupId)
             .map { group ->
-                val expense = group?.expenses?.find { it.id == expenseId }
-                if (group == null || expense == null) {
-                    ExpenseDetailUiState(loaded = true, found = false)
+                val entry = group?.entries?.find { it.id == entryId }
+                if (group == null || entry == null) {
+                    EntryDetailUiState(loaded = true, found = false)
                 } else {
                     val names = group.members.associate { it.id to it.name }
-                    ExpenseDetailUiState(
+                    EntryDetailUiState(
                         loaded = true,
                         found = true,
-                        title = expense.title,
-                        kind = expense.kind,
-                        categoryId = expense.categoryId,
+                        title = entry.title,
+                        kind = entry.kind,
+                        categoryId = entry.categoryId,
                         categories = group.categories,
-                        note = expense.note,
-                        total = expense.total,
-                        splitKind = expense.split.kind(),
-                        participantCount = expense.shares.size,
-                        spentAt = expense.spentAt,
-                        tzOffsetMinutes = expense.tzOffsetMinutes,
+                        note = entry.note,
+                        total = entry.total,
+                        splitKind = entry.split.kind(),
+                        participantCount = entry.shares.size,
+                        spentAt = entry.spentAt,
+                        tzOffsetMinutes = entry.tzOffsetMinutes,
                         paidBy =
-                            expense.payments
-                                .map { it.payer }
+                            entry.payments
+                                .map { it.member }
                                 .distinct()
                                 .sortedBy { names[it] ?: "" }
-                                .map { ExpenseParticipantRow(it, names[it] ?: "?", expense.paidBy(it)) },
+                                .map { EntryParticipantRow(it, names[it] ?: "?", entry.paymentsBy(it)) },
                         owedBy =
-                            expense.shares.keys
+                            entry.shares.keys
                                 .sortedBy { names[it] ?: "" }
-                                .map { ExpenseParticipantRow(it, names[it] ?: "?", expense.owedBy(it)) },
+                                .map { EntryParticipantRow(it, names[it] ?: "?", entry.shareOf(it)) },
                         items =
-                            (expense.split as? Split.Itemized)?.items?.map { item ->
-                                ExpenseItemRow(
+                            (entry.split as? Split.Itemized)?.items?.map { item ->
+                                EntryItemRow(
                                     item.label,
                                     item.amount,
                                     item.participants.map { names[it] ?: "?" }.sorted(),
                                 )
                             } ?: emptyList(),
-                        splitSupported = expense.splitSupported,
+                        splitSupported = entry.splitSupported,
                     )
                 }
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExpenseDetailUiState())
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), EntryDetailUiState())
 
     private val _deleted = Channel<Unit>(Channel.BUFFERED)
 
@@ -122,7 +122,7 @@ class ExpenseDetailViewModel(
      */
     fun delete() {
         viewModelScope.launch {
-            repo.deleteExpense(expenseId)
+            repo.deleteEntry(entryId)
             _deleted.send(Unit)
             // The deletion is already saved locally; a sync failure shouldn't block leaving the screen.
             engine.syncQuietly(groupId)

@@ -14,14 +14,14 @@ class GroupTest {
 
     private fun dinnerGroup(): Group {
         // A pays 30.00, split equally among A/B/C → each owes 10.00.
-        val expense =
-            Expense(
-                ExpenseId("e1"),
+        val entry =
+            Entry(
+                EntryId("e1"),
                 "Dinner",
                 listOf(Payment(a, usd(3000))),
                 Split.Equal(listOf(a, b, c)),
             )
-        return Group(GroupId("g"), "Trip", USD, members, listOf(expense))
+        return Group(GroupId("g"), "Trip", USD, members, listOf(entry))
     }
 
     @Test
@@ -36,10 +36,10 @@ class GroupTest {
     @Test
     fun income_mirrors_an_expense_in_balances() {
         // A receives a 90.00 refund shared equally A/B/C: A holds group money (-60 net),
-        // B and C are each owed 30. Exactly the negation of the same-shaped expense.
+        // B and C are each owed 30. Exactly the negation of the same-shaped entry.
         val income =
-            Expense(
-                ExpenseId("i1"),
+            Entry(
+                EntryId("i1"),
                 "Refund",
                 listOf(Payment(a, usd(9000))),
                 Split.Equal(listOf(a, b, c)),
@@ -72,15 +72,15 @@ class GroupTest {
     @Test
     fun balances_convert_foreign_expenses_to_base() {
         // A pays 100.00 EUR split equally A/B; base USD at 1.1 → B owes A 55.00 USD.
-        val expense =
-            Expense(
-                ExpenseId("e"),
+        val entry =
+            Entry(
+                EntryId("e"),
                 "Hotel",
                 listOf(Payment(a, Money(10000, EUR))),
                 Split.Equal(listOf(a, b)),
                 rateToBase = 1.1,
             )
-        val group = Group(GroupId("g"), "g", USD, listOf(Member(a, "A"), Member(b, "B")), listOf(expense))
+        val group = Group(GroupId("g"), "g", USD, listOf(Member(a, "A"), Member(b, "B")), listOf(entry))
         val balances = group.balances()
         assertEquals(usd(5500), balances.of(a))
         assertEquals(usd(-5500), balances.of(b))
@@ -90,15 +90,15 @@ class GroupTest {
     fun foreign_expense_balances_net_to_zero_despite_rounding() {
         // 100.00 EUR paid by A, split equally A/B/C; base USD at 1.1. Converting the three 33.3x
         // shares one by one wouldn't sum to the converted total, yet the group must net to zero.
-        val expense =
-            Expense(
-                ExpenseId("e"),
+        val entry =
+            Entry(
+                EntryId("e"),
                 "Dinner",
                 listOf(Payment(a, Money(10000, EUR))),
                 Split.Equal(listOf(a, b, c)),
                 rateToBase = 1.1,
             )
-        val balances = Group(GroupId("g"), "g", USD, members, listOf(expense)).balances()
+        val balances = Group(GroupId("g"), "g", USD, members, listOf(entry)).balances()
         assertEquals(0L, balances.net.values.sumOf { it.minorUnits })
 
         // Settling the suggested transfers clears everyone exactly.
@@ -119,7 +119,7 @@ class GroupTest {
                 USD,
                 members,
                 listOf(
-                    Expense(ExpenseId("e1"), "Dinner", listOf(Payment(a, usd(3000))), Split.Equal(listOf(a, b))),
+                    Entry(EntryId("e1"), "Dinner", listOf(Payment(a, usd(3000))), Split.Equal(listOf(a, b))),
                 ),
                 listOf(Settlement(SettlementId("s1"), b, c, usd(500))),
             )
@@ -129,21 +129,21 @@ class GroupTest {
         assertTrue(group.references(c))
         // an unreferenced member is removable.
         val d = mid("d")
-        val withSpare = Group(GroupId("g"), "Trip", USD, members + Member(d, "D"), group.expenses, group.settlements)
+        val withSpare = Group(GroupId("g"), "Trip", USD, members + Member(d, "D"), group.entries, group.settlements)
         assertFalse(withSpare.references(d))
     }
 
     @Test
     fun rejects_expenses_referencing_unknown_members() {
-        val expense =
-            Expense(
-                ExpenseId("e"),
+        val entry =
+            Entry(
+                EntryId("e"),
                 "x",
                 listOf(Payment(mid("ghost"), usd(100))),
                 Split.Equal(listOf(mid("ghost"))),
             )
         assertFailsWith<IllegalArgumentException> {
-            Group(GroupId("g"), "g", USD, members, listOf(expense))
+            Group(GroupId("g"), "g", USD, members, listOf(entry))
         }
     }
 }

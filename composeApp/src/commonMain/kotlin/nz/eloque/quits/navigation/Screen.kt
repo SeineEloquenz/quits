@@ -19,14 +19,14 @@ data object GroupsHomeKey : NavKey
 @Serializable
 data object AddGroupKey : NavKey
 
-/** Read-only breakdown of one expense (who paid, who owes what) before dropping into edit. */
+/** Read-only breakdown of one entry (who paid, who owes what) before dropping into edit. */
 @Serializable
-data class ExpenseDetailKey(
+data class EntryDetailKey(
     val groupId: String,
-    val expenseId: String,
+    val entryId: String,
 ) : NavKey
 
-/** A single member: net balance, every expense/settlement they're tied to, rename/remove. */
+/** A single member: net balance, every entry/settlement they're tied to, rename/remove. */
 @Serializable
 data class MemberDetailKey(
     val groupId: String,
@@ -46,9 +46,9 @@ data class StatsKey(
 ) : NavKey
 
 @Serializable
-data class ExpenseEditorKey(
+data class EntryEditorKey(
     val groupId: String,
-    val expenseId: String? = null,
+    val entryId: String? = null,
     /** "EXPENSE" or "INCOME" — the kind for a new entry (ignored when editing an existing one). */
     val kind: String = "EXPENSE",
 ) : NavKey

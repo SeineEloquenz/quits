@@ -113,14 +113,14 @@ class SyncEngine(
     ) {
         val group = db.groupDao().byId(gid)
         val members = if (full) db.memberDao().forGroupWithDeleted(gid) else db.memberDao().dirty(gid)
-        val expenses = if (full) db.expenseDao().forGroup(gid) else db.expenseDao().dirty(gid)
+        val entries = if (full) db.entryDao().forGroup(gid) else db.entryDao().dirty(gid)
         val settlements = if (full) db.settlementDao().forGroup(gid) else db.settlementDao().dirty(gid)
         val categories = if (full) db.categoryDao().forGroup(gid) else db.categoryDao().dirty(gid)
 
         val records = mutableListOf<SyncRecord>()
         if (group != null && (full || group.sync.dirty)) records += RecordMapper.record(group)
         records += members.map { RecordMapper.record(it) }
-        records += expenses.map { RecordMapper.record(it) }
+        records += entries.map { RecordMapper.record(it) }
         records += settlements.map { RecordMapper.record(it) }
         records += categories.map { RecordMapper.record(it) }
         if (records.isEmpty()) return
@@ -133,8 +133,8 @@ class SyncEngine(
             db.groupDao().clearDirty(gid, group.sync.updatedAt, group.sync.deviceId)
         }
         members.filter { it.id in applied }.forEach { db.memberDao().clearDirty(it.id, it.sync.updatedAt, it.sync.deviceId) }
-        expenses.filter { it.expense.id in applied }.forEach {
-            db.expenseDao().clearDirty(it.expense.id, it.expense.sync.updatedAt, it.expense.sync.deviceId)
+        entries.filter { it.entry.id in applied }.forEach {
+            db.entryDao().clearDirty(it.entry.id, it.entry.sync.updatedAt, it.entry.sync.deviceId)
         }
         settlements.filter { it.id in applied }.forEach { db.settlementDao().clearDirty(it.id, it.sync.updatedAt, it.sync.deviceId) }
         categories.filter { it.id in applied }.forEach { db.categoryDao().clearDirty(it.id, it.sync.updatedAt, it.sync.deviceId) }
@@ -220,11 +220,11 @@ class SyncEngine(
                 }
             }
 
-            is SyncPayload.Expense -> {
-                if (wins(db.expenseDao().byId(payload.id)?.expense?.sync, record)) {
-                    val entities = RecordMapper.expenseEntities(payload, gid, meta)
-                    db.expenseDao().save(
-                        entities.expense,
+            is SyncPayload.Entry -> {
+                if (wins(db.entryDao().byId(payload.id)?.entry?.sync, record)) {
+                    val entities = RecordMapper.entryEntities(payload, gid, meta)
+                    db.entryDao().save(
+                        entities.entry,
                         entities.payers,
                         entities.splits,
                         entities.items.map { it.item },

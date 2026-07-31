@@ -14,7 +14,7 @@ data class MemberTotal(
 
 /**
  * Read-only spending breakdown of a group, all in [base]. [total] is the sum of every expense
- * (settlements are transfers, not spending, so they're excluded). [byCategory] and [byMember] each
+ * (income and settlements aren't spending, so they're excluded). [byCategory] and [byMember] each
  * sum to [total] and are sorted largest-first.
  */
 data class Spending(
@@ -25,30 +25,30 @@ data class Spending(
 )
 
 /**
- * Computes the group's [Spending]. Each expense is converted to [baseCurrency] as a unit (via its
+ * Computes the group's [Spending]. Each entry is converted to [baseCurrency] as a unit (via its
  * captured rate) and then, for the per-member view, split across its share-holders by the same
  * largest-remainder method [balances] uses — so both breakdowns reconcile exactly to the total.
  */
 fun Group.spending(): Spending {
     // Income is money in, not spending — it's excluded from every breakdown here.
-    val expenses = expenses.filter { it.kind == EntryKind.EXPENSE }
+    val spendingEntries = entries.filter { it.kind.isExpense }
 
-    fun baseTotal(expense: Expense): Money = ExchangeRate(expense.currency, baseCurrency, expense.rateToBase).convert(expense.total)
+    fun baseTotal(entry: Entry): Money = ExchangeRate(entry.currency, baseCurrency, entry.rateToBase).convert(entry.total)
 
-    val total = expenses.fold(Money.zero(baseCurrency)) { acc, e -> acc + baseTotal(e) }
+    val total = spendingEntries.fold(Money.zero(baseCurrency)) { acc, e -> acc + baseTotal(e) }
 
     val byCategory =
-        expenses
+        spendingEntries
             .groupBy { it.categoryId }
             .map { (categoryId, es) -> CategoryTotal(categoryId, es.fold(Money.zero(baseCurrency)) { a, e -> a + baseTotal(e) }) }
             .sortedByDescending { it.amount.minorUnits }
 
     val perMember = members.associate { it.id to 0L }.toMutableMap()
-    for (expense in expenses) {
-        val baseAmount = baseTotal(expense)
+    for (entry in spendingEntries) {
+        val baseAmount = baseTotal(entry)
         if (!baseAmount.isPositive) continue
-        val owers = expense.shares.keys.toList()
-        distribute(baseAmount, owers, owers.map { expense.shares.getValue(it).minorUnits })
+        val owers = entry.shares.keys.toList()
+        distribute(baseAmount, owers, owers.map { entry.shares.getValue(it).minorUnits })
             .forEach { (member, share) -> perMember[member] = (perMember[member] ?: 0L) + share.minorUnits }
     }
     val byMember =

@@ -1,4 +1,4 @@
-package nz.eloque.quits.ui.expense
+package nz.eloque.quits.ui.entry
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,9 +20,9 @@ import nz.eloque.quits.data.sync.syncQuietly
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.Entry
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.EntryKind
-import nz.eloque.quits.domain.Expense
-import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
@@ -30,7 +30,6 @@ import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Payment
 import nz.eloque.quits.domain.Split
 import nz.eloque.quits.resources.Res
-import nz.eloque.quits.resources.editor_expense_fallback_title
 import nz.eloque.quits.resources.error_discount_too_large
 import nz.eloque.quits.resources.error_exact_sum
 import nz.eloque.quits.resources.error_invalid_amount
@@ -58,7 +57,7 @@ import nz.eloque.quits.util.nowMillis
 import org.jetbrains.compose.resources.getString
 
 /**
- * EQUAL: the common case — tap avatars to pick who paid, and [ExpenseEditorUiState.amount] is
+ * EQUAL: the common case — tap avatars to pick who paid, and [EntryEditorUiState.amount] is
  * split evenly between them (same avatar-chip pattern as the split section's Equal mode). CUSTOM:
  * a per-member amount table, only needed when the payment wasn't actually split evenly between
  * the selected payers.
@@ -78,10 +77,10 @@ data class ItemInput(
     val participants: Set<MemberId> = emptySet(),
 )
 
-data class ExpenseEditorUiState(
+data class EntryEditorUiState(
     val loaded: Boolean = false,
     val editing: Boolean = false,
-    /** Whether this editor is creating/editing an expense or an income event. */
+    /** Whether this editor is creating/editing an entry or an income event. */
     val kind: EntryKind = EntryKind.EXPENSE,
     val baseCurrency: Currency = Currency.of("EUR"),
     val members: List<MemberInput> = emptyList(),
@@ -90,7 +89,7 @@ data class ExpenseEditorUiState(
     /** The group's custom categories, for the editor's chips (presets come from the catalog). */
     val categories: List<Category> = emptyList(),
     val note: String = "",
-    /** The expense total. Payments (in either payer mode) must add up to exactly this. */
+    /** The entry total. Payments (in either payer mode) must add up to exactly this. */
     val amount: String = "",
     val currency: Currency = Currency.of("EUR"),
     val rate: String = "1.0",
@@ -111,7 +110,7 @@ data class ExpenseEditorUiState(
     val error: String? = null,
     val fetchingRate: Boolean = false,
     val rateNotice: String? = null,
-    /** When the expense was incurred (epoch millis); defaults to now for a new expense, editable via the date picker. */
+    /** When the entry was incurred (epoch millis); defaults to now for a new entry, editable via the date picker. */
     val spentAt: Long = 0L,
     /** UTC offset the date was entered in; captured on create, preserved on edit. */
     val tzOffsetMinutes: Int = 0,
@@ -119,17 +118,17 @@ data class ExpenseEditorUiState(
     val isForeign: Boolean get() = currency != baseCurrency
 }
 
-class ExpenseEditorViewModel(
+class EntryEditorViewModel(
     private val repo: GroupRepository,
     private val engine: SyncEngine,
     private val fxRates: FxRates,
     private val groupId: GroupId,
-    private val expenseId: String?,
+    private val entryId: String?,
     private val kind: EntryKind,
 ) : ViewModel() {
     private var rateJob: Job? = null
-    private val _state = MutableStateFlow(ExpenseEditorUiState())
-    val state: StateFlow<ExpenseEditorUiState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(EntryEditorUiState())
+    val state: StateFlow<EntryEditorUiState> = _state.asStateFlow()
 
     private val _saved = Channel<Unit>(Channel.BUFFERED)
     val saved: Flow<Unit> = _saved.receiveAsFlow()
@@ -137,21 +136,21 @@ class ExpenseEditorViewModel(
     init {
         viewModelScope.launch {
             val group = repo.load(groupId) ?: return@launch
-            val existing = expenseId?.let { id -> group.expenses.firstOrNull { it.id.value == id } }
+            val existing = entryId?.let { id -> group.entries.firstOrNull { it.id.value == id } }
             _state.value = initialState(group, existing)
         }
     }
 
     private fun initialState(
         group: Group,
-        existing: Expense?,
-    ): ExpenseEditorUiState {
+        existing: Entry?,
+    ): EntryEditorUiState {
         val members = group.members.map { MemberInput(it.id, it.name) }
         val allIds = members.map { it.id }.toSet()
         if (existing == null) {
             // No default payer — the user taps who paid (there's no "me" to assume). The split, by
             // contrast, defaults to everyone, since an even split across the whole group is the norm.
-            return ExpenseEditorUiState(
+            return EntryEditorUiState(
                 loaded = true,
                 editing = false,
                 kind = kind,
@@ -169,7 +168,7 @@ class ExpenseEditorViewModel(
         }
         val paidMoney =
             existing.payments
-                .groupBy { it.payer }
+                .groupBy { it.member }
                 .mapValues { (_, payments) -> payments.fold(Money.zero(existing.currency)) { a, p -> a + p.amount } }
         val paid = paidMoney.entries.associate { (member, money) -> member to money.toDecimalString() }
         val distinctPayers = paidMoney.keys.toList()
@@ -185,7 +184,7 @@ class ExpenseEditorViewModel(
                     false
                 }
         val split = existing.split
-        return ExpenseEditorUiState(
+        return EntryEditorUiState(
             loaded = true,
             editing = true,
             kind = existing.kind,
@@ -198,7 +197,7 @@ class ExpenseEditorViewModel(
             amount = existing.total.toDecimalString(),
             currency = existing.currency,
             rate = existing.rateToBase.toString(),
-            // Don't collapse a deliberately uneven multi-payer expense into the equal-split chips
+            // Don't collapse a deliberately uneven multi-payer entry into the equal-split chips
             // on open — that would silently hide the real amounts until re-expanded.
             payerMode = if (isEvenSplit) PayerMode.EQUAL else PayerMode.CUSTOM,
             payerSelected = distinctPayers.toSet(),
@@ -299,7 +298,7 @@ class ExpenseEditorViewModel(
         }
     }
 
-    /** Fetches the live rate from the expense currency into the group base and prefills the field. */
+    /** Fetches the live rate from the entry currency into the group base and prefills the field. */
     private fun fetchRate(
         from: Currency,
         to: Currency,
@@ -439,21 +438,21 @@ class ExpenseEditorViewModel(
             val s = _state.value
             val validated =
                 when (val outcome = s.validate()) {
-                    is ExpenseValidation.Invalid -> {
+                    is EntryValidation.Invalid -> {
                         setError(errorMessage(outcome.reason))
                         return@launch
                     }
 
-                    is ExpenseValidation.Valid -> {
-                        outcome.expense
+                    is EntryValidation.Valid -> {
+                        outcome.entry
                     }
                 }
 
-            val expense =
+            val entry =
                 try {
-                    Expense(
-                        ExpenseId(expenseId ?: newId()),
-                        s.title.trim().ifEmpty { getString(Res.string.editor_expense_fallback_title) },
+                    Entry(
+                        EntryId(entryId ?: newId()),
+                        s.title.trim().ifEmpty { getString(s.kind.fallbackTitleRes()) },
                         validated.payments,
                         validated.split,
                         validated.rate,
@@ -468,113 +467,113 @@ class ExpenseEditorViewModel(
                     return@launch
                 }
 
-            repo.upsertExpense(groupId, expense)
-            // The expense is saved locally; a sync failure shouldn't block leaving the screen.
+            repo.upsertEntry(groupId, entry)
+            // The entry is saved locally; a sync failure shouldn't block leaving the screen.
             engine.syncQuietly(groupId)
             _state.update { it.copy(error = null) }
             _saved.send(Unit)
         }
     }
 
-    private suspend fun errorMessage(reason: ExpenseValidationError): String =
+    private suspend fun errorMessage(reason: EntryValidationError): String =
         when (reason) {
-            is ExpenseValidationError.InvalidRate -> getString(Res.string.error_invalid_rate, reason.baseCode)
-            is ExpenseValidationError.InvalidTotal -> getString(Res.string.error_invalid_total)
-            is ExpenseValidationError.InvalidPaid -> getString(Res.string.error_invalid_paid, reason.memberName)
-            is ExpenseValidationError.NoPayer -> getString(Res.string.error_no_payer)
-            is ExpenseValidationError.PaidSumMismatch -> getString(Res.string.error_paid_sum, reason.totalText)
-            is ExpenseValidationError.InvalidSplit -> getString(Res.string.error_invalid_split)
-            is ExpenseValidationError.NoParticipant -> getString(Res.string.error_no_participant)
-            is ExpenseValidationError.InvalidShare -> getString(Res.string.error_invalid_share, reason.memberName)
-            is ExpenseValidationError.NoShare -> getString(Res.string.error_no_share)
-            is ExpenseValidationError.InvalidPercent -> getString(Res.string.error_invalid_percent, reason.memberName)
-            is ExpenseValidationError.PercentSum -> getString(Res.string.error_percent_sum)
-            is ExpenseValidationError.InvalidAmount -> getString(Res.string.error_invalid_amount, reason.memberName)
-            is ExpenseValidationError.NoExact -> getString(Res.string.error_no_exact)
-            is ExpenseValidationError.ExactSum -> getString(Res.string.error_exact_sum)
-            is ExpenseValidationError.NoItems -> getString(Res.string.error_no_items)
-            is ExpenseValidationError.ItemsSum -> getString(Res.string.error_items_sum)
-            is ExpenseValidationError.DiscountTooLarge -> getString(Res.string.error_discount_too_large)
+            is EntryValidationError.InvalidRate -> getString(Res.string.error_invalid_rate, reason.baseCode)
+            is EntryValidationError.InvalidTotal -> getString(Res.string.error_invalid_total)
+            is EntryValidationError.InvalidPaid -> getString(Res.string.error_invalid_paid, reason.memberName)
+            is EntryValidationError.NoPayer -> getString(Res.string.error_no_payer)
+            is EntryValidationError.PaidSumMismatch -> getString(Res.string.error_paid_sum, reason.totalText)
+            is EntryValidationError.InvalidSplit -> getString(Res.string.error_invalid_split)
+            is EntryValidationError.NoParticipant -> getString(Res.string.error_no_participant)
+            is EntryValidationError.InvalidShare -> getString(Res.string.error_invalid_share, reason.memberName)
+            is EntryValidationError.NoShare -> getString(Res.string.error_no_share)
+            is EntryValidationError.InvalidPercent -> getString(Res.string.error_invalid_percent, reason.memberName)
+            is EntryValidationError.PercentSum -> getString(Res.string.error_percent_sum)
+            is EntryValidationError.InvalidAmount -> getString(Res.string.error_invalid_amount, reason.memberName)
+            is EntryValidationError.NoExact -> getString(Res.string.error_no_exact)
+            is EntryValidationError.ExactSum -> getString(Res.string.error_exact_sum)
+            is EntryValidationError.NoItems -> getString(Res.string.error_no_items)
+            is EntryValidationError.ItemsSum -> getString(Res.string.error_items_sum)
+            is EntryValidationError.DiscountTooLarge -> getString(Res.string.error_discount_too_large)
         }
 
     private fun setError(message: String) = _state.update { it.copy(error = message) }
 }
 
-sealed class ExpenseValidationError {
+sealed class EntryValidationError {
     data class InvalidRate(
         val baseCode: String,
-    ) : ExpenseValidationError()
+    ) : EntryValidationError()
 
-    data object InvalidTotal : ExpenseValidationError()
+    data object InvalidTotal : EntryValidationError()
 
     data class InvalidPaid(
         val memberName: String,
-    ) : ExpenseValidationError()
+    ) : EntryValidationError()
 
-    data object NoPayer : ExpenseValidationError()
+    data object NoPayer : EntryValidationError()
 
     data class PaidSumMismatch(
         val totalText: String,
-    ) : ExpenseValidationError()
+    ) : EntryValidationError()
 
-    data object InvalidSplit : ExpenseValidationError()
+    data object InvalidSplit : EntryValidationError()
 
-    data object NoParticipant : ExpenseValidationError()
+    data object NoParticipant : EntryValidationError()
 
     data class InvalidShare(
         val memberName: String,
-    ) : ExpenseValidationError()
+    ) : EntryValidationError()
 
-    data object NoShare : ExpenseValidationError()
+    data object NoShare : EntryValidationError()
 
     data class InvalidPercent(
         val memberName: String,
-    ) : ExpenseValidationError()
+    ) : EntryValidationError()
 
-    data object PercentSum : ExpenseValidationError()
+    data object PercentSum : EntryValidationError()
 
     data class InvalidAmount(
         val memberName: String,
-    ) : ExpenseValidationError()
+    ) : EntryValidationError()
 
-    data object NoExact : ExpenseValidationError()
+    data object NoExact : EntryValidationError()
 
-    data object ExactSum : ExpenseValidationError()
+    data object ExactSum : EntryValidationError()
 
-    data object NoItems : ExpenseValidationError()
+    data object NoItems : EntryValidationError()
 
-    data object ItemsSum : ExpenseValidationError()
+    data object ItemsSum : EntryValidationError()
 
-    data object DiscountTooLarge : ExpenseValidationError()
+    data object DiscountTooLarge : EntryValidationError()
 }
 
-/** Everything [ExpenseEditorViewModel.save] needs to build the domain [Expense] once fields check out. */
-data class ValidatedExpense(
+/** Everything [EntryEditorViewModel.save] needs to build the domain [Entry] once fields check out. */
+data class ValidatedEntry(
     val payments: List<Payment>,
     val split: Split,
     val rate: Double,
 )
 
-sealed class ExpenseValidation {
+sealed class EntryValidation {
     data class Valid(
-        val expense: ValidatedExpense,
-    ) : ExpenseValidation()
+        val entry: ValidatedEntry,
+    ) : EntryValidation()
 
     data class Invalid(
-        val reason: ExpenseValidationError,
-    ) : ExpenseValidation()
+        val reason: EntryValidationError,
+    ) : EntryValidation()
 }
 
-fun ExpenseEditorUiState.validate(): ExpenseValidation {
+fun EntryEditorUiState.validate(): EntryValidation {
     val currency = this.currency
     val rate = if (currency == baseCurrency) 1.0 else this.rate.trim().toDoubleOrNull()
     if (rate == null || rate <= 0.0) {
-        return ExpenseValidation.Invalid(ExpenseValidationError.InvalidRate(baseCurrency.code))
+        return EntryValidation.Invalid(EntryValidationError.InvalidRate(baseCurrency.code))
     }
 
     val total = Money.parse(amount.trim(), currency)
     if (total == null || !total.isPositive) {
-        return ExpenseValidation.Invalid(ExpenseValidationError.InvalidTotal)
+        return EntryValidation.Invalid(EntryValidationError.InvalidTotal)
     }
 
     val payments = mutableListOf<Payment>()
@@ -583,36 +582,36 @@ fun ExpenseEditorUiState.validate(): ExpenseValidation {
         if (text.isEmpty()) continue
         val money = Money.parse(text, currency)
         if (money == null || !money.isPositive) {
-            return ExpenseValidation.Invalid(ExpenseValidationError.InvalidPaid(member.name))
+            return EntryValidation.Invalid(EntryValidationError.InvalidPaid(member.name))
         }
         payments += Payment(member.id, money)
     }
     if (payments.isEmpty()) {
-        return ExpenseValidation.Invalid(ExpenseValidationError.NoPayer)
+        return EntryValidation.Invalid(EntryValidationError.NoPayer)
     }
 
     val paidSum = payments.fold(Money.zero(currency)) { acc, p -> acc + p.amount }
     if (paidSum != total) {
-        return ExpenseValidation.Invalid(
-            ExpenseValidationError.PaidSumMismatch("${total.toDecimalString()} ${total.currency.code}"),
+        return EntryValidation.Invalid(
+            EntryValidationError.PaidSumMismatch("${total.toDecimalString()} ${total.currency.code}"),
         )
     }
 
     val split =
         try {
             when (val outcome = buildSplit(this, currency, total)) {
-                is SplitOutcome.Invalid -> return ExpenseValidation.Invalid(outcome.reason)
+                is SplitOutcome.Invalid -> return EntryValidation.Invalid(outcome.reason)
                 is SplitOutcome.Valid -> outcome.split
             }
         } catch (_: IllegalArgumentException) {
-            return ExpenseValidation.Invalid(ExpenseValidationError.InvalidSplit)
+            return EntryValidation.Invalid(EntryValidationError.InvalidSplit)
         }
 
-    return ExpenseValidation.Valid(ValidatedExpense(payments, split, rate))
+    return EntryValidation.Valid(ValidatedEntry(payments, split, rate))
 }
 
-/** True once [ExpenseEditorUiState.validate] would succeed — drives the save button's enabled state. */
-fun ExpenseEditorUiState.isValid(): Boolean = validate() is ExpenseValidation.Valid
+/** True once [EntryEditorUiState.validate] would succeed — drives the save button's enabled state. */
+fun EntryEditorUiState.isValid(): Boolean = validate() is EntryValidation.Valid
 
 /** Parses one editor line into a domain item, or null if it isn't a complete, valid line yet. */
 private fun ItemInput.toItem(currency: Currency): Split.Itemized.Item? {
@@ -622,21 +621,21 @@ private fun ItemInput.toItem(currency: Currency): Split.Itemized.Item? {
 }
 
 /** The in-progress draft as a domain item, or null if it isn't complete enough to commit yet. */
-private fun ExpenseEditorUiState.draftItem(): Split.Itemized.Item? =
+private fun EntryEditorUiState.draftItem(): Split.Itemized.Item? =
     ItemInput("draft", draftLabel, draftAmount, draftParticipants).toItem(currency)
 
 /** True once the draft line can be committed (a valid positive amount and at least one participant). */
-fun ExpenseEditorUiState.isDraftValid(): Boolean = draftItem() != null
+fun EntryEditorUiState.isDraftValid(): Boolean = draftItem() != null
 
 /** The committed line items an itemized split is built from. */
-private fun ExpenseEditorUiState.itemizedItems(): List<Split.Itemized.Item> = items.mapNotNull { it.toItem(currency) }
+private fun EntryEditorUiState.itemizedItems(): List<Split.Itemized.Item> = items.mapNotNull { it.toItem(currency) }
 
 /**
- * Re-derives the expense total ([amount]) from the sum of the committed items — for an itemized
+ * Re-derives the entry total ([amount]) from the sum of the committed items — for an itemized
  * split the lines *are* the total, so it's never typed separately — and refreshes the equal-payer
  * split to match. A no-op unless the split is itemized.
  */
-private fun ExpenseEditorUiState.withItemizedTotal(): ExpenseEditorUiState {
+private fun EntryEditorUiState.withItemizedTotal(): EntryEditorUiState {
     if (splitKind != SplitKind.ITEMIZED) return this
     val totalMinor = itemizedItems().sumOf { it.amount.minorUnits }
     val amount = if (totalMinor > 0) Money(totalMinor, currency).toDecimalString() else ""
@@ -651,12 +650,12 @@ private sealed class SplitOutcome {
     ) : SplitOutcome()
 
     data class Invalid(
-        val reason: ExpenseValidationError,
+        val reason: EntryValidationError,
     ) : SplitOutcome()
 }
 
 private fun buildSplit(
-    s: ExpenseEditorUiState,
+    s: EntryEditorUiState,
     currency: Currency,
     total: Money,
 ): SplitOutcome =
@@ -664,7 +663,7 @@ private fun buildSplit(
         SplitKind.EQUAL -> {
             val participants = s.members.filter { it.id in s.equalSelected }.map { it.id }
             if (participants.isEmpty()) {
-                SplitOutcome.Invalid(ExpenseValidationError.NoParticipant)
+                SplitOutcome.Invalid(EntryValidationError.NoParticipant)
             } else {
                 SplitOutcome.Valid(Split.Equal(participants))
             }
@@ -677,12 +676,12 @@ private fun buildSplit(
                 if (text.isEmpty()) continue
                 val weight = text.toLongOrNull()
                 if (weight == null || weight < 0) {
-                    return SplitOutcome.Invalid(ExpenseValidationError.InvalidShare(member.name))
+                    return SplitOutcome.Invalid(EntryValidationError.InvalidShare(member.name))
                 }
                 if (weight > 0) map[member.id] = weight
             }
             if (map.isEmpty()) {
-                SplitOutcome.Invalid(ExpenseValidationError.NoShare)
+                SplitOutcome.Invalid(EntryValidationError.NoShare)
             } else {
                 SplitOutcome.Valid(Split.Shares(map))
             }
@@ -695,12 +694,12 @@ private fun buildSplit(
                 if (text.isEmpty()) continue
                 val percent = text.toIntOrNull()
                 if (percent == null || percent < 0) {
-                    return SplitOutcome.Invalid(ExpenseValidationError.InvalidPercent(member.name))
+                    return SplitOutcome.Invalid(EntryValidationError.InvalidPercent(member.name))
                 }
                 if (percent > 0) map[member.id] = percent
             }
             if (map.values.sum() != 100) {
-                SplitOutcome.Invalid(ExpenseValidationError.PercentSum)
+                SplitOutcome.Invalid(EntryValidationError.PercentSum)
             } else {
                 SplitOutcome.Valid(Split.Percentage(map))
             }
@@ -713,14 +712,14 @@ private fun buildSplit(
                 if (text.isEmpty()) continue
                 val money = Money.parse(text, currency)
                 if (money == null) {
-                    return SplitOutcome.Invalid(ExpenseValidationError.InvalidAmount(member.name))
+                    return SplitOutcome.Invalid(EntryValidationError.InvalidAmount(member.name))
                 }
                 map[member.id] = money
             }
             if (map.isEmpty()) {
-                SplitOutcome.Invalid(ExpenseValidationError.NoExact)
+                SplitOutcome.Invalid(EntryValidationError.NoExact)
             } else if (map.values.fold(Money.zero(currency)) { acc, m -> acc + m } != total) {
-                SplitOutcome.Invalid(ExpenseValidationError.ExactSum)
+                SplitOutcome.Invalid(EntryValidationError.ExactSum)
             } else {
                 SplitOutcome.Valid(Split.Exact(map))
             }
@@ -731,13 +730,13 @@ private fun buildSplit(
             // this only fails when there are no lines at all.
             val built = s.itemizedItems()
             if (built.isEmpty()) {
-                SplitOutcome.Invalid(ExpenseValidationError.NoItems)
+                SplitOutcome.Invalid(EntryValidationError.NoItems)
             } else if (built.fold(Money.zero(currency)) { acc, i -> acc + i.amount } != total) {
-                SplitOutcome.Invalid(ExpenseValidationError.ItemsSum)
+                SplitOutcome.Invalid(EntryValidationError.ItemsSum)
             } else {
                 val itemized = Split.Itemized(built)
                 if (itemized.divide(total).values.any { it.isNegative }) {
-                    SplitOutcome.Invalid(ExpenseValidationError.DiscountTooLarge)
+                    SplitOutcome.Invalid(EntryValidationError.DiscountTooLarge)
                 } else {
                     SplitOutcome.Valid(itemized)
                 }
@@ -747,7 +746,7 @@ private fun buildSplit(
 
 /**
  * The even split of [amount] across [selected], via the real [Split.Equal.divide] — the same
- * exact largest-remainder distribution the domain uses when the expense is actually saved, not
+ * exact largest-remainder distribution the domain uses when the entry is actually saved, not
  * an approximation. Empty if the amount or selection isn't valid yet (still typing).
  */
 private fun equalDistribution(

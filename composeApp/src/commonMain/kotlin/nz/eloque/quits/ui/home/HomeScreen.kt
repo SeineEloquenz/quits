@@ -28,7 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import nz.eloque.quits.domain.ExpenseId
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.SettlementId
@@ -52,7 +52,7 @@ fun HomeScreen(
     onAddGroup: () -> Unit,
     onAddExpense: (GroupId) -> Unit,
     onAddIncome: (GroupId) -> Unit,
-    onOpenExpense: (GroupId, ExpenseId) -> Unit,
+    onOpenEntry: (GroupId, EntryId) -> Unit,
     onOpenMember: (GroupId, MemberId) -> Unit,
     onOpenSettlement: (GroupId, SettlementId) -> Unit,
     onSettleUp: (GroupId) -> Unit,
@@ -119,7 +119,7 @@ fun HomeScreen(
             onOpenDrawer = { scope.launch { drawerState.open() } },
             onAddExpense = { onAddExpense(active) },
             onAddIncome = { onAddIncome(active) },
-            onOpenExpense = { onOpenExpense(active, it) },
+            onOpenEntry = { onOpenEntry(active, it) },
             onOpenMember = { onOpenMember(active, it) },
             onOpenSettlement = { onOpenSettlement(active, it) },
             onSettleUp = { onSettleUp(active) },

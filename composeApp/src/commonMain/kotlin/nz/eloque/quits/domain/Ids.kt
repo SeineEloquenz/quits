@@ -13,7 +13,7 @@ value class MemberId(
 )
 
 @JvmInline
-value class ExpenseId(
+value class EntryId(
     val value: String,
 )
 

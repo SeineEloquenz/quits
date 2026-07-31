@@ -1,4 +1,4 @@
-package nz.eloque.quits.ui.expense
+package nz.eloque.quits.ui.entry
 
 import androidx.compose.runtime.Composable
 import nz.eloque.quits.domain.Split

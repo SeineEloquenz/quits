@@ -1,7 +1,7 @@
 package nz.eloque.quits.domain
 
 /**
- * How an expense's total is divided among participants — a value object (strategy). Every variant
+ * How an entry's total is divided among participants — a value object (strategy). Every variant
  * guarantees the resulting shares sum exactly to the total, distributing leftover minor units by the
  * largest-remainder method.
  */
@@ -14,7 +14,7 @@ sealed interface Split {
         val participants: List<MemberId>,
     ) : Split {
         init {
-            require(participants.isNotEmpty()) { "an expense needs at least one participant" }
+            require(participants.isNotEmpty()) { "an entry needs at least one participant" }
         }
 
         override fun divide(total: Money) = distribute(total, participants, participants.map { 1L })
@@ -56,7 +56,7 @@ sealed interface Split {
         val amounts: Map<MemberId, Money>,
     ) : Split {
         init {
-            require(amounts.isNotEmpty()) { "an expense needs at least one participant" }
+            require(amounts.isNotEmpty()) { "an entry needs at least one participant" }
         }
 
         override fun divide(total: Money): Map<MemberId, Money> {

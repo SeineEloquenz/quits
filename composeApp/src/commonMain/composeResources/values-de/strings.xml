@@ -69,8 +69,8 @@
     <string name="settle_up_confirm_body">Erfassen, dass %1$s %2$s %3$s gezahlt hat?</string>
     <string name="detail_members">Mitglieder</string>
     <string name="detail_add_member">Mitglied hinzufügen</string>
-    <string name="detail_expenses">Ausgaben</string>
-    <string name="detail_expenses_empty">Noch keine Ausgaben.</string>
+    <string name="detail_expenses">Aktivität</string>
+    <string name="detail_expenses_empty">Noch nichts vorhanden.</string>
     <string name="detail_search_hint">Titel, Kategorie, Notiz suchen</string>
     <string name="detail_no_matches">Keine Aktivität entspricht deinen Filtern.</string>
     <string name="date_today">Heute</string>
@@ -82,20 +82,24 @@
     <string name="settlement_delete_title">Ausgleich löschen?</string>
     <string name="settlement_delete_body">Dies entfernt den Ausgleich für alle in der Gruppe, sobald synchronisiert wurde. Das kann nicht rückgängig gemacht werden.</string>
     <string name="detail_paid_by">bezahlt von %1$s</string>
+    <string name="detail_received_by">erhalten von %1$s</string>
     <string name="detail_owed_by">Geschuldet von</string>
     <string name="detail_for_whom">Für wen</string>
     <string name="detail_items">Positionen</string>
-    <string name="detail_split_unsupported">Diese Ausgabe wurde mit einer neueren App-Version erstellt. Aktualisiere die App, um ihre Aufteilung zu sehen und zu bearbeiten.</string>
+    <string name="detail_split_unsupported">Dieser Eintrag wurde mit einer neueren App-Version erstellt. Aktualisiere die App, um ihre Aufteilung zu sehen und zu bearbeiten.</string>
     <string name="detail_note">Notiz</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d Personen</string>
     <string name="detail_edit_expense">Ausgabe bearbeiten</string>
     <string name="detail_delete_expense">Ausgabe löschen</string>
-    <string name="detail_expense_not_found">Diese Ausgabe existiert nicht mehr.</string>
+    <string name="detail_edit_income">Einnahme bearbeiten</string>
+    <string name="detail_delete_income">Einnahme löschen</string>
+    <string name="detail_expense_not_found">Dieser Eintrag existiert nicht mehr.</string>
     <string name="expense_delete_title">\"%1$s\" löschen?</string>
     <string name="expense_delete_body">Dies entfernt die Ausgabe für alle in der Gruppe, sobald synchronisiert wurde. Das kann nicht rückgängig gemacht werden.</string>
+    <string name="income_delete_body">Dies entfernt die Einnahme für alle in der Gruppe, sobald synchronisiert wurde. Das kann nicht rückgängig gemacht werden.</string>
     <string name="group_leave_menu">Gruppe verlassen</string>
     <string name="group_leave_title">Gruppe verlassen?</string>
-    <string name="group_leave_body_local">Dies entfernt \"%1$s\" und alle Ausgaben von diesem Gerät. Sie wird mit niemandem geteilt, daher kann dies nicht rückgängig gemacht werden.</string>
+    <string name="group_leave_body_local">Dies entfernt \"%1$s\" und alles darin von diesem Gerät. Sie wird mit niemandem geteilt, daher kann dies nicht rückgängig gemacht werden.</string>
     <string name="group_leave_body_shared">Dies entfernt \"%1$s\" nur von diesem Gerät. Andere Mitglieder behalten ihre Kopie, und du kannst später mit dem Freigabecode wieder beitreten.</string>
     <string name="group_leave_confirm">Verlassen</string>
     <string name="detail_add_members_first">Erst Mitglieder hinzufügen</string>
@@ -105,7 +109,7 @@
 
     <!-- Member detail -->
     <string name="member_detail_appears_in">Erscheint in</string>
-    <string name="member_detail_no_expenses">Noch mit keiner Ausgabe verknüpft.</string>
+    <string name="member_detail_no_expenses">Noch mit nichts verknüpft.</string>
     <string name="member_detail_manage">Verwalten</string>
     <string name="member_detail_status_owes">schuldet der Gruppe</string>
     <string name="member_detail_status_owed">bekommt Geld</string>
@@ -114,8 +118,8 @@
     <string name="member_detail_owed_only">Schuldet %1$s</string>
     <string name="member_detail_not_found">Dieses Mitglied existiert nicht mehr.</string>
     <string name="member_detail_remove_title">%1$s entfernen?</string>
-    <string name="member_detail_remove_body_referenced">%1$s hat einen Saldo von %2$s und erscheint in früheren Ausgaben oder Ausgleichen. Diese Historie bleibt erhalten, aber %1$s kann für neue Ausgaben nicht mehr ausgewählt werden.</string>
-    <string name="member_detail_remove_body_plain">%1$s ist noch mit keiner Ausgabe verknüpft — dies entfernt %1$s aus der Gruppe.</string>
+    <string name="member_detail_remove_body_referenced">%1$s hat einen Saldo von %2$s und erscheint in früheren Einträgen oder Ausgleichen. Diese Historie bleibt erhalten, aber %1$s kann für neue Einträge nicht mehr ausgewählt werden.</string>
+    <string name="member_detail_remove_body_plain">%1$s ist noch mit nichts verknüpft — dies entfernt %1$s aus der Gruppe.</string>
 
     <!-- Expense editor -->
     <string name="editor_title_add">Ausgabe hinzufügen</string>
@@ -159,6 +163,8 @@
     <string name="editor_received_by">Erhalten von</string>
     <string name="editor_paid_by_hint">%1$s hat %2$s bezahlt</string>
     <string name="editor_paid_by_prompt">Wer hat bezahlt?</string>
+    <string name="editor_received_by_hint">%1$s hat %2$s erhalten</string>
+    <string name="editor_received_by_prompt">Wer hat es erhalten?</string>
     <string name="editor_customize_paid_link">Beträge anpassen ›</string>
     <string name="editor_equal_paid_link">‹ Gleichmäßig aufteilen</string>
     <string name="editor_split">Aufteilung</string>
@@ -185,7 +191,9 @@
     <string name="editor_placeholder_amount">Betrag</string>
     <string name="editor_save_changes">Änderungen speichern</string>
     <string name="editor_save_expense">Ausgabe speichern</string>
+    <string name="editor_save_income">Einnahme speichern</string>
     <string name="editor_expense_fallback_title">Ausgabe</string>
+    <string name="editor_income_fallback_title">Einnahme</string>
     <string name="editor_remaining">Noch zuzuordnen: %1$s</string>
     <string name="editor_remaining_done">Alles zugeordnet</string>
 
@@ -210,7 +218,7 @@
 
     <!-- Errors / notices -->
     <string name="error_relay_unreachable">Relay nicht erreichbar: %1$s</string>
-    <string name="error_member_in_use">Ein Mitglied, das an einer Ausgabe oder einem Ausgleich beteiligt ist, kann nicht entfernt werden.</string>
+    <string name="error_member_in_use">Ein Mitglied, das an einem Eintrag oder einem Ausgleich beteiligt ist, kann nicht entfernt werden.</string>
     <string name="error_sync_failed">Synchronisierung fehlgeschlagen: %1$s</string>
     <string name="rate_cached">Offline - zwischengespeicherter Kurs vom %1$s wird verwendet</string>
     <string name="rate_fetch_failed">Kurs konnte nicht abgerufen werden - bitte manuell eingeben.</string>
@@ -220,7 +228,7 @@
     <string name="error_invalid_total">Gib einen gültigen Betrag ein</string>
     <string name="error_paid_sum">Die gezahlten Beträge müssen zusammen %1$s ergeben</string>
     <string name="error_invalid_split">Ungültige Aufteilung</string>
-    <string name="error_invalid_expense">Ungültige Ausgabe</string>
+    <string name="error_invalid_expense">Ungültiger Eintrag</string>
     <string name="error_no_participant">Wähle mindestens eine Person aus</string>
     <string name="error_invalid_share">Ungültiger Anteil für %1$s</string>
     <string name="error_no_share">Gib mindestens einen Anteil ein</string>
@@ -243,5 +251,5 @@
 
     <!-- Export -->
     <string name="export_csv_menu">CSV exportieren</string>
-    <string name="export_empty">Noch keine Ausgaben zum Exportieren.</string>
+    <string name="export_empty">Nichts zum Exportieren.</string>
 </resources>

@@ -26,8 +26,8 @@ sealed interface SyncPayload {
     ) : SyncPayload
 
     @Serializable
-    @SerialName("expense")
-    data class Expense(
+    @SerialName("entry")
+    data class Entry(
         val id: String,
         val title: String,
         val amountMinor: Long,

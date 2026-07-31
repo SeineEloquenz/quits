@@ -15,6 +15,7 @@ import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.MemberTotal
 import nz.eloque.quits.domain.Money
+import nz.eloque.quits.domain.isExpense
 import nz.eloque.quits.domain.spending
 import nz.eloque.quits.ui.category.PRESET_IDS
 
@@ -68,7 +69,7 @@ class StatsViewModel(
                         found = true,
                         groupName = group.name,
                         total = spending.total,
-                        hasExpenses = group.expenses.isNotEmpty(),
+                        hasExpenses = group.entries.any { it.kind.isExpense },
                         byCategory = byCategory.toBars(),
                         byMember = spending.byMember.toBars(names),
                         customCategories = group.categories,

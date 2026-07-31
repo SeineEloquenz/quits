@@ -19,8 +19,8 @@ import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.EntryKind
-import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Member
@@ -33,11 +33,12 @@ import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.error_relay_unreachable
 import nz.eloque.quits.resources.error_sync_failed
 import nz.eloque.quits.resources.export_empty
+import nz.eloque.quits.ui.category.INCOME_PRESET_CATEGORIES
 import nz.eloque.quits.ui.category.PRESET_CATEGORIES
 import nz.eloque.quits.util.FileExporter
 import nz.eloque.quits.util.csvFileName
 import nz.eloque.quits.util.currentOffsetMinutes
-import nz.eloque.quits.util.expensesToCsv
+import nz.eloque.quits.util.entriesToCsv
 import nz.eloque.quits.util.newId
 import nz.eloque.quits.util.nowMillis
 import org.jetbrains.compose.resources.getString
@@ -54,8 +55,8 @@ data class TransferRow(
     val transfer: Transfer,
 )
 
-data class ExpenseRow(
-    val id: ExpenseId,
+data class EntryRow(
+    val id: EntryId,
     val title: String,
     val total: Money,
     val paidBy: String,
@@ -63,8 +64,8 @@ data class ExpenseRow(
     val offsetMinutes: Int = 0,
     val categoryId: CategoryId? = null,
     val note: String? = null,
-    val isIncome: Boolean = false,
-    /** Everyone tied to the expense (payers and share-holders), for the member filter. */
+    val kind: EntryKind = EntryKind.EXPENSE,
+    /** Everyone tied to the entry (payers and share-holders), for the member filter. */
     val participants: Set<MemberId> = emptySet(),
     /** False for a split type this version doesn't support (created by a newer version). */
     val splitSupported: Boolean = true,
@@ -90,24 +91,24 @@ data class ActivityFilter(
 }
 
 /**
- * One row in the merged activity feed. Expenses and settlements are unrelated domain types with
+ * One row in the merged activity feed. Entries and settlements are unrelated domain types with
  * different fields, but the feed shows them interleaved by time — this is the UI-layer join, not
  * a new domain concept.
  */
-sealed interface ActivityEntry {
+sealed interface ActivityItem {
     val timestamp: Long
     val offsetMinutes: Int
 
-    data class ExpenseEntry(
-        val row: ExpenseRow,
-    ) : ActivityEntry {
+    data class EntryItem(
+        val row: EntryRow,
+    ) : ActivityItem {
         override val timestamp: Long get() = row.spentAt
         override val offsetMinutes: Int get() = row.offsetMinutes
     }
 
-    data class SettlementEntry(
+    data class SettlementItem(
         val row: SettlementRow,
-    ) : ActivityEntry {
+    ) : ActivityItem {
         override val timestamp: Long get() = row.paidAt
         override val offsetMinutes: Int get() = row.offsetMinutes
     }
@@ -119,9 +120,9 @@ data class GroupDetailUiState(
     val baseCurrency: Currency = Currency.of("EUR"),
     val members: List<MemberBalance> = emptyList(),
     val transfers: List<TransferRow> = emptyList(),
-    /** Expenses and recorded settlements, merged, sorted newest-first, and filtered by [filter]. */
-    val activity: List<ActivityEntry> = emptyList(),
-    /** Category ids present across all (unfiltered) expenses, for the filter chips. */
+    /** Entries and recorded settlements, merged, sorted newest-first, and filtered by [filter]. */
+    val activity: List<ActivityItem> = emptyList(),
+    /** Category ids present across all (unfiltered) entries, for the filter chips. */
     val categoryIds: List<CategoryId> = emptyList(),
     /** The group's custom categories, for resolving names/icons in the feed and filter chips. */
     val customCategories: List<Category> = emptyList(),
@@ -183,11 +184,11 @@ class GroupDetailViewModel(
         }
     }
 
-    /** Exports the group's expenses as a CSV file via the platform share/save sheet. */
+    /** Exports the group's entries as a CSV file via the platform share/save sheet. */
     fun exportCsv() {
         viewModelScope.launch {
             val group = repo.load(groupId) ?: return@launch
-            if (group.expenses.isEmpty()) {
+            if (group.entries.isEmpty()) {
                 _messages.emit(getString(Res.string.export_empty))
                 return@launch
             }
@@ -195,8 +196,9 @@ class GroupDetailViewModel(
                 buildMap {
                     group.categories.forEach { put(it.id, it.name) }
                     PRESET_CATEGORIES.forEach { put(it.id, getString(it.nameRes)) }
+                    INCOME_PRESET_CATEGORIES.forEach { put(it.id, getString(it.nameRes)) }
                 }
-            exporter.export(csvFileName(group.name), "text/csv", group.expensesToCsv { categoryNames[it] })
+            exporter.export(csvFileName(group.name), "text/csv", group.entriesToCsv { categoryNames[it] })
         }
     }
 
@@ -272,33 +274,33 @@ private fun Group.toUiState(filter: ActivityFilter): GroupDetailUiState {
     val names = members.associate { it.id to it.name }
     val balances = balances()
 
-    val expenseEntries =
-        expenses.map { expense ->
+    val entryItems =
+        entries.map { entry ->
             val paidBy =
-                expense.payments
-                    .map { names[it.payer] ?: "?" }
+                entry.payments
+                    .map { names[it.member] ?: "?" }
                     .distinct()
                     .joinToString(", ")
-            val participants = (expense.payments.map { it.payer } + expense.shares.keys).toSet()
-            ActivityEntry.ExpenseEntry(
-                ExpenseRow(
-                    expense.id,
-                    expense.title,
-                    expense.total,
+            val participants = (entry.payments.map { it.member } + entry.shares.keys).toSet()
+            ActivityItem.EntryItem(
+                EntryRow(
+                    entry.id,
+                    entry.title,
+                    entry.total,
                     paidBy,
-                    expense.spentAt,
-                    expense.tzOffsetMinutes,
-                    expense.categoryId,
-                    expense.note,
-                    expense.kind == EntryKind.INCOME,
+                    entry.spentAt,
+                    entry.tzOffsetMinutes,
+                    entry.categoryId,
+                    entry.note,
+                    entry.kind,
                     participants,
-                    expense.splitSupported,
+                    entry.splitSupported,
                 ),
             )
         }
-    val settlementEntries =
+    val settlementItems =
         settlements.map { settlement ->
-            ActivityEntry.SettlementEntry(
+            ActivityItem.SettlementItem(
                 SettlementRow(
                     settlement.id,
                     names[settlement.from] ?: "?",
@@ -312,7 +314,7 @@ private fun Group.toUiState(filter: ActivityFilter): GroupDetailUiState {
             )
         }
 
-    val allEntries = (expenseEntries + settlementEntries).sortedByDescending { it.timestamp }
+    val allItems = (entryItems + settlementItems).sortedByDescending { it.timestamp }
 
     return GroupDetailUiState(
         loaded = true,
@@ -323,8 +325,8 @@ private fun Group.toUiState(filter: ActivityFilter): GroupDetailUiState {
             balances.simplify().map {
                 TransferRow(names[it.from] ?: "?", names[it.to] ?: "?", it)
             },
-        activity = allEntries.filter { it.matches(filter) },
-        categoryIds = expenses.mapNotNull { it.categoryId }.distinct(),
+        activity = allItems.filter { it.matches(filter) },
+        categoryIds = entries.mapNotNull { it.categoryId }.distinct(),
         customCategories = categories,
         filter = filter,
         settled = balances.net.values.all { it.isZero },
@@ -332,17 +334,17 @@ private fun Group.toUiState(filter: ActivityFilter): GroupDetailUiState {
 }
 
 /** True if this entry passes every active facet of [filter] (facets combine with AND). */
-private fun ActivityEntry.matches(filter: ActivityFilter): Boolean {
+private fun ActivityItem.matches(filter: ActivityFilter): Boolean {
     val query = filter.query.trim()
     return when (this) {
-        is ActivityEntry.ExpenseEntry -> {
+        is ActivityItem.EntryItem -> {
             if (filter.categoryId != null && row.categoryId != filter.categoryId) return false
             if (filter.members.isNotEmpty() && row.participants.none { it in filter.members }) return false
             query.isEmpty() ||
                 listOfNotNull(row.title, row.note).any { it.contains(query, ignoreCase = true) }
         }
 
-        is ActivityEntry.SettlementEntry -> {
+        is ActivityItem.SettlementItem -> {
             // Settlements have no category, so any category filter excludes them.
             if (filter.categoryId != null) return false
             if (filter.members.isNotEmpty() && row.fromId !in filter.members && row.toId !in filter.members) return false

@@ -10,16 +10,16 @@ import androidx.room3.RoomDatabaseConstructor
         GroupSyncEntity::class,
         GroupEntity::class,
         MemberEntity::class,
-        ExpenseEntity::class,
-        ExpensePayerEntity::class,
-        ExpenseSplitEntity::class,
-        ExpenseItemEntity::class,
-        ExpenseItemParticipantEntity::class,
+        EntryEntity::class,
+        EntryPayerEntity::class,
+        EntrySplitEntity::class,
+        EntryItemEntity::class,
+        EntryItemParticipantEntity::class,
         SettlementEntity::class,
         CategoryEntity::class,
         FxRateEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @ConstructedBy(QuitsDatabaseConstructor::class)
@@ -30,7 +30,7 @@ abstract class QuitsDatabase : RoomDatabase() {
 
     abstract fun memberDao(): MemberDao
 
-    abstract fun expenseDao(): ExpenseDao
+    abstract fun entryDao(): EntryDao
 
     abstract fun settlementDao(): SettlementDao
 

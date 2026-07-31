@@ -6,8 +6,8 @@ import nz.eloque.quits.data.crypto.GroupCrypto
 import nz.eloque.quits.data.db.inMemoryDatabase
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.domain.Currency
-import nz.eloque.quits.domain.Expense
-import nz.eloque.quits.domain.ExpenseId
+import nz.eloque.quits.domain.Entry
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Member
@@ -63,9 +63,9 @@ class SyncEngineIntegrationTest {
             try {
                 val g = GroupId("g-local")
                 repo1.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
-                repo1.upsertExpense(
+                repo1.upsertEntry(
                     g,
-                    Expense(ExpenseId("e1"), "Dinner", listOf(Payment(a, Money(3000, usd))), Split.Equal(listOf(a, b))),
+                    Entry(EntryId("e1"), "Dinner", listOf(Payment(a, Money(3000, usd))), Split.Equal(listOf(a, b))),
                     spentAt = 1,
                 )
                 val code = engine1.share(g)
@@ -73,20 +73,20 @@ class SyncEngineIntegrationTest {
                 clock = 1500L
                 val joined = engine2.join(code)!!
                 assertEquals(2, repo2.load(joined)!!.members.size)
-                assertEquals(1, repo2.load(joined)!!.expenses.size)
+                assertEquals(1, repo2.load(joined)!!.entries.size)
 
                 clock = 2000L
-                repo2.upsertExpense(
+                repo2.upsertEntry(
                     joined,
-                    Expense(ExpenseId("e2"), "Taxi", listOf(Payment(b, Money(1000, usd))), Split.Equal(listOf(a, b))),
+                    Entry(EntryId("e2"), "Taxi", listOf(Payment(b, Money(1000, usd))), Split.Equal(listOf(a, b))),
                     spentAt = 2,
                 )
                 engine2.sync(joined)
                 engine1.sync(g)
 
                 val device1After = repo1.load(g)!!
-                assertEquals(2, device1After.expenses.size)
-                assertTrue(device1After.expenses.any { it.id == ExpenseId("e2") })
+                assertEquals(2, device1After.entries.size)
+                assertTrue(device1After.entries.any { it.id == EntryId("e2") })
                 assertEquals(
                     device1After.balances().net.mapKeys { it.key.value },
                     repo2.load(joined)!!.balances().net.mapKeys { it.key.value },

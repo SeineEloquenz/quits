@@ -4,8 +4,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import nz.eloque.quits.data.db.CategoryEntity
-import nz.eloque.quits.data.db.ExpenseEntity
-import nz.eloque.quits.data.db.ExpenseWithLines
+import nz.eloque.quits.data.db.EntryEntity
+import nz.eloque.quits.data.db.EntryWithLines
 import nz.eloque.quits.data.db.GroupEntity
 import nz.eloque.quits.data.db.MemberEntity
 import nz.eloque.quits.data.db.QuitsDatabase
@@ -14,8 +14,8 @@ import nz.eloque.quits.data.db.SyncMeta
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
-import nz.eloque.quits.domain.Expense
-import nz.eloque.quits.domain.ExpenseId
+import nz.eloque.quits.domain.Entry
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Member
@@ -64,28 +64,28 @@ class GroupRepository(
         combine(
             db.groupDao().byIdFlow(id.value),
             db.memberDao().forGroupWithDeletedFlow(id.value),
-            db.expenseDao().forGroupFlow(id.value),
+            db.entryDao().forGroupFlow(id.value),
             db.settlementDao().forGroupFlow(id.value),
             db.categoryDao().forGroupFlow(id.value),
-        ) { entity, members, expenses, settlements, categories ->
-            entity?.let { assemble(it, members, expenses, settlements, categories) }
+        ) { entity, members, entries, settlements, categories ->
+            entity?.let { assemble(it, members, entries, settlements, categories) }
         }
 
     /**
-     * Reconstructs the aggregate, keeping any tombstoned member still tied to a live expense or
+     * Reconstructs the aggregate, keeping any tombstoned member still tied to a live entry or
      * settlement so the [Group]'s referential invariant holds even after a concurrent delete-vs-use
      * across devices.
      */
     private fun assemble(
         entity: GroupEntity,
         memberEntities: List<MemberEntity>,
-        expenseEntities: List<ExpenseWithLines>,
+        entryEntities: List<EntryWithLines>,
         settlementEntities: List<SettlementEntity>,
         categoryEntities: List<CategoryEntity>,
     ): Group {
-        val expenses = expenseEntities.map { it.toDomain() }
+        val entries = entryEntities.map { it.toDomain() }
         val settlements = settlementEntities.map { it.toDomain() }
-        val referenced = Group.referencedMemberIds(expenses, settlements)
+        val referenced = Group.referencedMemberIds(entries, settlements)
         val members =
             memberEntities
                 .filter { !it.sync.deleted || MemberId(it.id) in referenced }
@@ -95,7 +95,7 @@ class GroupRepository(
             entity.name,
             Currency.of(entity.baseCurrency),
             members,
-            expenses,
+            entries,
             settlements,
             categoryEntities.map { it.toDomain() },
         )
@@ -118,7 +118,7 @@ class GroupRepository(
         db.memberDao().upsert(listOf(existing.copy(name = name, sync = meta())))
     }
 
-    /** Soft-deletes a member, unless they're still referenced by an expense or settlement. */
+    /** Soft-deletes a member, unless they're still referenced by an entry or settlement. */
     suspend fun removeMember(
         groupId: GroupId,
         memberId: MemberId,
@@ -134,50 +134,50 @@ class GroupRepository(
         return assemble(
             entity,
             db.memberDao().forGroupWithDeleted(id.value),
-            db.expenseDao().forGroup(id.value),
+            db.entryDao().forGroup(id.value),
             db.settlementDao().forGroup(id.value),
             db.categoryDao().forGroup(id.value),
         )
     }
 
     /**
-     * Inserts or updates [expense]. The timestamp is [expense].spentAt when set (> 0); the
+     * Inserts or updates [entry]. The timestamp is [entry].spentAt when set (> 0); the
      * [spentAt] parameter can still override it explicitly (existing callers keep working
      * unchanged).
      */
-    suspend fun upsertExpense(
+    suspend fun upsertEntry(
         groupId: GroupId,
-        expense: Expense,
+        entry: Entry,
         spentAt: Long? = null,
     ) {
-        val existing = db.expenseDao().byId(expense.id.value)?.expense
-        val resolvedSpentAt = spentAt ?: expense.spentAt.takeIf { it > 0L } ?: existing?.spentAt ?: now()
-        db.expenseDao().save(
-            ExpenseEntity(
-                id = expense.id.value,
+        val existing = db.entryDao().byId(entry.id.value)?.entry
+        val resolvedSpentAt = spentAt ?: entry.spentAt.takeIf { it > 0L } ?: existing?.spentAt ?: now()
+        db.entryDao().save(
+            EntryEntity(
+                id = entry.id.value,
                 groupId = groupId.value,
-                title = expense.title,
-                amountMinor = expense.total.minorUnits,
-                currency = expense.currency.code,
-                rateToBase = expense.rateToBase,
-                categoryId = expense.categoryId?.value,
+                title = entry.title,
+                amountMinor = entry.total.minorUnits,
+                currency = entry.currency.code,
+                rateToBase = entry.rateToBase,
+                categoryId = entry.categoryId?.value,
                 spentAt = resolvedSpentAt,
-                tzOffsetMinutes = expense.tzOffsetMinutes,
-                note = expense.note,
-                splitType = splitTypeName(expense.split),
-                kind = expense.kind.name,
+                tzOffsetMinutes = entry.tzOffsetMinutes,
+                note = entry.note,
+                splitType = splitTypeName(entry.split),
+                kind = entry.kind.name,
                 sync = meta(),
             ),
-            payerRows(expense),
-            splitRows(expense),
-            itemRows(expense),
-            itemParticipantRows(expense),
+            payerRows(entry),
+            splitRows(entry),
+            itemRows(entry),
+            itemParticipantRows(entry),
         )
     }
 
-    /** Soft-deletes (tombstones) an expense so it drops out of queries and syncs as a deletion. */
-    suspend fun deleteExpense(expenseId: ExpenseId) {
-        db.expenseDao().tombstone(expenseId.value, now(), deviceId)
+    /** Soft-deletes (tombstones) an entry so it drops out of queries and syncs as a deletion. */
+    suspend fun deleteEntry(entryId: EntryId) {
+        db.entryDao().tombstone(entryId.value, now(), deviceId)
     }
 
     /**
@@ -224,7 +224,7 @@ class GroupRepository(
         )
     }
 
-    /** Soft-deletes (tombstones) a custom category; expenses that referenced it fall back to uncategorized. */
+    /** Soft-deletes (tombstones) a custom category; entries that referenced it fall back to uncategorized. */
     suspend fun deleteCategory(categoryId: CategoryId) {
         db.categoryDao().tombstone(categoryId.value, now(), deviceId)
     }

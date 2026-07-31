@@ -23,15 +23,15 @@ import nz.eloque.quits.data.invite.InviteResolution
 import nz.eloque.quits.data.invite.InviteResolver
 import nz.eloque.quits.data.invite.PendingInvite
 import nz.eloque.quits.data.sync.SyncSettings
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.EntryKind
-import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.navigation.AboutKey
 import nz.eloque.quits.navigation.AddGroupKey
-import nz.eloque.quits.navigation.ExpenseDetailKey
-import nz.eloque.quits.navigation.ExpenseEditorKey
+import nz.eloque.quits.navigation.EntryDetailKey
+import nz.eloque.quits.navigation.EntryEditorKey
 import nz.eloque.quits.navigation.GroupsHomeKey
 import nz.eloque.quits.navigation.JoinInviteKey
 import nz.eloque.quits.navigation.LibrariesKey
@@ -43,8 +43,8 @@ import nz.eloque.quits.navigation.StatsKey
 import nz.eloque.quits.theme.QuitsTheme
 import nz.eloque.quits.ui.about.AboutScreen
 import nz.eloque.quits.ui.about.LibrariesScreen
-import nz.eloque.quits.ui.expense.ExpenseDetailScreen
-import nz.eloque.quits.ui.expense.ExpenseEditorScreen
+import nz.eloque.quits.ui.entry.EntryDetailScreen
+import nz.eloque.quits.ui.entry.EntryEditorScreen
 import nz.eloque.quits.ui.group.MemberDetailScreen
 import nz.eloque.quits.ui.group.SettleUpScreen
 import nz.eloque.quits.ui.group.SettlementEditorScreen
@@ -62,12 +62,12 @@ private val navSavedStateConfiguration =
                 polymorphic(NavKey::class) {
                     subclass(GroupsHomeKey::class)
                     subclass(AddGroupKey::class)
-                    subclass(ExpenseDetailKey::class)
+                    subclass(EntryDetailKey::class)
                     subclass(MemberDetailKey::class)
                     subclass(SettleUpKey::class)
                     subclass(SettlementEditorKey::class)
                     subclass(StatsKey::class)
-                    subclass(ExpenseEditorKey::class)
+                    subclass(EntryEditorKey::class)
                     subclass(SettingsKey::class)
                     subclass(AboutKey::class)
                     subclass(LibrariesKey::class)
@@ -126,9 +126,9 @@ fun App() {
                                 onOpenSettings = { backStack.add(SettingsKey) },
                                 onOpenAbout = { backStack.add(AboutKey) },
                                 onAddGroup = { backStack.add(AddGroupKey) },
-                                onAddExpense = { groupId -> backStack.add(ExpenseEditorKey(groupId.value, kind = EntryKind.EXPENSE.name)) },
-                                onAddIncome = { groupId -> backStack.add(ExpenseEditorKey(groupId.value, kind = EntryKind.INCOME.name)) },
-                                onOpenExpense = { groupId, expenseId -> backStack.add(ExpenseDetailKey(groupId.value, expenseId.value)) },
+                                onAddExpense = { groupId -> backStack.add(EntryEditorKey(groupId.value, kind = EntryKind.EXPENSE.name)) },
+                                onAddIncome = { groupId -> backStack.add(EntryEditorKey(groupId.value, kind = EntryKind.INCOME.name)) },
+                                onOpenEntry = { groupId, entryId -> backStack.add(EntryDetailKey(groupId.value, entryId.value)) },
                                 onOpenMember = { groupId, memberId -> backStack.add(MemberDetailKey(groupId.value, memberId.value)) },
                                 onOpenSettlement = { groupId, settlementId ->
                                     backStack.add(SettlementEditorKey(groupId.value, settlementId.value))
@@ -145,12 +145,12 @@ fun App() {
                                 onDone = { backStack.removeLastOrNull() },
                             )
                         }
-                        entry<ExpenseDetailKey> { key ->
-                            ExpenseDetailScreen(
+                        entry<EntryDetailKey> { key ->
+                            EntryDetailScreen(
                                 groupId = GroupId(key.groupId),
-                                expenseId = ExpenseId(key.expenseId),
+                                entryId = EntryId(key.entryId),
                                 onBack = { backStack.removeLastOrNull() },
-                                onEdit = { backStack.add(ExpenseEditorKey(key.groupId, key.expenseId)) },
+                                onEdit = { backStack.add(EntryEditorKey(key.groupId, key.entryId)) },
                             )
                         }
                         entry<MemberDetailKey> { key ->
@@ -205,10 +205,10 @@ fun App() {
                                 },
                             )
                         }
-                        entry<ExpenseEditorKey> { key ->
-                            ExpenseEditorScreen(
+                        entry<EntryEditorKey> { key ->
+                            EntryEditorScreen(
                                 groupId = GroupId(key.groupId),
-                                expenseId = key.expenseId,
+                                entryId = key.entryId,
                                 kind = if (key.kind == EntryKind.INCOME.name) EntryKind.INCOME else EntryKind.EXPENSE,
                                 onDone = { backStack.removeLastOrNull() },
                                 onCancel = { backStack.removeLastOrNull() },

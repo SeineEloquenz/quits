@@ -160,11 +160,11 @@ fun MemberDetailScreen(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
-            if (state.expenses.isEmpty()) {
+            if (state.entries.isEmpty()) {
                 EmptyHint(stringResource(Res.string.member_detail_no_expenses))
             } else {
                 Column(Modifier.padding(horizontal = 16.dp)) {
-                    state.expenses.forEach { row -> MemberExpenseCard(row) }
+                    state.entries.forEach { row -> MemberEntryCard(row) }
                 }
             }
 
@@ -203,7 +203,7 @@ private fun statusWord(
     }
 
 @Composable
-private fun MemberExpenseCard(row: MemberExpenseRow) {
+private fun MemberEntryCard(row: MemberEntryRow) {
     ElevatedCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -280,7 +280,7 @@ private fun RemoveMemberDialog(
         title = { Text(stringResource(Res.string.member_detail_remove_title, state.name)) },
         text = {
             val body =
-                if (state.expenses.isNotEmpty() || state.net.isPositive || state.net.isNegative) {
+                if (state.entries.isNotEmpty() || state.net.isPositive || state.net.isNegative) {
                     stringResource(Res.string.member_detail_remove_body_referenced, state.name, state.net.display())
                 } else {
                     stringResource(Res.string.member_detail_remove_body_plain, state.name)

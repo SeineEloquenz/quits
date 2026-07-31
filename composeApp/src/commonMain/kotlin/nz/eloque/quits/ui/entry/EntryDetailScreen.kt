@@ -1,4 +1,4 @@
-package nz.eloque.quits.ui.expense
+package nz.eloque.quits.ui.entry
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,32 +37,24 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.scaffold.AppScaffold
-import nz.eloque.quits.domain.EntryKind
-import nz.eloque.quits.domain.ExpenseId
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.GroupId
+import nz.eloque.quits.domain.isIncome
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_delete
 import nz.eloque.quits.resources.cd_back
-import nz.eloque.quits.resources.detail_delete_expense
-import nz.eloque.quits.resources.detail_edit_expense
 import nz.eloque.quits.resources.detail_expense_not_found
-import nz.eloque.quits.resources.detail_for_whom
 import nz.eloque.quits.resources.detail_items
 import nz.eloque.quits.resources.detail_note
-import nz.eloque.quits.resources.detail_owed_by
 import nz.eloque.quits.resources.detail_split_summary_dated
 import nz.eloque.quits.resources.detail_split_unsupported
-import nz.eloque.quits.resources.editor_expense_fallback_title
 import nz.eloque.quits.resources.editor_item_label
-import nz.eloque.quits.resources.editor_paid_by
-import nz.eloque.quits.resources.editor_received_by
-import nz.eloque.quits.resources.expense_delete_body
 import nz.eloque.quits.resources.expense_delete_title
 import nz.eloque.quits.ui.category.CategoryPill
 import nz.eloque.quits.ui.category.categoryDisplay
 import nz.eloque.quits.ui.components.EmptyHint
-import nz.eloque.quits.ui.components.IncomeText
+import nz.eloque.quits.ui.components.EntryAmountText
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.MoneyText
@@ -73,14 +65,16 @@ import org.koin.core.parameter.parametersOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpenseDetailScreen(
+fun EntryDetailScreen(
     groupId: GroupId,
-    expenseId: ExpenseId,
+    entryId: EntryId,
     onBack: () -> Unit,
     onEdit: () -> Unit,
 ) {
-    val viewModel = koinViewModel<ExpenseDetailViewModel>(key = expenseId.value) { parametersOf(groupId, expenseId) }
+    val viewModel = koinViewModel<EntryDetailViewModel>(key = entryId.value) { parametersOf(groupId, entryId) }
     val state by viewModel.state.collectAsState()
+    val income = state.kind.isIncome
+    val fallbackTitleRes = state.kind.fallbackTitleRes()
     var confirmingDelete by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -94,11 +88,11 @@ fun ExpenseDetailScreen(
                 Text(
                     stringResource(
                         Res.string.expense_delete_title,
-                        state.title.ifEmpty { stringResource(Res.string.editor_expense_fallback_title) },
+                        state.title.ifEmpty { stringResource(fallbackTitleRes) },
                     ),
                 )
             },
-            text = { Text(stringResource(Res.string.expense_delete_body)) },
+            text = { Text(stringResource(state.kind.deleteBodyRes())) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -118,7 +112,7 @@ fun ExpenseDetailScreen(
     AppScaffold(
         title = {
             Text(
-                state.title.ifEmpty { stringResource(Res.string.editor_expense_fallback_title) },
+                state.title.ifEmpty { stringResource(fallbackTitleRes) },
                 style = MaterialTheme.typography.headlineMedium,
                 maxLines = 1,
             )
@@ -134,11 +128,17 @@ fun ExpenseDetailScreen(
                 // split and downgrade it for everyone via sync. Deleting is still allowed.
                 if (state.splitSupported) {
                     IconButton(onClick = onEdit) {
-                        Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.detail_edit_expense))
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = stringResource(state.kind.editActionRes()),
+                        )
                     }
                 }
                 IconButton(onClick = { confirmingDelete = true }) {
-                    Icon(Icons.Default.Delete, contentDescription = stringResource(Res.string.detail_delete_expense))
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(state.kind.deleteActionRes()),
+                    )
                 }
             }
         },
@@ -161,11 +161,7 @@ fun ExpenseDetailScreen(
         ) {
             Spacer(Modifier.height(8.dp))
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                if (state.kind == EntryKind.INCOME) {
-                    IncomeText(state.total, style = MaterialTheme.typography.headlineLarge)
-                } else {
-                    MoneyText(state.total, style = MaterialTheme.typography.headlineLarge)
-                }
+                EntryAmountText(state.total, income, style = MaterialTheme.typography.headlineLarge)
                 Text(
                     stringResource(
                         Res.string.detail_split_summary_dated,
@@ -208,10 +204,9 @@ fun ExpenseDetailScreen(
                 }
             }
 
-            val income = state.kind == EntryKind.INCOME
             Spacer(Modifier.height(24.dp))
             Text(
-                stringResource(if (income) Res.string.editor_received_by else Res.string.editor_paid_by),
+                stringResource(state.kind.payerHeadingRes()),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -229,7 +224,7 @@ fun ExpenseDetailScreen(
 
             Spacer(Modifier.height(16.dp))
             Text(
-                stringResource(if (income) Res.string.detail_for_whom else Res.string.detail_owed_by),
+                stringResource(state.kind.beneficiaryHeadingRes()),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -266,7 +261,7 @@ fun ExpenseDetailScreen(
 }
 
 @Composable
-private fun ParticipantRow(row: ExpenseParticipantRow) {
+private fun ParticipantRow(row: EntryParticipantRow) {
     Row(
         Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -278,7 +273,7 @@ private fun ParticipantRow(row: ExpenseParticipantRow) {
 }
 
 @Composable
-private fun ItemRow(item: ExpenseItemRow) {
+private fun ItemRow(item: EntryItemRow) {
     Row(
         Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalAlignment = Alignment.Top,

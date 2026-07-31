@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.EntryKind
+import nz.eloque.quits.domain.isIncome
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.category_accommodation
 import nz.eloque.quits.resources.category_dining
@@ -164,18 +165,18 @@ val PRESET_CATEGORIES: List<PresetCategory> =
         PresetCategory(CategoryId("other"), Res.string.category_other, "category", 0xFF607D8B),
     )
 
-/** Preset categories offered for income events (money in), distinct from the expense set. */
+/** Preset categories offered for income events (money in), distinct from the entry set. */
 val INCOME_PRESET_CATEGORIES: List<PresetCategory> =
     listOf(
-        PresetCategory(CategoryId("income_salary"), Res.string.category_income_salary, "payments", 0xFF4CAF50),
         PresetCategory(CategoryId("income_refund"), Res.string.category_income_refund, "undo", 0xFF009688),
-        PresetCategory(CategoryId("income_rental"), Res.string.category_income_rental, "home", 0xFF2196F3),
         PresetCategory(CategoryId("income_reimbursement"), Res.string.category_income_reimbursement, "exchange", 0xFF3F51B5),
+        PresetCategory(CategoryId("income_salary"), Res.string.category_income_salary, "payments", 0xFF4CAF50),
+        PresetCategory(CategoryId("income_rental"), Res.string.category_income_rental, "home", 0xFF2196F3),
         PresetCategory(CategoryId("income_gift"), Res.string.category_income_gift, "gift", 0xFFE91E63),
         PresetCategory(CategoryId("income_other"), Res.string.category_income_other, "category", 0xFF607D8B),
     )
 
-// Resolution recognizes every preset (expense + income) so a stored id renders correctly regardless
+// Resolution recognizes every preset (entry + income) so a stored id renders correctly regardless
 // of which editor created it; the editor still shows only the kind-appropriate list.
 private val PRESET_BY_ID: Map<CategoryId, PresetCategory> =
     (PRESET_CATEGORIES + INCOME_PRESET_CATEGORIES).associateBy { it.id }
@@ -186,4 +187,4 @@ fun presetCategory(id: CategoryId): PresetCategory? = PRESET_BY_ID[id]
 val PRESET_IDS: Set<CategoryId> = PRESET_BY_ID.keys
 
 /** The preset list to offer for [kind]'s editor. */
-fun presetsFor(kind: EntryKind): List<PresetCategory> = if (kind == EntryKind.INCOME) INCOME_PRESET_CATEGORIES else PRESET_CATEGORIES
+fun presetsFor(kind: EntryKind): List<PresetCategory> = if (kind.isIncome) INCOME_PRESET_CATEGORIES else PRESET_CATEGORIES

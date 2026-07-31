@@ -1,16 +1,16 @@
 package nz.eloque.quits.data.repository
 
 import kotlinx.coroutines.test.runTest
-import nz.eloque.quits.data.db.ExpenseEntity
-import nz.eloque.quits.data.db.ExpensePayerEntity
-import nz.eloque.quits.data.db.ExpenseSplitEntity
+import nz.eloque.quits.data.db.EntryEntity
+import nz.eloque.quits.data.db.EntryPayerEntity
+import nz.eloque.quits.data.db.EntrySplitEntity
 import nz.eloque.quits.data.db.inMemoryDatabase
 import nz.eloque.quits.data.db.meta
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
-import nz.eloque.quits.domain.Expense
-import nz.eloque.quits.domain.ExpenseId
+import nz.eloque.quits.domain.Entry
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Member
@@ -47,30 +47,30 @@ class GroupRepositoryTest {
     /** A group that exercises every split type, two currencies, and multiple payers. */
     private fun sampleGroup(): Group {
         val equal =
-            Expense(
-                ExpenseId("e-equal"),
+            Entry(
+                EntryId("e-equal"),
                 "Dinner",
                 listOf(Payment(a, Money(2000, usd)), Payment(b, Money(1000, usd))),
                 Split.Equal(listOf(a, b, c)),
             )
         val exact =
-            Expense(
-                ExpenseId("e-exact"),
+            Entry(
+                EntryId("e-exact"),
                 "Hotel",
                 listOf(Payment(a, Money(10000, eur))),
                 Split.Exact(mapOf(a to Money(6000, eur), b to Money(4000, eur))),
                 rateToBase = 1.1,
             )
         val shares =
-            Expense(
-                ExpenseId("e-shares"),
+            Entry(
+                EntryId("e-shares"),
                 "Taxi",
                 listOf(Payment(c, Money(600, usd))),
                 Split.Shares(mapOf(a to 2L, b to 1L)),
             )
         val percentage =
-            Expense(
-                ExpenseId("e-pct"),
+            Entry(
+                EntryId("e-pct"),
                 "Snacks",
                 listOf(Payment(b, Money(1000, usd))),
                 Split.Percentage(mapOf(a to 50, b to 50)),
@@ -87,7 +87,7 @@ class GroupRepositoryTest {
 
     private suspend fun persist(group: Group) {
         repo.saveGroup(group)
-        group.expenses.forEachIndexed { i, e -> repo.upsertExpense(group.id, e, spentAt = 100L + i) }
+        group.entries.forEachIndexed { i, e -> repo.upsertEntry(group.id, e, spentAt = 100L + i) }
         group.settlements.forEach { repo.upsertSettlement(group.id, it, paidAt = 200L) }
     }
 
@@ -100,7 +100,7 @@ class GroupRepositoryTest {
             val loaded = repo.load(GroupId("g"))!!
 
             assertEquals(listOf("Alice", "Bob", "Carol"), loaded.members.map { it.name }.sorted())
-            assertEquals(4, loaded.expenses.size)
+            assertEquals(4, loaded.entries.size)
             // The end-to-end proof: reconstructed splits/payers/rates yield identical balances.
             assertEquals(original.balances().net, loaded.balances().net)
         }
@@ -109,12 +109,12 @@ class GroupRepositoryTest {
     fun every_split_type_reconstructs() =
         runTest {
             persist(sampleGroup())
-            val byId = repo.load(GroupId("g"))!!.expenses.associateBy { it.id }
+            val byId = repo.load(GroupId("g"))!!.entries.associateBy { it.id }
 
-            assertTrue(byId.getValue(ExpenseId("e-equal")).split is Split.Equal)
-            assertTrue(byId.getValue(ExpenseId("e-exact")).split is Split.Exact)
-            assertTrue(byId.getValue(ExpenseId("e-shares")).split is Split.Shares)
-            assertTrue(byId.getValue(ExpenseId("e-pct")).split is Split.Percentage)
+            assertTrue(byId.getValue(EntryId("e-equal")).split is Split.Equal)
+            assertTrue(byId.getValue(EntryId("e-exact")).split is Split.Exact)
+            assertTrue(byId.getValue(EntryId("e-shares")).split is Split.Shares)
+            assertTrue(byId.getValue(EntryId("e-pct")).split is Split.Percentage)
         }
 
     @Test
@@ -122,8 +122,8 @@ class GroupRepositoryTest {
         runTest {
             repo.saveGroup(sampleGroup())
             val itemized =
-                Expense(
-                    ExpenseId("e-items"),
+                Entry(
+                    EntryId("e-items"),
                     "Groceries",
                     listOf(Payment(a, Money(10000, usd))),
                     Split.Itemized(
@@ -133,9 +133,9 @@ class GroupRepositoryTest {
                         ),
                     ),
                 )
-            repo.upsertExpense(GroupId("g"), itemized)
+            repo.upsertEntry(GroupId("g"), itemized)
 
-            val loaded = repo.load(GroupId("g"))!!.expenses.first { it.id == ExpenseId("e-items") }
+            val loaded = repo.load(GroupId("g"))!!.entries.first { it.id == EntryId("e-items") }
             val split = loaded.split
             assertTrue(split is Split.Itemized)
             assertEquals(2, split.items.size)
@@ -151,24 +151,24 @@ class GroupRepositoryTest {
     fun unknown_split_type_degrades_to_exact_and_is_marked_unsupported() =
         runTest {
             repo.saveGroup(sampleGroup())
-            // An expense synced from a newer version, with a split type this build doesn't recognise.
-            db.expenseDao().save(
-                ExpenseEntity("e-future", "g", "Future", 3000, "USD", 1.0, null, 10, 0, null, "FUTURE_KIND", "EXPENSE", meta()),
-                listOf(ExpensePayerEntity("e-future:payer:0", "e-future", "a", 3000)),
+            // An entry synced from a newer version, with a split type this build doesn't recognise.
+            db.entryDao().save(
+                EntryEntity("e-future", "g", "Future", 3000, "USD", 1.0, null, 10, 0, null, "FUTURE_KIND", "EXPENSE", meta()),
+                listOf(EntryPayerEntity("e-future:payer:0", "e-future", "a", 3000)),
                 listOf(
-                    ExpenseSplitEntity("e-future:a", "e-future", "a", 2000),
-                    ExpenseSplitEntity("e-future:b", "e-future", "b", 1000),
+                    EntrySplitEntity("e-future:a", "e-future", "a", 2000),
+                    EntrySplitEntity("e-future:b", "e-future", "b", 1000),
                 ),
                 emptyList(),
                 emptyList(),
             )
 
-            val loaded = repo.load(GroupId("g"))!!.expenses.first { it.id == ExpenseId("e-future") }
+            val loaded = repo.load(GroupId("g"))!!.entries.first { it.id == EntryId("e-future") }
             // Rebuilt from the stored shares as Exact — no throw — and flagged read-only.
             assertTrue(loaded.split is Split.Exact)
             assertFalse(loaded.splitSupported)
-            assertEquals(Money(2000, usd), loaded.owedBy(a))
-            assertEquals(Money(1000, usd), loaded.owedBy(b))
+            assertEquals(Money(2000, usd), loaded.shareOf(a))
+            assertEquals(Money(1000, usd), loaded.shareOf(b))
         }
 
     @Test
@@ -190,7 +190,7 @@ class GroupRepositoryTest {
     fun multiple_payers_survive_round_trip() =
         runTest {
             persist(sampleGroup())
-            val dinner = repo.load(GroupId("g"))!!.expenses.first { it.id == ExpenseId("e-equal") }
+            val dinner = repo.load(GroupId("g"))!!.entries.first { it.id == EntryId("e-equal") }
             assertEquals(2, dinner.payments.size)
             assertEquals(Money(3000, usd), dinner.total)
         }
@@ -199,54 +199,54 @@ class GroupRepositoryTest {
     fun writes_persist_display_metadata_and_dirty_sync_state() =
         runTest {
             repo.saveGroup(sampleGroup())
-            repo.upsertExpense(
+            repo.upsertEntry(
                 GroupId("g"),
-                sampleGroup().expenses.first().let {
-                    Expense(it.id, it.title, it.payments, it.split, categoryId = CategoryId("food"), note = "split dinner")
+                sampleGroup().entries.first().let {
+                    Entry(it.id, it.title, it.payments, it.split, categoryId = CategoryId("food"), note = "split dinner")
                 },
                 spentAt = 555L,
             )
 
-            val stored = db.expenseDao().byId("e-equal")!!
-            assertEquals("food", stored.expense.categoryId)
-            assertEquals(555L, stored.expense.spentAt)
-            assertEquals("split dinner", stored.expense.note)
-            assertTrue(stored.expense.sync.dirty)
-            assertEquals("dev-1", stored.expense.sync.deviceId)
-            assertEquals(1000L, stored.expense.sync.updatedAt)
+            val stored = db.entryDao().byId("e-equal")!!
+            assertEquals("food", stored.entry.categoryId)
+            assertEquals(555L, stored.entry.spentAt)
+            assertEquals("split dinner", stored.entry.note)
+            assertTrue(stored.entry.sync.dirty)
+            assertEquals("dev-1", stored.entry.sync.deviceId)
+            assertEquals(1000L, stored.entry.sync.updatedAt)
         }
 
     @Test
     fun clearing_category_and_note_persists_the_clear() =
         runTest {
             repo.saveGroup(sampleGroup())
-            val base = sampleGroup().expenses.first()
-            repo.upsertExpense(
+            val base = sampleGroup().entries.first()
+            repo.upsertEntry(
                 GroupId("g"),
-                Expense(base.id, base.title, base.payments, base.split, categoryId = CategoryId("food"), note = "split dinner"),
+                Entry(base.id, base.title, base.payments, base.split, categoryId = CategoryId("food"), note = "split dinner"),
             )
 
-            repo.upsertExpense(
+            repo.upsertEntry(
                 GroupId("g"),
-                Expense(base.id, base.title, base.payments, base.split, categoryId = null, note = null),
+                Entry(base.id, base.title, base.payments, base.split, categoryId = null, note = null),
             )
 
-            val stored = db.expenseDao().byId("e-equal")!!
-            assertNull(stored.expense.categoryId)
-            assertNull(stored.expense.note)
+            val stored = db.entryDao().byId("e-equal")!!
+            assertNull(stored.entry.categoryId)
+            assertNull(stored.entry.note)
         }
 
     @Test
     fun category_and_note_survive_round_trip() =
         runTest {
             repo.saveGroup(sampleGroup())
-            val base = sampleGroup().expenses.first()
-            repo.upsertExpense(
+            val base = sampleGroup().entries.first()
+            repo.upsertEntry(
                 GroupId("g"),
-                Expense(base.id, base.title, base.payments, base.split, categoryId = CategoryId("food"), note = "split dinner"),
+                Entry(base.id, base.title, base.payments, base.split, categoryId = CategoryId("food"), note = "split dinner"),
             )
 
-            val loaded = repo.load(GroupId("g"))!!.expenses.first { it.id == base.id }
+            val loaded = repo.load(GroupId("g"))!!.entries.first { it.id == base.id }
             assertEquals(CategoryId("food"), loaded.categoryId)
             assertEquals("split dinner", loaded.note)
         }
@@ -269,7 +269,7 @@ class GroupRepositoryTest {
     @Test
     fun cannot_remove_a_referenced_member() =
         runTest {
-            persist(sampleGroup()) // a, b, c are all in expenses
+            persist(sampleGroup()) // a, b, c are all in entries
             assertFalse(repo.removeMember(GroupId("g"), a))
             assertTrue(repo.load(GroupId("g"))!!.members.any { it.id == a })
         }
@@ -292,7 +292,7 @@ class GroupRepositoryTest {
 
             assertNull(repo.load(GroupId("g")))
             assertTrue(db.groupDao().all().isEmpty())
-            assertTrue(db.expenseDao().forGroup("g").isEmpty())
+            assertTrue(db.entryDao().forGroup("g").isEmpty())
             assertTrue(db.settlementDao().forGroup("g").isEmpty())
         }
 }

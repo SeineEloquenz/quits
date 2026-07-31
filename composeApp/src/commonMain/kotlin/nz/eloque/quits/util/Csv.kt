@@ -6,6 +6,7 @@ import kotlinx.datetime.toLocalDateTime
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.NumberFormatSymbols
+import nz.eloque.quits.domain.isIncome
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -29,33 +30,34 @@ private fun csvField(value: String): String =
 private fun two(value: Int): String = value.toString().padStart(2, '0')
 
 /**
- * Renders this group's expenses as an RFC-4180 CSV (CRLF line endings), newest first. Date and time
- * are ISO, each rendered in the offset the expense was entered in, so they read as the enterer meant.
+ * Renders this group's entries as an RFC-4180 CSV (CRLF line endings), newest first. Date and time
+ * are ISO, each rendered in the offset the entry was entered in, so they read as the enterer meant.
  * [categoryName] resolves a category id to its display name (preset or custom); returns null when
  * unknown, rendered as an empty cell.
  */
-fun Group.expensesToCsv(categoryName: (CategoryId) -> String? = { null }): String {
+fun Group.entriesToCsv(categoryName: (CategoryId) -> String? = { null }): String {
     val names = members.associate { it.id to it.name }
-    val header = listOf("Date", "Time", "Title", "Category", "Amount", "Currency", "Paid by", "Note")
+    val header = listOf("Date", "Time", "Title", "Type", "Category", "Amount", "Currency", "Paid / received by", "Note")
     val rows =
-        expenses
+        entries
             .sortedByDescending { it.spentAt }
-            .map { expense ->
-                val at = Instant.fromEpochMilliseconds(expense.spentAt).toLocalDateTime(offsetZone(expense.tzOffsetMinutes))
+            .map { entry ->
+                val at = Instant.fromEpochMilliseconds(entry.spentAt).toLocalDateTime(offsetZone(entry.tzOffsetMinutes))
                 val payer =
-                    expense.payments
-                        .map { names[it.payer] ?: "?" }
+                    entry.payments
+                        .map { names[it.member] ?: "?" }
                         .distinct()
                         .joinToString(", ")
                 listOf(
                     at.date.toString(),
                     "${two(at.hour)}:${two(at.minute)}",
-                    expense.title,
-                    expense.categoryId?.let(categoryName).orEmpty(),
-                    expense.total.toDecimalString(CsvNumberFormat),
-                    expense.currency.code,
+                    entry.title,
+                    if (entry.kind.isIncome) "Income" else "Expense",
+                    entry.categoryId?.let(categoryName).orEmpty(),
+                    entry.total.toDecimalString(CsvNumberFormat),
+                    entry.currency.code,
                     payer,
-                    expense.note.orEmpty(),
+                    entry.note.orEmpty(),
                 )
             }
     return (listOf(header) + rows).joinToString(separator = "\r\n", postfix = "\r\n") { fields ->
@@ -70,6 +72,6 @@ fun csvFileName(groupName: String): String {
             .map { if (it.isLetterOrDigit() || it == ' ' || it == '-' || it == '_') it else '_' }
             .joinToString("")
             .trim()
-            .ifEmpty { "expenses" }
+            .ifEmpty { "entries" }
     return "$cleaned.csv"
 }

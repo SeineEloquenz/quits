@@ -5,8 +5,9 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
-import nz.eloque.quits.domain.Expense
-import nz.eloque.quits.domain.ExpenseId
+import nz.eloque.quits.domain.Entry
+import nz.eloque.quits.domain.EntryId
+import nz.eloque.quits.domain.EntryKind
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Member
@@ -27,13 +28,13 @@ class CsvTest {
     @OptIn(ExperimentalTime::class)
     private fun at(iso: String): Long = LocalDateTime.parse(iso).toInstant(TimeZone.UTC).toEpochMilliseconds()
 
-    private fun group(vararg expenses: Expense) = Group(GroupId("g"), "Trip", usd, members, expenses.toList())
+    private fun group(vararg entries: Entry) = Group(GroupId("g"), "Trip", usd, members, entries.toList())
 
     @Test
     fun renders_header_and_rows_newest_first() {
         val older =
-            Expense(
-                ExpenseId("e1"),
+            Entry(
+                EntryId("e1"),
                 "Dinner",
                 listOf(Payment(a, Money(3000, usd))),
                 Split.Equal(listOf(a, b)),
@@ -41,39 +42,39 @@ class CsvTest {
                 categoryId = CategoryId("food"),
             )
         val newer =
-            Expense(
-                ExpenseId("e2"),
+            Entry(
+                EntryId("e2"),
                 "Taxi",
                 listOf(Payment(b, Money(1250, usd))),
                 Split.Equal(listOf(a, b)),
                 spentAt = at("2026-07-29T08:05"),
             )
-        val csv = group(older, newer).expensesToCsv { if (it == CategoryId("food")) "Food" else null }
+        val csv = group(older, newer).entriesToCsv { if (it == CategoryId("food")) "Food" else null }
 
         assertEquals(
-            "Date,Time,Title,Category,Amount,Currency,Paid by,Note\r\n" +
-                "2026-07-29,08:05,Taxi,,12.50,USD,Bob,\r\n" +
-                "2026-07-28,19:30,Dinner,Food,30.00,USD,Alice,\r\n",
+            "Date,Time,Title,Type,Category,Amount,Currency,Paid / received by,Note\r\n" +
+                "2026-07-29,08:05,Taxi,Expense,,12.50,USD,Bob,\r\n" +
+                "2026-07-28,19:30,Dinner,Expense,Food,30.00,USD,Alice,\r\n",
             csv,
         )
     }
 
     @Test
     fun escapes_commas_quotes_and_newlines_per_rfc4180() {
-        val expense =
-            Expense(
-                ExpenseId("e1"),
+        val entry =
+            Entry(
+                EntryId("e1"),
                 "Lunch, deluxe",
                 listOf(Payment(a, Money(1000, usd))),
                 Split.Equal(listOf(a, b)),
                 spentAt = at("2026-07-29T12:00"),
                 note = "say \"hi\"\nsecond line",
             )
-        val csv = group(expense).expensesToCsv()
+        val csv = group(entry).entriesToCsv()
 
         assertEquals(
-            "Date,Time,Title,Category,Amount,Currency,Paid by,Note\r\n" +
-                "2026-07-29,12:00,\"Lunch, deluxe\",,10.00,USD,Alice,\"say \"\"hi\"\"\nsecond line\"\r\n",
+            "Date,Time,Title,Type,Category,Amount,Currency,Paid / received by,Note\r\n" +
+                "2026-07-29,12:00,\"Lunch, deluxe\",Expense,,10.00,USD,Alice,\"say \"\"hi\"\"\nsecond line\"\r\n",
             csv,
         )
     }
@@ -82,41 +83,56 @@ class CsvTest {
     fun amount_uses_dot_decimal_regardless_of_locale() {
         // A JPY (0-decimal) amount and a 2-decimal USD amount both render machine-parseable.
         val jpy = Currency.of("JPY")
-        val expense =
-            Expense(
-                ExpenseId("e1"),
+        val entry =
+            Entry(
+                EntryId("e1"),
                 "Sushi",
                 listOf(Payment(a, Money(1500, jpy))),
                 Split.Equal(listOf(a, b)),
                 spentAt = at("2026-07-29T12:00"),
             )
-        val group = Group(GroupId("g"), "Trip", jpy, members, listOf(expense))
-        val line = group.expensesToCsv().lines()[1]
+        val group = Group(GroupId("g"), "Trip", jpy, members, listOf(entry))
+        val line = group.entriesToCsv().lines()[1]
 
-        assertEquals("2026-07-29,12:00,Sushi,,1500,JPY,Alice,", line)
+        assertEquals("2026-07-29,12:00,Sushi,Expense,,1500,JPY,Alice,", line)
     }
 
     @Test
     fun date_and_time_render_in_the_captured_offset() {
         // 23:30 UTC with a +60 min offset is 00:30 the next day where it was entered.
-        val expense =
-            Expense(
-                ExpenseId("e1"),
+        val entry =
+            Entry(
+                EntryId("e1"),
                 "Late snack",
                 listOf(Payment(a, Money(500, usd))),
                 Split.Equal(listOf(a, b)),
                 spentAt = at("2026-07-29T23:30"),
                 tzOffsetMinutes = 60,
             )
-        val line = group(expense).expensesToCsv().lines()[1]
+        val line = group(entry).entriesToCsv().lines()[1]
 
-        assertEquals("2026-07-30,00:30,Late snack,,5.00,USD,Alice,", line)
+        assertEquals("2026-07-30,00:30,Late snack,Expense,,5.00,USD,Alice,", line)
+    }
+
+    @Test
+    fun income_entries_are_typed_income() {
+        val income =
+            Entry(
+                EntryId("i1"),
+                "Refund",
+                listOf(Payment(a, Money(1000, usd))),
+                Split.Equal(listOf(a, b)),
+                spentAt = at("2026-07-29T12:00"),
+                kind = EntryKind.INCOME,
+            )
+        val line = group(income).entriesToCsv().lines()[1]
+        assertEquals("2026-07-29,12:00,Refund,Income,,10.00,USD,Alice,", line)
     }
 
     @Test
     fun file_name_is_sanitized() {
         assertEquals("Trip to Rome.csv", csvFileName("Trip to Rome"))
         assertEquals("Flat_share 2026.csv", csvFileName("Flat/share 2026"))
-        assertEquals("expenses.csv", csvFileName("   "))
+        assertEquals("entries.csv", csvFileName("   "))
     }
 }

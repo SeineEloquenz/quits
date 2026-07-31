@@ -78,60 +78,60 @@ interface MemberDao {
 }
 
 data class ItemWithParticipants(
-    @Embedded val item: ExpenseItemEntity,
+    @Embedded val item: EntryItemEntity,
     @Relation(parentColumns = ["id"], entityColumns = ["itemId"])
-    val participants: List<ExpenseItemParticipantEntity>,
+    val participants: List<EntryItemParticipantEntity>,
 )
 
-data class ExpenseWithLines(
-    @Embedded val expense: ExpenseEntity,
-    @Relation(parentColumns = ["id"], entityColumns = ["expenseId"])
-    val payers: List<ExpensePayerEntity>,
-    @Relation(parentColumns = ["id"], entityColumns = ["expenseId"])
-    val splits: List<ExpenseSplitEntity>,
-    @Relation(entity = ExpenseItemEntity::class, parentColumns = ["id"], entityColumns = ["expenseId"])
+data class EntryWithLines(
+    @Embedded val entry: EntryEntity,
+    @Relation(parentColumns = ["id"], entityColumns = ["entryId"])
+    val payers: List<EntryPayerEntity>,
+    @Relation(parentColumns = ["id"], entityColumns = ["entryId"])
+    val splits: List<EntrySplitEntity>,
+    @Relation(entity = EntryItemEntity::class, parentColumns = ["id"], entityColumns = ["entryId"])
     val items: List<ItemWithParticipants>,
 )
 
 @Dao
-interface ExpenseDao {
+interface EntryDao {
     @Upsert
-    suspend fun upsertExpense(expense: ExpenseEntity)
-
-    @Upsert
-    suspend fun upsertPayers(payers: List<ExpensePayerEntity>)
+    suspend fun upsertEntry(entry: EntryEntity)
 
     @Upsert
-    suspend fun upsertSplits(splits: List<ExpenseSplitEntity>)
+    suspend fun upsertPayers(payers: List<EntryPayerEntity>)
 
     @Upsert
-    suspend fun upsertItems(items: List<ExpenseItemEntity>)
+    suspend fun upsertSplits(splits: List<EntrySplitEntity>)
 
     @Upsert
-    suspend fun upsertItemParticipants(participants: List<ExpenseItemParticipantEntity>)
+    suspend fun upsertItems(items: List<EntryItemEntity>)
 
-    @Query("DELETE FROM expense_payer WHERE expenseId = :expenseId")
-    suspend fun clearPayers(expenseId: String)
+    @Upsert
+    suspend fun upsertItemParticipants(participants: List<EntryItemParticipantEntity>)
 
-    @Query("DELETE FROM expense_split WHERE expenseId = :expenseId")
-    suspend fun clearSplits(expenseId: String)
+    @Query("DELETE FROM entry_payer WHERE entryId = :entryId")
+    suspend fun clearPayers(entryId: String)
 
-    /** Cascades to expense_item_participant via the item foreign key. */
-    @Query("DELETE FROM expense_item WHERE expenseId = :expenseId")
-    suspend fun clearItems(expenseId: String)
+    @Query("DELETE FROM entry_split WHERE entryId = :entryId")
+    suspend fun clearSplits(entryId: String)
+
+    /** Cascades to entry_item_participant via the item foreign key. */
+    @Query("DELETE FROM entry_item WHERE entryId = :entryId")
+    suspend fun clearItems(entryId: String)
 
     @Transaction
     suspend fun save(
-        expense: ExpenseEntity,
-        payers: List<ExpensePayerEntity>,
-        splits: List<ExpenseSplitEntity>,
-        items: List<ExpenseItemEntity>,
-        itemParticipants: List<ExpenseItemParticipantEntity>,
+        entry: EntryEntity,
+        payers: List<EntryPayerEntity>,
+        splits: List<EntrySplitEntity>,
+        items: List<EntryItemEntity>,
+        itemParticipants: List<EntryItemParticipantEntity>,
     ) {
-        upsertExpense(expense)
-        clearPayers(expense.id)
-        clearSplits(expense.id)
-        clearItems(expense.id)
+        upsertEntry(entry)
+        clearPayers(entry.id)
+        clearSplits(entry.id)
+        clearItems(entry.id)
         upsertPayers(payers)
         upsertSplits(splits)
         upsertItems(items)
@@ -139,30 +139,30 @@ interface ExpenseDao {
     }
 
     @Transaction
-    @Query("SELECT * FROM expense WHERE groupId = :groupId AND deleted = 0")
-    suspend fun forGroup(groupId: String): List<ExpenseWithLines>
+    @Query("SELECT * FROM entry WHERE groupId = :groupId AND deleted = 0")
+    suspend fun forGroup(groupId: String): List<EntryWithLines>
 
     @Transaction
-    @Query("SELECT * FROM expense WHERE groupId = :groupId AND deleted = 0")
-    fun forGroupFlow(groupId: String): Flow<List<ExpenseWithLines>>
+    @Query("SELECT * FROM entry WHERE groupId = :groupId AND deleted = 0")
+    fun forGroupFlow(groupId: String): Flow<List<EntryWithLines>>
 
     @Transaction
-    @Query("SELECT * FROM expense WHERE id = :id")
-    suspend fun byId(id: String): ExpenseWithLines?
+    @Query("SELECT * FROM entry WHERE id = :id")
+    suspend fun byId(id: String): EntryWithLines?
 
     @Transaction
-    @Query("SELECT * FROM expense WHERE groupId = :groupId AND dirty = 1")
-    suspend fun dirty(groupId: String): List<ExpenseWithLines>
+    @Query("SELECT * FROM entry WHERE groupId = :groupId AND dirty = 1")
+    suspend fun dirty(groupId: String): List<EntryWithLines>
 
     /** Clears dirty only if the row is unchanged since it was pushed, so a concurrent edit survives. */
-    @Query("UPDATE expense SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt AND deviceId = :deviceId")
+    @Query("UPDATE entry SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt AND deviceId = :deviceId")
     suspend fun clearDirty(
         id: String,
         updatedAt: Long,
         deviceId: String,
     )
 
-    @Query("UPDATE expense SET deleted = 1, dirty = 1, updatedAt = :updatedAt, deviceId = :deviceId WHERE id = :id")
+    @Query("UPDATE entry SET deleted = 1, dirty = 1, updatedAt = :updatedAt, deviceId = :deviceId WHERE id = :id")
     suspend fun tombstone(
         id: String,
         updatedAt: Long,

@@ -25,14 +25,20 @@ fun MoneyText(
     Text(money.display(), modifier = modifier, style = style)
 }
 
-/** An income amount: the value with a leading "+", colored to read as money coming in. */
+/**
+ * An entry's amount in the activity feed/detail, signed and colored by direction: money out (expense)
+ * shows "-…" in red, money in (income) shows "+…" in green. [money] is the (positive) total.
+ */
 @Composable
-fun IncomeText(
+fun EntryAmountText(
     money: Money,
+    isIncome: Boolean,
     modifier: Modifier = Modifier,
     style: TextStyle = LocalTextStyle.current,
 ) {
-    Text("+${money.display()}", modifier = modifier, color = balanceGreen(), style = style)
+    val sign = if (isIncome) "+" else "-"
+    val color = if (isIncome) balanceGreen() else balanceRed()
+    Text("$sign${money.display()}", modifier = modifier, color = color, style = style)
 }
 
 /**

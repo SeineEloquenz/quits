@@ -28,7 +28,7 @@ class GroupCryptoTest {
     @Test
     fun encrypt_decrypt_round_trips() =
         runTest {
-            val plaintext = "expense:42".encodeToByteArray()
+            val plaintext = "entry:42".encodeToByteArray()
             val aad = aad("rec-1")
             val out = encryptThenDecrypt(secret, secret, plaintext, aad)
             assertContentEquals(plaintext, out)

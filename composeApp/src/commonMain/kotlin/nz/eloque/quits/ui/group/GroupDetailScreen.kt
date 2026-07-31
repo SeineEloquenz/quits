@@ -74,10 +74,11 @@ import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.data.invite.InviteLink
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
-import nz.eloque.quits.domain.ExpenseId
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.SettlementId
+import nz.eloque.quits.domain.isIncome
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_copy
@@ -102,7 +103,6 @@ import nz.eloque.quits.resources.detail_local_only
 import nz.eloque.quits.resources.detail_no_matches
 import nz.eloque.quits.resources.detail_not_synced
 import nz.eloque.quits.resources.detail_note
-import nz.eloque.quits.resources.detail_paid_by
 import nz.eloque.quits.resources.detail_search_hint
 import nz.eloque.quits.resources.detail_settle_up_link
 import nz.eloque.quits.resources.detail_settlement_row
@@ -125,11 +125,12 @@ import nz.eloque.quits.ui.category.CategoryPill
 import nz.eloque.quits.ui.category.categoryDisplay
 import nz.eloque.quits.ui.components.BalanceText
 import nz.eloque.quits.ui.components.EmptyHint
-import nz.eloque.quits.ui.components.IncomeText
+import nz.eloque.quits.ui.components.EntryAmountText
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.MoneyText
 import nz.eloque.quits.ui.components.dayGroupLabel
+import nz.eloque.quits.ui.entry.payerFeedRes
 import nz.eloque.quits.util.Sharer
 import nz.eloque.quits.util.formatLocalDateTime
 import org.jetbrains.compose.resources.stringResource
@@ -144,7 +145,7 @@ fun GroupDetailScreen(
     onOpenDrawer: () -> Unit,
     onAddExpense: () -> Unit,
     onAddIncome: () -> Unit,
-    onOpenExpense: (ExpenseId) -> Unit,
+    onOpenEntry: (EntryId) -> Unit,
     onOpenMember: (MemberId) -> Unit,
     onOpenSettlement: (SettlementId) -> Unit,
     onSettleUp: () -> Unit,
@@ -326,8 +327,8 @@ fun GroupDetailScreen(
             } else {
                 Column(Modifier.padding(horizontal = 16.dp)) {
                     var lastDayLabel: String? = null
-                    state.activity.forEach { entry ->
-                        val dayLabel = dayGroupLabel(entry.timestamp, entry.offsetMinutes)
+                    state.activity.forEach { item ->
+                        val dayLabel = dayGroupLabel(item.timestamp, item.offsetMinutes)
                         if (dayLabel != lastDayLabel) {
                             if (lastDayLabel != null) Spacer(Modifier.height(8.dp))
                             Text(
@@ -338,18 +339,18 @@ fun GroupDetailScreen(
                             )
                             lastDayLabel = dayLabel
                         }
-                        when (entry) {
-                            is ActivityEntry.ExpenseEntry -> {
-                                val expense = entry.row
-                                ExpenseRowCard(
-                                    expense = expense,
+                        when (item) {
+                            is ActivityItem.EntryItem -> {
+                                val entry = item.row
+                                EntryRowCard(
+                                    entry = entry,
                                     categories = state.customCategories,
-                                    onClick = { onOpenExpense(expense.id) },
+                                    onClick = { onOpenEntry(entry.id) },
                                 )
                             }
 
-                            is ActivityEntry.SettlementEntry -> {
-                                val settlement = entry.row
+                            is ActivityItem.SettlementItem -> {
+                                val settlement = item.row
                                 SettlementRowCard(settlement, onClick = { onOpenSettlement(settlement.id) })
                             }
                         }
@@ -527,8 +528,8 @@ private fun BalanceSummary(
 }
 
 @Composable
-private fun ExpenseRowCard(
-    expense: ExpenseRow,
+private fun EntryRowCard(
+    entry: EntryRow,
     categories: List<Category>,
     onClick: () -> Unit,
 ) {
@@ -541,21 +542,21 @@ private fun ExpenseRowCard(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Column(Modifier.weight(1f)) {
-                AbbreviatingText(expense.title, maxLines = 1)
+                AbbreviatingText(entry.title, maxLines = 1)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    categoryDisplay(expense.categoryId, categories)?.let { display ->
+                    categoryDisplay(entry.categoryId, categories)?.let { display ->
                         CategoryPill(display)
                         Spacer(Modifier.width(6.dp))
                     }
                     Text(
-                        stringResource(Res.string.detail_paid_by, expense.paidBy),
+                        stringResource(entry.kind.payerFeedRes(), entry.paidBy),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
-                    if (!expense.note.isNullOrBlank()) {
+                    if (!entry.note.isNullOrBlank()) {
                         Spacer(Modifier.width(6.dp))
                         Icon(
                             Icons.AutoMirrored.Filled.Notes,
@@ -564,7 +565,7 @@ private fun ExpenseRowCard(
                             modifier = Modifier.size(14.dp),
                         )
                     }
-                    if (!expense.splitSupported) {
+                    if (!entry.splitSupported) {
                         Spacer(Modifier.width(6.dp))
                         Icon(
                             Icons.Default.Info,
@@ -575,7 +576,7 @@ private fun ExpenseRowCard(
                     }
                 }
             }
-            if (expense.isIncome) IncomeText(expense.total) else MoneyText(expense.total)
+            EntryAmountText(entry.total, entry.kind.isIncome)
         }
     }
 }

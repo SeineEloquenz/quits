@@ -16,7 +16,7 @@ import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.data.sync.syncQuietly
 import nz.eloque.quits.domain.Currency
-import nz.eloque.quits.domain.ExpenseId
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
@@ -24,8 +24,8 @@ import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.error_member_in_use
 import org.jetbrains.compose.resources.getString
 
-data class MemberExpenseRow(
-    val id: ExpenseId,
+data class MemberEntryRow(
+    val id: EntryId,
     val title: String,
     val total: Money,
     val paidByThem: Money,
@@ -37,7 +37,7 @@ data class MemberDetailUiState(
     val found: Boolean = true,
     val name: String = "",
     val net: Money = Money.zero(Currency.of("USD")),
-    val expenses: List<MemberExpenseRow> = emptyList(),
+    val entries: List<MemberEntryRow> = emptyList(),
 )
 
 class MemberDetailViewModel(
@@ -55,22 +55,22 @@ class MemberDetailViewModel(
                     MemberDetailUiState(loaded = true, found = false)
                 } else {
                     val related =
-                        group.expenses.filter { expense ->
-                            memberId in expense.shares.keys || expense.payments.any { it.payer == memberId }
+                        group.entries.filter { entry ->
+                            memberId in entry.shares.keys || entry.payments.any { it.member == memberId }
                         }
                     MemberDetailUiState(
                         loaded = true,
                         found = true,
                         name = member.name,
                         net = group.balances().of(memberId),
-                        expenses =
-                            related.map { expense ->
-                                MemberExpenseRow(
-                                    expense.id,
-                                    expense.title,
-                                    expense.total,
-                                    expense.paidBy(memberId),
-                                    expense.owedBy(memberId),
+                        entries =
+                            related.map { entry ->
+                                MemberEntryRow(
+                                    entry.id,
+                                    entry.title,
+                                    entry.total,
+                                    entry.paymentsBy(memberId),
+                                    entry.shareOf(memberId),
                                 )
                             },
                     )
@@ -92,7 +92,7 @@ class MemberDetailViewModel(
         }
     }
 
-    /** Same referential guard as the old overflow menu: refuses if still tied to an expense/settlement. */
+    /** Same referential guard as the old overflow menu: refuses if still tied to an entry/settlement. */
     fun remove() {
         viewModelScope.launch {
             if (repo.removeMember(groupId, memberId)) {

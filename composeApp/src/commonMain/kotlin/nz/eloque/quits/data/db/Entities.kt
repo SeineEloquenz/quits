@@ -36,7 +36,7 @@ data class MemberEntity(
 )
 
 @Entity(
-    tableName = "expense",
+    tableName = "entry",
     foreignKeys = [
         ForeignKey(
             entity = GroupEntity::class,
@@ -47,7 +47,7 @@ data class MemberEntity(
     ],
     indices = [Index("groupId")],
 )
-data class ExpenseEntity(
+data class EntryEntity(
     @PrimaryKey val id: String,
     val groupId: String,
     val title: String,
@@ -64,60 +64,60 @@ data class ExpenseEntity(
 )
 
 @Entity(
-    tableName = "expense_payer",
+    tableName = "entry_payer",
     foreignKeys = [
         ForeignKey(
-            entity = ExpenseEntity::class,
+            entity = EntryEntity::class,
             parentColumns = ["id"],
-            childColumns = ["expenseId"],
+            childColumns = ["entryId"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("expenseId")],
+    indices = [Index("entryId")],
 )
-data class ExpensePayerEntity(
+data class EntryPayerEntity(
     @PrimaryKey val id: String,
-    val expenseId: String,
+    val entryId: String,
     val memberId: String,
     val amountMinor: Long,
 )
 
 @Entity(
-    tableName = "expense_split",
+    tableName = "entry_split",
     foreignKeys = [
         ForeignKey(
-            entity = ExpenseEntity::class,
+            entity = EntryEntity::class,
             parentColumns = ["id"],
-            childColumns = ["expenseId"],
+            childColumns = ["entryId"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("expenseId")],
+    indices = [Index("entryId")],
 )
-data class ExpenseSplitEntity(
+data class EntrySplitEntity(
     @PrimaryKey val id: String,
-    val expenseId: String,
+    val entryId: String,
     val memberId: String,
     val shareMinor: Long,
-    /** Split spec, read per the expense's splitType: share count for SHARES, percent for PERCENTAGE, null otherwise. */
+    /** Split spec, read per the entry's splitType: share count for SHARES, percent for PERCENTAGE, null otherwise. */
     val weight: Double? = null,
 )
 
 @Entity(
-    tableName = "expense_item",
+    tableName = "entry_item",
     foreignKeys = [
         ForeignKey(
-            entity = ExpenseEntity::class,
+            entity = EntryEntity::class,
             parentColumns = ["id"],
-            childColumns = ["expenseId"],
+            childColumns = ["entryId"],
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("expenseId")],
+    indices = [Index("entryId")],
 )
-data class ExpenseItemEntity(
+data class EntryItemEntity(
     @PrimaryKey val id: String,
-    val expenseId: String,
+    val entryId: String,
     val label: String,
     val amountMinor: Long,
     /** Preserves the order items were entered in, so they reconstruct in the same sequence. */
@@ -125,11 +125,11 @@ data class ExpenseItemEntity(
 )
 
 @Entity(
-    tableName = "expense_item_participant",
+    tableName = "entry_item_participant",
     primaryKeys = ["itemId", "memberId"],
     foreignKeys = [
         ForeignKey(
-            entity = ExpenseItemEntity::class,
+            entity = EntryItemEntity::class,
             parentColumns = ["id"],
             childColumns = ["itemId"],
             onDelete = ForeignKey.CASCADE,
@@ -137,7 +137,7 @@ data class ExpenseItemEntity(
     ],
     indices = [Index("itemId")],
 )
-data class ExpenseItemParticipantEntity(
+data class EntryItemParticipantEntity(
     val itemId: String,
     val memberId: String,
 )

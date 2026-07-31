@@ -1,12 +1,12 @@
 package nz.eloque.quits.data.sync
 
 import nz.eloque.quits.data.db.CategoryEntity
-import nz.eloque.quits.data.db.ExpenseEntity
-import nz.eloque.quits.data.db.ExpenseItemEntity
-import nz.eloque.quits.data.db.ExpenseItemParticipantEntity
-import nz.eloque.quits.data.db.ExpensePayerEntity
-import nz.eloque.quits.data.db.ExpenseSplitEntity
-import nz.eloque.quits.data.db.ExpenseWithLines
+import nz.eloque.quits.data.db.EntryEntity
+import nz.eloque.quits.data.db.EntryItemEntity
+import nz.eloque.quits.data.db.EntryItemParticipantEntity
+import nz.eloque.quits.data.db.EntryPayerEntity
+import nz.eloque.quits.data.db.EntrySplitEntity
+import nz.eloque.quits.data.db.EntryWithLines
 import nz.eloque.quits.data.db.GroupEntity
 import nz.eloque.quits.data.db.ItemWithParticipants
 import nz.eloque.quits.data.db.MemberEntity
@@ -39,15 +39,15 @@ object RecordMapper {
             payload = SyncPayload.Member(member.id, member.name, member.color),
         )
 
-    fun record(expense: ExpenseWithLines): SyncRecord {
-        val e = expense.expense
+    fun record(withLines: EntryWithLines): SyncRecord {
+        val e = withLines.entry
         return SyncRecord(
             id = e.id,
             updatedAt = e.sync.updatedAt,
             deviceId = e.sync.deviceId,
             deleted = e.sync.deleted,
             payload =
-                SyncPayload.Expense(
+                SyncPayload.Entry(
                     id = e.id,
                     title = e.title,
                     amountMinor = e.amountMinor,
@@ -59,10 +59,10 @@ object RecordMapper {
                     note = e.note,
                     splitType = e.splitType,
                     kind = e.kind,
-                    payers = expense.payers.map { SyncPayload.Payer(it.id, it.memberId, it.amountMinor) },
-                    splits = expense.splits.map { SyncPayload.SplitLine(it.id, it.memberId, it.shareMinor, it.weight) },
+                    payers = withLines.payers.map { SyncPayload.Payer(it.id, it.memberId, it.amountMinor) },
+                    splits = withLines.splits.map { SyncPayload.SplitLine(it.id, it.memberId, it.shareMinor, it.weight) },
                     items =
-                        expense.items
+                        withLines.items
                             .sortedBy { it.item.position }
                             .map { iwp ->
                                 SyncPayload.ItemLine(
@@ -122,13 +122,13 @@ object RecordMapper {
         meta: SyncMeta,
     ): MemberEntity = MemberEntity(payload.id, groupId, payload.name, payload.color, meta)
 
-    fun expenseEntities(
-        payload: SyncPayload.Expense,
+    fun entryEntities(
+        payload: SyncPayload.Entry,
         groupId: String,
         meta: SyncMeta,
-    ): ExpenseWithLines =
-        ExpenseWithLines(
-            ExpenseEntity(
+    ): EntryWithLines =
+        EntryWithLines(
+            EntryEntity(
                 id = payload.id,
                 groupId = groupId,
                 title = payload.title,
@@ -143,13 +143,13 @@ object RecordMapper {
                 kind = payload.kind,
                 sync = meta,
             ),
-            payload.payers.map { ExpensePayerEntity(it.id, payload.id, it.memberId, it.amountMinor) },
-            payload.splits.map { ExpenseSplitEntity(it.id, payload.id, it.memberId, it.shareMinor, it.weight) },
+            payload.payers.map { EntryPayerEntity(it.id, payload.id, it.memberId, it.amountMinor) },
+            payload.splits.map { EntrySplitEntity(it.id, payload.id, it.memberId, it.shareMinor, it.weight) },
             (payload.items ?: emptyList()).mapIndexed { i, line ->
                 val itemId = "${payload.id}:item:$i"
                 ItemWithParticipants(
-                    ExpenseItemEntity(itemId, payload.id, line.label, line.amountMinor, i),
-                    line.participants.map { ExpenseItemParticipantEntity(itemId, it) },
+                    EntryItemEntity(itemId, payload.id, line.label, line.amountMinor, i),
+                    line.participants.map { EntryItemParticipantEntity(itemId, it) },
                 )
             },
         )

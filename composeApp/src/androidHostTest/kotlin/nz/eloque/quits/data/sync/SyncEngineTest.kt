@@ -5,8 +5,8 @@ import nz.eloque.quits.data.crypto.GroupCrypto
 import nz.eloque.quits.data.db.inMemoryDatabase
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.domain.Currency
-import nz.eloque.quits.domain.Expense
-import nz.eloque.quits.domain.ExpenseId
+import nz.eloque.quits.domain.Entry
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Member
@@ -106,9 +106,9 @@ class SyncEngineTest {
                 // device 1 builds a group locally and shares it.
                 val g = GroupId("g-local")
                 repo1.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
-                repo1.upsertExpense(
+                repo1.upsertEntry(
                     g,
-                    Expense(ExpenseId("e1"), "Dinner", listOf(Payment(a, Money(3000, usd))), Split.Equal(listOf(a, b))),
+                    Entry(EntryId("e1"), "Dinner", listOf(Payment(a, Money(3000, usd))), Split.Equal(listOf(a, b))),
                     spentAt = 1,
                 )
                 val code = engine1.share(g)
@@ -119,7 +119,7 @@ class SyncEngineTest {
                 val onDevice1 = repo1.load(g)!!
                 val onDevice2 = repo2.load(joined)!!
                 assertEquals(2, onDevice2.members.size)
-                assertEquals(1, onDevice2.expenses.size)
+                assertEquals(1, onDevice2.entries.size)
                 assertEquals(
                     onDevice1.balances().net.values.map {
                         it.minorUnits
@@ -127,19 +127,19 @@ class SyncEngineTest {
                     onDevice2.balances().net.values.map { it.minorUnits }.sorted(),
                 )
 
-                // device 2 adds an expense; both sync; device 1 sees it.
+                // device 2 adds an entry; both sync; device 1 sees it.
                 clock = 2000L
-                repo2.upsertExpense(
+                repo2.upsertEntry(
                     joined,
-                    Expense(ExpenseId("e2"), "Taxi", listOf(Payment(b, Money(1000, usd))), Split.Equal(listOf(a, b))),
+                    Entry(EntryId("e2"), "Taxi", listOf(Payment(b, Money(1000, usd))), Split.Equal(listOf(a, b))),
                     spentAt = 2,
                 )
                 engine2.sync(joined)
                 engine1.sync(g)
 
                 val device1After = repo1.load(g)!!
-                assertEquals(2, device1After.expenses.size)
-                assertTrue(device1After.expenses.any { it.id == ExpenseId("e2") })
+                assertEquals(2, device1After.entries.size)
+                assertTrue(device1After.entries.any { it.id == EntryId("e2") })
                 assertEquals(
                     device1After.balances().net.mapKeys { it.key.value },
                     repo2.load(joined)!!.balances().net.mapKeys { it.key.value },
@@ -165,10 +165,10 @@ class SyncEngineTest {
             try {
                 val g = GroupId("g-local")
                 repo1.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
-                repo1.upsertExpense(
+                repo1.upsertEntry(
                     g,
-                    Expense(
-                        ExpenseId("e-items"),
+                    Entry(
+                        EntryId("e-items"),
                         "Groceries",
                         listOf(Payment(a, Money(5000, usd))),
                         Split.Itemized(
@@ -183,7 +183,7 @@ class SyncEngineTest {
                 val code = engine1.share(g)
 
                 val joined = engine2.join(code)!!
-                val synced = repo2.load(joined)!!.expenses.first { it.id == ExpenseId("e-items") }
+                val synced = repo2.load(joined)!!.entries.first { it.id == EntryId("e-items") }
                 val split = synced.split
                 assertTrue(split is Split.Itemized)
                 assertEquals(2, split.items.size)
@@ -191,7 +191,7 @@ class SyncEngineTest {
                 assertEquals(setOf(a, b), split.items[1].participants)
                 // The shares the second device computes from the synced items match the first device's.
                 assertEquals(
-                    repo1.load(g)!!.expenses.first { it.id == ExpenseId("e-items") }.shares,
+                    repo1.load(g)!!.entries.first { it.id == EntryId("e-items") }.shares,
                     synced.shares,
                 )
             } finally {
@@ -215,9 +215,9 @@ class SyncEngineTest {
             try {
                 val g = GroupId("g-local")
                 repo1.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
-                repo1.upsertExpense(
+                repo1.upsertEntry(
                     g,
-                    Expense(ExpenseId("e1"), "Dinner", listOf(Payment(a, Money(3000, usd))), Split.Equal(listOf(a, b))),
+                    Entry(EntryId("e1"), "Dinner", listOf(Payment(a, Money(3000, usd))), Split.Equal(listOf(a, b))),
                     spentAt = 1,
                 )
                 // First share clears every dirty flag; re-sharing then registers a brand-new, empty
@@ -228,7 +228,7 @@ class SyncEngineTest {
                 val joined = engine2.join(code2)!!
                 val onDevice2 = repo2.load(joined)!!
                 assertEquals(2, onDevice2.members.size)
-                assertEquals(1, onDevice2.expenses.size)
+                assertEquals(1, onDevice2.entries.size)
             } finally {
                 db1.close()
                 db2.close()
@@ -250,21 +250,21 @@ class SyncEngineTest {
             try {
                 val g = GroupId("g-local")
                 repo1.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
-                repo1.upsertExpense(
+                repo1.upsertEntry(
                     g,
-                    Expense(ExpenseId("e1"), "Dinner", listOf(Payment(a, Money(3000, usd))), Split.Equal(listOf(a, b))),
+                    Entry(EntryId("e1"), "Dinner", listOf(Payment(a, Money(3000, usd))), Split.Equal(listOf(a, b))),
                     spentAt = 1,
                 )
                 val code = engine1.share(g)
                 val joined = engine2.join(code)!!
-                assertEquals(1, repo2.load(joined)!!.expenses.size)
+                assertEquals(1, repo2.load(joined)!!.entries.size)
 
                 clock = 2000L
-                repo1.deleteExpense(ExpenseId("e1"))
+                repo1.deleteEntry(EntryId("e1"))
                 engine1.sync(g)
                 engine2.sync(joined)
 
-                assertEquals(0, repo2.load(joined)!!.expenses.size)
+                assertEquals(0, repo2.load(joined)!!.entries.size)
             } finally {
                 db1.close()
                 db2.close()

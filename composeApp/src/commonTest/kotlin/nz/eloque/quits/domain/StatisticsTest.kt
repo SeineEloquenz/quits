@@ -18,24 +18,24 @@ class StatisticsTest {
                 "Trip",
                 USD,
                 members,
-                expenses =
+                entries =
                     listOf(
-                        Expense(
-                            ExpenseId("e1"),
+                        Entry(
+                            EntryId("e1"),
                             "Dinner",
                             listOf(Payment(a, usd(3000))),
                             Split.Equal(listOf(a, b, c)),
                             categoryId = CategoryId("food"),
                         ),
-                        Expense(
-                            ExpenseId("e2"),
+                        Entry(
+                            EntryId("e2"),
                             "Taxi",
                             listOf(Payment(b, usd(1200))),
                             Split.Equal(listOf(a, b)),
                             categoryId = CategoryId("transport"),
                         ),
-                        Expense(
-                            ExpenseId("e3"),
+                        Entry(
+                            EntryId("e3"),
                             "Snacks",
                             listOf(Payment(c, usd(900))),
                             Split.Equal(listOf(a, b, c)),
@@ -66,11 +66,11 @@ class StatisticsTest {
                 "Trip",
                 USD,
                 members,
-                expenses =
+                entries =
                     listOf(
-                        Expense(ExpenseId("e1"), "Dinner", listOf(Payment(a, usd(3000))), Split.Equal(listOf(a, b, c))),
-                        Expense(
-                            ExpenseId("i1"),
+                        Entry(EntryId("e1"), "Dinner", listOf(Payment(a, usd(3000))), Split.Equal(listOf(a, b, c))),
+                        Entry(
+                            EntryId("i1"),
                             "Refund",
                             listOf(Payment(a, usd(9000))),
                             Split.Equal(listOf(a, b, c)),
@@ -79,7 +79,7 @@ class StatisticsTest {
                     ),
             )
         val s = group.spending()
-        // Only the 30.00 expense counts; the income is ignored entirely.
+        // Only the 30.00 entry counts; the income is ignored entirely.
         assertEquals(usd(3000), s.total)
         assertEquals(1, s.byCategory.size)
     }
@@ -92,7 +92,7 @@ class StatisticsTest {
                 "Trip",
                 USD,
                 members,
-                expenses = listOf(Expense(ExpenseId("e"), "x", listOf(Payment(a, usd(1000))), Split.Equal(listOf(a, b)))),
+                entries = listOf(Entry(EntryId("e"), "x", listOf(Payment(a, usd(1000))), Split.Equal(listOf(a, b)))),
             )
 
         val s = group.spending()

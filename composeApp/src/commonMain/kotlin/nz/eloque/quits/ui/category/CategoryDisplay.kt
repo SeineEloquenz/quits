@@ -30,8 +30,8 @@ data class CategoryDisplay(
 
 /**
  * Resolves [id] to its display — custom [categories] first, then app presets. Returns null when the
- * expense is uncategorized ([id] null) or the id is unknown to this build (a newer preset, or a
- * custom category not yet synced): such expenses read as uncategorized until resolvable.
+ * entry is uncategorized ([id] null) or the id is unknown to this build (a newer preset, or a
+ * custom category not yet synced): such entries read as uncategorized until resolvable.
  */
 @Composable
 fun categoryDisplay(

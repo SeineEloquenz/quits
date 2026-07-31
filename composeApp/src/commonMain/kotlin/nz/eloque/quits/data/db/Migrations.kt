@@ -107,3 +107,41 @@ val MIGRATION_6_7 =
             connection.execSQL("ALTER TABLE expense ADD COLUMN kind TEXT NOT NULL DEFAULT 'EXPENSE'")
         }
     }
+
+/**
+ * v7 -> v8: rename the "expense" concept to "entry" now that it also models income. Pure rename of the
+ * persisted names — table `expense` -> `entry`, its child tables `expense_*` -> `entry_*`, the
+ * `expenseId` foreign-key columns -> `entryId`, and the indices — plus the sync payload type
+ * (`@SerialName("expense")` -> `"entry"`), so it's also a flag day (clears `group_sync`). Renaming the
+ * parent table auto-retargets child foreign keys; each renamed column's index is dropped and recreated
+ * under Room's expected name.
+ */
+val MIGRATION_7_8 =
+    object : Migration(7, 8) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE expense RENAME TO entry")
+            connection.execSQL("DROP INDEX IF EXISTS index_expense_groupId")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS index_entry_groupId ON entry (groupId)")
+
+            connection.execSQL("ALTER TABLE expense_payer RENAME TO entry_payer")
+            connection.execSQL("ALTER TABLE entry_payer RENAME COLUMN expenseId TO entryId")
+            connection.execSQL("DROP INDEX IF EXISTS index_expense_payer_expenseId")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS index_entry_payer_entryId ON entry_payer (entryId)")
+
+            connection.execSQL("ALTER TABLE expense_split RENAME TO entry_split")
+            connection.execSQL("ALTER TABLE entry_split RENAME COLUMN expenseId TO entryId")
+            connection.execSQL("DROP INDEX IF EXISTS index_expense_split_expenseId")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS index_entry_split_entryId ON entry_split (entryId)")
+
+            connection.execSQL("ALTER TABLE expense_item RENAME TO entry_item")
+            connection.execSQL("ALTER TABLE entry_item RENAME COLUMN expenseId TO entryId")
+            connection.execSQL("DROP INDEX IF EXISTS index_expense_item_expenseId")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS index_entry_item_entryId ON entry_item (entryId)")
+
+            connection.execSQL("ALTER TABLE expense_item_participant RENAME TO entry_item_participant")
+            connection.execSQL("DROP INDEX IF EXISTS index_expense_item_participant_itemId")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS index_entry_item_participant_itemId ON entry_item_participant (itemId)")
+
+            connection.execSQL("DELETE FROM group_sync")
+        }
+    }

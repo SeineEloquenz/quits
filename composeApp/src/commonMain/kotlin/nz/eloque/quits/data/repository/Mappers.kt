@@ -1,20 +1,20 @@
 package nz.eloque.quits.data.repository
 
 import nz.eloque.quits.data.db.CategoryEntity
-import nz.eloque.quits.data.db.ExpenseItemEntity
-import nz.eloque.quits.data.db.ExpenseItemParticipantEntity
-import nz.eloque.quits.data.db.ExpensePayerEntity
-import nz.eloque.quits.data.db.ExpenseSplitEntity
-import nz.eloque.quits.data.db.ExpenseWithLines
+import nz.eloque.quits.data.db.EntryItemEntity
+import nz.eloque.quits.data.db.EntryItemParticipantEntity
+import nz.eloque.quits.data.db.EntryPayerEntity
+import nz.eloque.quits.data.db.EntrySplitEntity
+import nz.eloque.quits.data.db.EntryWithLines
 import nz.eloque.quits.data.db.ItemWithParticipants
 import nz.eloque.quits.data.db.MemberEntity
 import nz.eloque.quits.data.db.SettlementEntity
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.Entry
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.EntryKind
-import nz.eloque.quits.domain.Expense
-import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.Member
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
@@ -59,27 +59,27 @@ internal fun SettlementEntity.toDomain(): Settlement =
         note,
     )
 
-internal fun ExpenseWithLines.toDomain(): Expense {
-    val currency = Currency.of(expense.currency)
+internal fun EntryWithLines.toDomain(): Entry {
+    val currency = Currency.of(entry.currency)
     val payments = payers.map { Payment(MemberId(it.memberId), Money(it.amountMinor, currency)) }
-    return Expense(
-        ExpenseId(expense.id),
-        expense.title,
+    return Entry(
+        EntryId(entry.id),
+        entry.title,
         payments,
-        toSplit(expense.splitType, splits, items, currency),
-        expense.rateToBase,
-        expense.spentAt,
-        expense.tzOffsetMinutes,
-        expense.categoryId?.let { CategoryId(it) },
-        expense.note,
-        entryKindOf(expense.kind),
-        splitSupported = expense.splitType in KNOWN_SPLIT_TYPES,
+        toSplit(entry.splitType, splits, items, currency),
+        entry.rateToBase,
+        entry.spentAt,
+        entry.tzOffsetMinutes,
+        entry.categoryId?.let { CategoryId(it) },
+        entry.note,
+        entryKindOf(entry.kind),
+        splitSupported = entry.splitType in KNOWN_SPLIT_TYPES,
     )
 }
 
 private fun toSplit(
     type: String,
-    rows: List<ExpenseSplitEntity>,
+    rows: List<EntrySplitEntity>,
     items: List<ItemWithParticipants>,
     currency: Currency,
 ): Split =
@@ -102,20 +102,20 @@ private fun toSplit(
             )
         // Forward-compat: a split type from a newer app version. Never throw on well-formed synced
         // data — rebuild it from the materialized per-member shares so balances stay correct. The
-        // caller flags it unsupported (see [ExpenseWithLines.toDomain]) so the UI keeps it read-only.
+        // caller flags it unsupported (see [EntryWithLines.toDomain]) so the UI keeps it read-only.
         else -> Split.Exact(rows.associate { MemberId(it.memberId) to Money(it.shareMinor, currency) })
     }
 
-/** Payer lines for an expense; synthetic ids since multiple payments may share a member. */
-internal fun payerRows(expense: Expense): List<ExpensePayerEntity> =
-    expense.payments.mapIndexed { i, payment ->
-        ExpensePayerEntity("${expense.id.value}:payer:$i", expense.id.value, payment.payer.value, payment.amount.minorUnits)
+/** Payer lines for an entry; synthetic ids since multiple payments may share a member. */
+internal fun payerRows(entry: Entry): List<EntryPayerEntity> =
+    entry.payments.mapIndexed { i, payment ->
+        EntryPayerEntity("${entry.id.value}:payer:$i", entry.id.value, payment.member.value, payment.amount.minorUnits)
     }
 
-/** Split lines for an expense: the materialized share per member plus the spec weight (if any). */
-internal fun splitRows(expense: Expense): List<ExpenseSplitEntity> {
-    val eid = expense.id.value
-    val split = expense.split
+/** Split lines for an entry: the materialized share per member plus the spec weight (if any). */
+internal fun splitRows(entry: Entry): List<EntrySplitEntity> {
+    val eid = entry.id.value
+    val split = entry.split
     val members: Collection<MemberId> =
         when (split) {
             is Split.Equal -> split.participants
@@ -131,30 +131,30 @@ internal fun splitRows(expense: Expense): List<ExpenseSplitEntity> {
                 is Split.Percentage -> split.percent.getValue(member).toDouble()
                 else -> null
             }
-        ExpenseSplitEntity("$eid:${member.value}", eid, member.value, expense.owedBy(member).minorUnits, weight)
+        EntrySplitEntity("$eid:${member.value}", eid, member.value, entry.shareOf(member).minorUnits, weight)
     }
 }
 
 /** Item id shared by an item row and its participant rows; position-based so it round-trips stably. */
 private fun itemId(
-    expenseId: String,
+    entryId: String,
     position: Int,
-): String = "$expenseId:item:$position"
+): String = "$entryId:item:$position"
 
-/** Line-item rows for an itemized expense; empty for every other split kind. */
-internal fun itemRows(expense: Expense): List<ExpenseItemEntity> {
-    val split = expense.split
+/** Line-item rows for an itemized entry; empty for every other split kind. */
+internal fun itemRows(entry: Entry): List<EntryItemEntity> {
+    val split = entry.split
     if (split !is Split.Itemized) return emptyList()
     return split.items.mapIndexed { i, item ->
-        ExpenseItemEntity(itemId(expense.id.value, i), expense.id.value, item.label, item.amount.minorUnits, i)
+        EntryItemEntity(itemId(entry.id.value, i), entry.id.value, item.label, item.amount.minorUnits, i)
     }
 }
 
-/** Item-to-member assignment rows for an itemized expense; empty for every other split kind. */
-internal fun itemParticipantRows(expense: Expense): List<ExpenseItemParticipantEntity> {
-    val split = expense.split
+/** Item-to-member assignment rows for an itemized entry; empty for every other split kind. */
+internal fun itemParticipantRows(entry: Entry): List<EntryItemParticipantEntity> {
+    val split = entry.split
     if (split !is Split.Itemized) return emptyList()
     return split.items.flatMapIndexed { i, item ->
-        item.participants.map { ExpenseItemParticipantEntity(itemId(expense.id.value, i), it.value) }
+        item.participants.map { EntryItemParticipantEntity(itemId(entry.id.value, i), it.value) }
     }
 }
