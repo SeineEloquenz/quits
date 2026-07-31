@@ -3,6 +3,7 @@ package nz.eloque.quits.util
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
@@ -37,7 +38,7 @@ class CsvTest {
                 listOf(Payment(a, Money(3000, usd))),
                 Split.Equal(listOf(a, b)),
                 spentAt = at("2026-07-28T19:30"),
-                category = "Food",
+                categoryId = CategoryId("food"),
             )
         val newer =
             Expense(
@@ -47,7 +48,7 @@ class CsvTest {
                 Split.Equal(listOf(a, b)),
                 spentAt = at("2026-07-29T08:05"),
             )
-        val csv = group(older, newer).expensesToCsv()
+        val csv = group(older, newer).expensesToCsv { if (it == CategoryId("food")) "Food" else null }
 
         assertEquals(
             "Date,Time,Title,Category,Amount,Currency,Paid by,Note\r\n" +

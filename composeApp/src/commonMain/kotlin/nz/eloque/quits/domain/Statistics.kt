@@ -1,8 +1,8 @@
 package nz.eloque.quits.domain
 
-/** Spend for one category ([category] null = uncategorized), in the group's base currency. */
+/** Spend for one category ([categoryId] null = uncategorized), in the group's base currency. */
 data class CategoryTotal(
-    val category: String?,
+    val categoryId: CategoryId?,
     val amount: Money,
 )
 
@@ -36,8 +36,8 @@ fun Group.spending(): Spending {
 
     val byCategory =
         expenses
-            .groupBy { it.category?.takeIf { c -> c.isNotBlank() } }
-            .map { (category, es) -> CategoryTotal(category, es.fold(Money.zero(baseCurrency)) { a, e -> a + baseTotal(e) }) }
+            .groupBy { it.categoryId }
+            .map { (categoryId, es) -> CategoryTotal(categoryId, es.fold(Money.zero(baseCurrency)) { a, e -> a + baseTotal(e) }) }
             .sortedByDescending { it.amount.minorUnits }
 
     val perMember = members.associate { it.id to 0L }.toMutableMap()

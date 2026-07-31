@@ -11,6 +11,8 @@ class Group(
     val members: List<Member>,
     val expenses: List<Expense> = emptyList(),
     val settlements: List<Settlement> = emptyList(),
+    /** Custom, user-created categories (preset categories are app-defined and not stored here). */
+    val categories: List<Category> = emptyList(),
 ) : Entity<GroupId>() {
     private val memberIds: Set<MemberId> = members.map { it.id }.toSet()
 

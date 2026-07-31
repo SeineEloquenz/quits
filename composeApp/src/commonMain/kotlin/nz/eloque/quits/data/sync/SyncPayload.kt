@@ -33,7 +33,7 @@ sealed interface SyncPayload {
         val amountMinor: Long,
         val currency: String,
         val rateToBase: Double,
-        val category: String?,
+        val categoryId: String?,
         val spentAt: Long,
         val tzOffsetMinutes: Int = 0,
         val note: String?,
@@ -42,6 +42,15 @@ sealed interface SyncPayload {
         val splits: List<SplitLine>,
         /** Line items for an itemized split; null/absent for every other split kind. */
         val items: List<ItemLine>? = null,
+    ) : SyncPayload
+
+    @Serializable
+    @SerialName("category")
+    data class Category(
+        val id: String,
+        val name: String,
+        val icon: String,
+        val color: Long,
     ) : SyncPayload
 
     @Serializable

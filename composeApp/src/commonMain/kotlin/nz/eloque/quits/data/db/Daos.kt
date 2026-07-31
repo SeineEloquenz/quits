@@ -150,13 +150,6 @@ interface ExpenseDao {
     @Query("SELECT * FROM expense WHERE id = :id")
     suspend fun byId(id: String): ExpenseWithLines?
 
-    /** Distinct non-empty categories across all live expenses, for the editor's category suggestions. */
-    @Query(
-        "SELECT DISTINCT category FROM expense WHERE category IS NOT NULL AND category != '' AND deleted = 0 " +
-            "ORDER BY category COLLATE NOCASE",
-    )
-    suspend fun distinctCategories(): List<String>
-
     @Transaction
     @Query("SELECT * FROM expense WHERE groupId = :groupId AND dirty = 1")
     suspend fun dirty(groupId: String): List<ExpenseWithLines>
@@ -203,6 +196,39 @@ interface SettlementDao {
     )
 
     @Query("UPDATE settlement SET deleted = 1, dirty = 1, updatedAt = :updatedAt, deviceId = :deviceId WHERE id = :id")
+    suspend fun tombstone(
+        id: String,
+        updatedAt: Long,
+        deviceId: String,
+    )
+}
+
+@Dao
+interface CategoryDao {
+    @Upsert
+    suspend fun upsert(category: CategoryEntity)
+
+    @Query("SELECT * FROM category WHERE groupId = :groupId AND deleted = 0")
+    suspend fun forGroup(groupId: String): List<CategoryEntity>
+
+    @Query("SELECT * FROM category WHERE groupId = :groupId AND deleted = 0")
+    fun forGroupFlow(groupId: String): Flow<List<CategoryEntity>>
+
+    @Query("SELECT * FROM category WHERE id = :id")
+    suspend fun byId(id: String): CategoryEntity?
+
+    @Query("SELECT * FROM category WHERE groupId = :groupId AND dirty = 1")
+    suspend fun dirty(groupId: String): List<CategoryEntity>
+
+    /** Clears dirty only if the row is unchanged since it was pushed, so a concurrent edit survives. */
+    @Query("UPDATE category SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt AND deviceId = :deviceId")
+    suspend fun clearDirty(
+        id: String,
+        updatedAt: Long,
+        deviceId: String,
+    )
+
+    @Query("UPDATE category SET deleted = 1, dirty = 1, updatedAt = :updatedAt, deviceId = :deviceId WHERE id = :id")
     suspend fun tombstone(
         id: String,
         updatedAt: Long,

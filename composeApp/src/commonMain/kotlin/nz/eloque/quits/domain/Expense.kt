@@ -31,7 +31,8 @@ class Expense(
      * [equals]/[hashCode].
      */
     val tzOffsetMinutes: Int = 0,
-    val category: String? = null,
+    /** Preset id (app-defined) or custom [Category] id; null when uncategorized. */
+    val categoryId: CategoryId? = null,
     val note: String? = null,
     /**
      * False when this expense was reconstructed from a split type this app version doesn't recognize

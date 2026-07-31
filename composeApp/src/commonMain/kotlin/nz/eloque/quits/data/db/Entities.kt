@@ -54,7 +54,7 @@ data class ExpenseEntity(
     val amountMinor: Long,
     val currency: String,
     val rateToBase: Double,
-    val category: String?,
+    val categoryId: String?,
     val spentAt: Long,
     @ColumnInfo(defaultValue = "0") val tzOffsetMinutes: Int = 0,
     val note: String?,
@@ -164,6 +164,27 @@ data class SettlementEntity(
     val paidAt: Long,
     @ColumnInfo(defaultValue = "0") val tzOffsetMinutes: Int = 0,
     val note: String?,
+    @Embedded val sync: SyncMeta,
+)
+
+@Entity(
+    tableName = "category",
+    foreignKeys = [
+        ForeignKey(
+            entity = GroupEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["groupId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("groupId")],
+)
+data class CategoryEntity(
+    @PrimaryKey val id: String,
+    val groupId: String,
+    val name: String,
+    val icon: String,
+    val color: Long,
     @Embedded val sync: SyncMeta,
 )
 

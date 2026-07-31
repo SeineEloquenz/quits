@@ -3,6 +3,7 @@ package nz.eloque.quits.data.repository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import nz.eloque.quits.data.db.CategoryEntity
 import nz.eloque.quits.data.db.ExpenseEntity
 import nz.eloque.quits.data.db.ExpenseWithLines
 import nz.eloque.quits.data.db.GroupEntity
@@ -10,6 +11,8 @@ import nz.eloque.quits.data.db.MemberEntity
 import nz.eloque.quits.data.db.QuitsDatabase
 import nz.eloque.quits.data.db.SettlementEntity
 import nz.eloque.quits.data.db.SyncMeta
+import nz.eloque.quits.domain.Category
+import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
@@ -63,8 +66,9 @@ class GroupRepository(
             db.memberDao().forGroupWithDeletedFlow(id.value),
             db.expenseDao().forGroupFlow(id.value),
             db.settlementDao().forGroupFlow(id.value),
-        ) { entity, members, expenses, settlements ->
-            entity?.let { assemble(it, members, expenses, settlements) }
+            db.categoryDao().forGroupFlow(id.value),
+        ) { entity, members, expenses, settlements, categories ->
+            entity?.let { assemble(it, members, expenses, settlements, categories) }
         }
 
     /**
@@ -77,6 +81,7 @@ class GroupRepository(
         memberEntities: List<MemberEntity>,
         expenseEntities: List<ExpenseWithLines>,
         settlementEntities: List<SettlementEntity>,
+        categoryEntities: List<CategoryEntity>,
     ): Group {
         val expenses = expenseEntities.map { it.toDomain() }
         val settlements = settlementEntities.map { it.toDomain() }
@@ -92,6 +97,7 @@ class GroupRepository(
             members,
             expenses,
             settlements,
+            categoryEntities.map { it.toDomain() },
         )
     }
 
@@ -130,11 +136,9 @@ class GroupRepository(
             db.memberDao().forGroupWithDeleted(id.value),
             db.expenseDao().forGroup(id.value),
             db.settlementDao().forGroup(id.value),
+            db.categoryDao().forGroup(id.value),
         )
     }
-
-    /** Every category the user has used, across all groups — the editor offers these as suggestions. */
-    suspend fun categories(): List<String> = db.expenseDao().distinctCategories()
 
     /**
      * Inserts or updates [expense]. The timestamp is [expense].spentAt when set (> 0); the
@@ -156,7 +160,7 @@ class GroupRepository(
                 amountMinor = expense.total.minorUnits,
                 currency = expense.currency.code,
                 rateToBase = expense.rateToBase,
-                category = expense.category,
+                categoryId = expense.categoryId?.value,
                 spentAt = resolvedSpentAt,
                 tzOffsetMinutes = expense.tzOffsetMinutes,
                 note = expense.note,
@@ -207,5 +211,20 @@ class GroupRepository(
     /** Soft-deletes (tombstones) a settlement so it drops out of queries and syncs as a deletion. */
     suspend fun deleteSettlement(settlementId: SettlementId) {
         db.settlementDao().tombstone(settlementId.value, now(), deviceId)
+    }
+
+    /** Inserts or updates a custom [category] (name/icon/color). */
+    suspend fun upsertCategory(
+        groupId: GroupId,
+        category: Category,
+    ) {
+        db.categoryDao().upsert(
+            CategoryEntity(category.id.value, groupId.value, category.name, category.icon, category.color, meta()),
+        )
+    }
+
+    /** Soft-deletes (tombstones) a custom category; expenses that referenced it fall back to uncategorized. */
+    suspend fun deleteCategory(categoryId: CategoryId) {
+        db.categoryDao().tombstone(categoryId.value, now(), deviceId)
     }
 }

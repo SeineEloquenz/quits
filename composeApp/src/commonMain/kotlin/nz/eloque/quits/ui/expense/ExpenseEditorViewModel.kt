@@ -17,6 +17,8 @@ import nz.eloque.quits.data.fx.RateResult
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.data.sync.syncQuietly
+import nz.eloque.quits.domain.Category
+import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
@@ -80,9 +82,9 @@ data class ExpenseEditorUiState(
     val baseCurrency: Currency = Currency.of("EUR"),
     val members: List<MemberInput> = emptyList(),
     val title: String = "",
-    val category: String = "",
-    /** Categories used before (any group), offered as tappable suggestions under the field. */
-    val categorySuggestions: List<String> = emptyList(),
+    val categoryId: CategoryId? = null,
+    /** The group's custom categories, for the editor's chips (presets come from the catalog). */
+    val categories: List<Category> = emptyList(),
     val note: String = "",
     /** The expense total. Payments (in either payer mode) must add up to exactly this. */
     val amount: String = "",
@@ -131,7 +133,7 @@ class ExpenseEditorViewModel(
         viewModelScope.launch {
             val group = repo.load(groupId) ?: return@launch
             val existing = expenseId?.let { id -> group.expenses.firstOrNull { it.id.value == id } }
-            _state.value = initialState(group, existing).copy(categorySuggestions = repo.categories())
+            _state.value = initialState(group, existing)
         }
     }
 
@@ -149,6 +151,7 @@ class ExpenseEditorViewModel(
                 editing = false,
                 baseCurrency = group.baseCurrency,
                 members = members,
+                categories = group.categories,
                 currency = group.baseCurrency,
                 payerMode = PayerMode.EQUAL,
                 payerSelected = emptySet(),
@@ -181,8 +184,9 @@ class ExpenseEditorViewModel(
             editing = true,
             baseCurrency = group.baseCurrency,
             members = members,
+            categories = group.categories,
             title = existing.title,
-            category = existing.category.orEmpty(),
+            categoryId = existing.categoryId,
             note = existing.note.orEmpty(),
             amount = existing.total.toDecimalString(),
             currency = existing.currency,
@@ -218,7 +222,48 @@ class ExpenseEditorViewModel(
 
     fun setSpentAt(millis: Long) = _state.update { it.copy(spentAt = millis) }
 
-    fun setCategory(value: String) = _state.update { it.copy(category = value) }
+    fun setCategoryId(value: CategoryId?) = _state.update { it.copy(categoryId = value) }
+
+    /** Creates a custom category, selects it, and persists it (optimistic: state updates immediately). */
+    fun createCategory(
+        name: String,
+        icon: String,
+        color: Long,
+    ) {
+        val category = Category(CategoryId(newId()), name.trim(), icon, color)
+        _state.update { it.copy(categories = it.categories + category, categoryId = category.id) }
+        viewModelScope.launch {
+            repo.upsertCategory(groupId, category)
+            engine.syncQuietly(groupId)
+        }
+    }
+
+    fun updateCategory(
+        id: CategoryId,
+        name: String,
+        icon: String,
+        color: Long,
+    ) {
+        val category = Category(id, name.trim(), icon, color)
+        _state.update { s -> s.copy(categories = s.categories.map { if (it.id == id) category else it }) }
+        viewModelScope.launch {
+            repo.upsertCategory(groupId, category)
+            engine.syncQuietly(groupId)
+        }
+    }
+
+    fun deleteCategory(id: CategoryId) {
+        _state.update { s ->
+            s.copy(
+                categories = s.categories.filterNot { it.id == id },
+                categoryId = if (s.categoryId == id) null else s.categoryId,
+            )
+        }
+        viewModelScope.launch {
+            repo.deleteCategory(id)
+            engine.syncQuietly(groupId)
+        }
+    }
 
     fun setNote(value: String) = _state.update { it.copy(note = value) }
 
@@ -406,7 +451,7 @@ class ExpenseEditorViewModel(
                         validated.rate,
                         spentAt = s.spentAt.takeIf { it > 0L } ?: nowMillis(),
                         tzOffsetMinutes = s.tzOffsetMinutes,
-                        category = s.category.trim().ifEmpty { null },
+                        categoryId = s.categoryId,
                         note = s.note.trim().ifEmpty { null },
                     )
                 } catch (_: IllegalArgumentException) {

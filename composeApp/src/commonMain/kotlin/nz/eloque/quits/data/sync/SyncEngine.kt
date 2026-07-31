@@ -115,12 +115,14 @@ class SyncEngine(
         val members = if (full) db.memberDao().forGroupWithDeleted(gid) else db.memberDao().dirty(gid)
         val expenses = if (full) db.expenseDao().forGroup(gid) else db.expenseDao().dirty(gid)
         val settlements = if (full) db.settlementDao().forGroup(gid) else db.settlementDao().dirty(gid)
+        val categories = if (full) db.categoryDao().forGroup(gid) else db.categoryDao().dirty(gid)
 
         val records = mutableListOf<SyncRecord>()
         if (group != null && (full || group.sync.dirty)) records += RecordMapper.record(group)
         records += members.map { RecordMapper.record(it) }
         records += expenses.map { RecordMapper.record(it) }
         records += settlements.map { RecordMapper.record(it) }
+        records += categories.map { RecordMapper.record(it) }
         if (records.isEmpty()) return
 
         val key = keyFor(handle)
@@ -135,6 +137,7 @@ class SyncEngine(
             db.expenseDao().clearDirty(it.expense.id, it.expense.sync.updatedAt, it.expense.sync.deviceId)
         }
         settlements.filter { it.id in applied }.forEach { db.settlementDao().clearDirty(it.id, it.sync.updatedAt, it.sync.deviceId) }
+        categories.filter { it.id in applied }.forEach { db.categoryDao().clearDirty(it.id, it.sync.updatedAt, it.sync.deviceId) }
     }
 
     private suspend fun pull(gid: String) {
@@ -233,6 +236,12 @@ class SyncEngine(
             is SyncPayload.Settlement -> {
                 if (wins(db.settlementDao().byId(payload.id)?.sync, record)) {
                     db.settlementDao().upsert(RecordMapper.settlementEntity(payload, gid, meta))
+                }
+            }
+
+            is SyncPayload.Category -> {
+                if (wins(db.categoryDao().byId(payload.id)?.sync, record)) {
+                    db.categoryDao().upsert(RecordMapper.categoryEntity(payload, gid, meta))
                 }
             }
         }

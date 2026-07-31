@@ -44,6 +44,31 @@ val MIGRATION_4_5 =
     }
 
 /**
+ * v5 -> v6: first-class categories. Adds a synced `category` table (custom, user-created categories)
+ * and swaps `expense.category` (freeform string) for `expense.categoryId` (preset or custom id).
+ * Freeform strings can't map to stable ids, so they're dropped (clean break, pre-launch). The expense
+ * payload shape changed (`category` -> `categoryId`), a breaking sync change, so this is also a
+ * flag day: clearing `group_sync` reverts groups to local-only and re-sharing mints fresh, versioned
+ * records — no stale category-format record is ever pulled. Mirrors [MIGRATION_1_2]/[MIGRATION_3_4].
+ */
+val MIGRATION_5_6 =
+    object : Migration(5, 6) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                "CREATE TABLE IF NOT EXISTS `category` (`id` TEXT NOT NULL, `groupId` TEXT NOT NULL, " +
+                    "`name` TEXT NOT NULL, `icon` TEXT NOT NULL, `color` INTEGER NOT NULL, " +
+                    "`updatedAt` INTEGER NOT NULL, `deviceId` TEXT NOT NULL, `deleted` INTEGER NOT NULL, " +
+                    "`dirty` INTEGER NOT NULL, PRIMARY KEY(`id`), " +
+                    "FOREIGN KEY(`groupId`) REFERENCES `groups`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)",
+            )
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_category_groupId` ON `category` (`groupId`)")
+            connection.execSQL("ALTER TABLE expense DROP COLUMN category")
+            connection.execSQL("ALTER TABLE expense ADD COLUMN categoryId TEXT")
+            connection.execSQL("DELETE FROM group_sync")
+        }
+    }
+
+/**
  * v2 -> v3: itemized splits. Adds the `expense_item` line-item table and its `expense_item_participant`
  * join table. Purely additive — existing expenses (equal/shares/percentage/exact) are untouched.
  */

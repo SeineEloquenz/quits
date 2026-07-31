@@ -3,6 +3,7 @@
 package nz.eloque.quits.util
 
 import kotlinx.datetime.toLocalDateTime
+import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.NumberFormatSymbols
 import kotlin.time.ExperimentalTime
@@ -30,8 +31,10 @@ private fun two(value: Int): String = value.toString().padStart(2, '0')
 /**
  * Renders this group's expenses as an RFC-4180 CSV (CRLF line endings), newest first. Date and time
  * are ISO, each rendered in the offset the expense was entered in, so they read as the enterer meant.
+ * [categoryName] resolves a category id to its display name (preset or custom); returns null when
+ * unknown, rendered as an empty cell.
  */
-fun Group.expensesToCsv(): String {
+fun Group.expensesToCsv(categoryName: (CategoryId) -> String? = { null }): String {
     val names = members.associate { it.id to it.name }
     val header = listOf("Date", "Time", "Title", "Category", "Amount", "Currency", "Paid by", "Note")
     val rows =
@@ -48,7 +51,7 @@ fun Group.expensesToCsv(): String {
                     at.date.toString(),
                     "${two(at.hour)}:${two(at.minute)}",
                     expense.title,
-                    expense.category.orEmpty(),
+                    expense.categoryId?.let(categoryName).orEmpty(),
                     expense.total.toDecimalString(CsvNumberFormat),
                     expense.currency.code,
                     payer,

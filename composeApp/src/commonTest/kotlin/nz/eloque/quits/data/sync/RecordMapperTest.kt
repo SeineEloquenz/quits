@@ -1,5 +1,6 @@
 package nz.eloque.quits.data.sync
 
+import nz.eloque.quits.data.db.CategoryEntity
 import nz.eloque.quits.data.db.ExpenseEntity
 import nz.eloque.quits.data.db.ExpenseItemEntity
 import nz.eloque.quits.data.db.ExpenseItemParticipantEntity
@@ -96,6 +97,15 @@ class RecordMapperTest {
         assertEquals("s1", record.id)
         val back = RecordMapper.settlementEntity(record.payload as SyncPayload.Settlement, "g1", RecordMapper.meta(record, dirty = false))
         assertEquals(settlement, back)
+    }
+
+    @Test
+    fun category_round_trips() {
+        val category = CategoryEntity("cat1", "g1", "Snacks", "fastfood", 0xFF4CAF50, meta)
+        val record = reencode(RecordMapper.record(category))
+        assertEquals("cat1", record.id)
+        val back = RecordMapper.categoryEntity(record.payload as SyncPayload.Category, "g1", RecordMapper.meta(record, dirty = false))
+        assertEquals(category, back)
     }
 
     @Test

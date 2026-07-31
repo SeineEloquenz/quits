@@ -6,6 +6,8 @@ import nz.eloque.quits.data.db.ExpensePayerEntity
 import nz.eloque.quits.data.db.ExpenseSplitEntity
 import nz.eloque.quits.data.db.inMemoryDatabase
 import nz.eloque.quits.data.db.meta
+import nz.eloque.quits.domain.Category
+import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
@@ -170,16 +172,18 @@ class GroupRepositoryTest {
         }
 
     @Test
-    fun categories_lists_distinct_used_categories_sorted() =
+    fun custom_categories_round_trip_and_delete() =
         runTest {
             repo.saveGroup(sampleGroup())
-            val base = sampleGroup().expenses.first()
-            repo.upsertExpense(GroupId("g"), Expense(ExpenseId("c1"), "a", base.payments, base.split, category = "Food"))
-            repo.upsertExpense(GroupId("g"), Expense(ExpenseId("c2"), "b", base.payments, base.split, category = "Travel"))
-            repo.upsertExpense(GroupId("g"), Expense(ExpenseId("c3"), "c", base.payments, base.split, category = "Food"))
-            repo.upsertExpense(GroupId("g"), Expense(ExpenseId("c4"), "d", base.payments, base.split))
+            repo.upsertCategory(GroupId("g"), Category(CategoryId("cat1"), "Snacks", "fastfood", 0xFF4CAF50))
 
-            assertEquals(listOf("Food", "Travel"), repo.categories())
+            val loaded = repo.load(GroupId("g"))!!.categories
+            assertEquals(1, loaded.size)
+            assertEquals("Snacks", loaded.first().name)
+            assertEquals("fastfood", loaded.first().icon)
+
+            repo.deleteCategory(CategoryId("cat1"))
+            assertTrue(repo.load(GroupId("g"))!!.categories.isEmpty())
         }
 
     @Test
@@ -198,13 +202,13 @@ class GroupRepositoryTest {
             repo.upsertExpense(
                 GroupId("g"),
                 sampleGroup().expenses.first().let {
-                    Expense(it.id, it.title, it.payments, it.split, category = "food", note = "split dinner")
+                    Expense(it.id, it.title, it.payments, it.split, categoryId = CategoryId("food"), note = "split dinner")
                 },
                 spentAt = 555L,
             )
 
             val stored = db.expenseDao().byId("e-equal")!!
-            assertEquals("food", stored.expense.category)
+            assertEquals("food", stored.expense.categoryId)
             assertEquals(555L, stored.expense.spentAt)
             assertEquals("split dinner", stored.expense.note)
             assertTrue(stored.expense.sync.dirty)
@@ -219,16 +223,16 @@ class GroupRepositoryTest {
             val base = sampleGroup().expenses.first()
             repo.upsertExpense(
                 GroupId("g"),
-                Expense(base.id, base.title, base.payments, base.split, category = "food", note = "split dinner"),
+                Expense(base.id, base.title, base.payments, base.split, categoryId = CategoryId("food"), note = "split dinner"),
             )
 
             repo.upsertExpense(
                 GroupId("g"),
-                Expense(base.id, base.title, base.payments, base.split, category = null, note = null),
+                Expense(base.id, base.title, base.payments, base.split, categoryId = null, note = null),
             )
 
             val stored = db.expenseDao().byId("e-equal")!!
-            assertNull(stored.expense.category)
+            assertNull(stored.expense.categoryId)
             assertNull(stored.expense.note)
         }
 
@@ -239,11 +243,11 @@ class GroupRepositoryTest {
             val base = sampleGroup().expenses.first()
             repo.upsertExpense(
                 GroupId("g"),
-                Expense(base.id, base.title, base.payments, base.split, category = "food", note = "split dinner"),
+                Expense(base.id, base.title, base.payments, base.split, categoryId = CategoryId("food"), note = "split dinner"),
             )
 
             val loaded = repo.load(GroupId("g"))!!.expenses.first { it.id == base.id }
-            assertEquals("food", loaded.category)
+            assertEquals(CategoryId("food"), loaded.categoryId)
             assertEquals("split dinner", loaded.note)
         }
 

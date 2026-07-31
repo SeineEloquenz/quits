@@ -56,6 +56,8 @@ import nz.eloque.quits.resources.editor_item_label
 import nz.eloque.quits.resources.editor_paid_by
 import nz.eloque.quits.resources.expense_delete_body
 import nz.eloque.quits.resources.expense_delete_title
+import nz.eloque.quits.ui.category.CategoryPill
+import nz.eloque.quits.ui.category.categoryDisplay
 import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
@@ -167,13 +169,9 @@ fun ExpenseDetailScreen(
                     color = MaterialTheme.colorScheme.outline,
                     textAlign = TextAlign.Center,
                 )
-                state.category?.takeIf { it.isNotBlank() }?.let { category ->
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        category,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                categoryDisplay(state.categoryId, state.categories)?.let { display ->
+                    Spacer(Modifier.height(6.dp))
+                    CategoryPill(display)
                 }
             }
 

@@ -13,6 +13,8 @@ import kotlinx.coroutines.launch
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.data.sync.syncQuietly
+import nz.eloque.quits.domain.Category
+import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
@@ -38,7 +40,9 @@ data class ExpenseDetailUiState(
     /** False once the expense (or the group) no longer exists, e.g. it was deleted elsewhere. */
     val found: Boolean = true,
     val title: String = "",
-    val category: String? = null,
+    val categoryId: CategoryId? = null,
+    /** The group's custom categories, for resolving the category's name/icon/color. */
+    val categories: List<Category> = emptyList(),
     val note: String? = null,
     val total: Money = Money.zero(Currency.of("USD")),
     val splitKind: SplitKind = SplitKind.EQUAL,
@@ -72,7 +76,8 @@ class ExpenseDetailViewModel(
                         loaded = true,
                         found = true,
                         title = expense.title,
-                        category = expense.category,
+                        categoryId = expense.categoryId,
+                        categories = group.categories,
                         note = expense.note,
                         total = expense.total,
                         splitKind = expense.split.kind(),

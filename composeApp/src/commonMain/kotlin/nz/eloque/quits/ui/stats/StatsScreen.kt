@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +31,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.scaffold.AppScaffold
+import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.cd_back
@@ -39,6 +41,7 @@ import nz.eloque.quits.resources.stats_empty
 import nz.eloque.quits.resources.stats_title
 import nz.eloque.quits.resources.stats_total
 import nz.eloque.quits.resources.stats_uncategorized
+import nz.eloque.quits.ui.category.categoryDisplay
 import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
@@ -94,11 +97,11 @@ fun StatsScreen(
 
             Spacer(Modifier.height(24.dp))
             SectionHeader(stringResource(Res.string.stats_by_category))
-            state.byCategory.forEach { StatBarRow(it) }
+            state.byCategory.forEach { StatBarRow(it, state.customCategories) }
 
             Spacer(Modifier.height(16.dp))
             SectionHeader(stringResource(Res.string.stats_by_member))
-            state.byMember.forEach { StatBarRow(it) }
+            state.byMember.forEach { StatBarRow(it, state.customCategories) }
 
             Spacer(Modifier.height(24.dp))
         }
@@ -115,19 +118,35 @@ private fun SectionHeader(text: String) {
  * Colour is not used to distinguish rows — the label carries identity, the bar length the magnitude.
  */
 @Composable
-private fun StatBarRow(bar: StatBar) {
+private fun StatBarRow(
+    bar: StatBar,
+    categories: List<Category>,
+) {
+    val display = if (bar.memberId == null) categoryDisplay(bar.categoryId, categories) else null
+    val barColor = display?.color ?: MaterialTheme.colorScheme.primary
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            bar.memberId?.let { id ->
-                MemberAvatar(name = bar.label ?: "?", id = id, size = 28.dp)
-                Spacer(Modifier.width(10.dp))
+            when {
+                bar.memberId != null -> {
+                    MemberAvatar(name = bar.label ?: "?", id = bar.memberId, size = 28.dp)
+                    Spacer(Modifier.width(10.dp))
+                    Text(bar.label ?: "?", Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+
+                display != null -> {
+                    Icon(display.icon, contentDescription = null, tint = display.color, modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text(display.name, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+
+                else ->
+                    Text(
+                        stringResource(Res.string.stats_uncategorized),
+                        Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
             }
-            Text(
-                bar.label ?: stringResource(Res.string.stats_uncategorized),
-                Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
             MoneyText(bar.amount)
         }
         Spacer(Modifier.height(6.dp))
@@ -143,7 +162,7 @@ private fun StatBarRow(bar: StatBar) {
                     .fillMaxWidth(bar.fraction)
                     .height(6.dp)
                     .clip(RoundedCornerShape(3.dp))
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(barColor),
             )
         }
     }

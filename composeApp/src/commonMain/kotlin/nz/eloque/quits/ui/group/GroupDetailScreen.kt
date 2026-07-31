@@ -50,7 +50,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -71,6 +70,8 @@ import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.input.SubmittableTextField
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.data.invite.InviteLink
+import nz.eloque.quits.domain.Category
+import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
@@ -116,6 +117,9 @@ import nz.eloque.quits.resources.group_leave_menu
 import nz.eloque.quits.resources.group_leave_title
 import nz.eloque.quits.resources.label_share_code
 import nz.eloque.quits.resources.stats_title
+import nz.eloque.quits.resources.stats_uncategorized
+import nz.eloque.quits.ui.category.CategoryPill
+import nz.eloque.quits.ui.category.categoryDisplay
 import nz.eloque.quits.ui.components.BalanceText
 import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.LoadingBox
@@ -289,7 +293,8 @@ fun GroupDetailScreen(
             AnimatedVisibility(visible = showSearch) {
                 ActivitySearchBar(
                     filter = state.filter,
-                    categories = state.categories,
+                    categoryIds = state.categoryIds,
+                    customCategories = state.customCategories,
                     members = state.members,
                     onQuery = viewModel::setQuery,
                     onToggleCategory = viewModel::toggleCategoryFilter,
@@ -323,7 +328,11 @@ fun GroupDetailScreen(
                         when (entry) {
                             is ActivityEntry.ExpenseEntry -> {
                                 val expense = entry.row
-                                ExpenseRowCard(expense = expense, onClick = { onOpenExpense(expense.id) })
+                                ExpenseRowCard(
+                                    expense = expense,
+                                    categories = state.customCategories,
+                                    onClick = { onOpenExpense(expense.id) },
+                                )
                             }
 
                             is ActivityEntry.SettlementEntry -> {
@@ -343,10 +352,11 @@ fun GroupDetailScreen(
 @Composable
 private fun ActivitySearchBar(
     filter: ActivityFilter,
-    categories: List<String>,
+    categoryIds: List<CategoryId>,
+    customCategories: List<Category>,
     members: List<MemberBalance>,
     onQuery: (String) -> Unit,
-    onToggleCategory: (String) -> Unit,
+    onToggleCategory: (CategoryId) -> Unit,
     onToggleMember: (MemberId) -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
@@ -365,17 +375,22 @@ private fun ActivitySearchBar(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        if (categories.isNotEmpty()) {
+        if (categoryIds.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             Row(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                categories.forEach { category ->
+                categoryIds.forEach { id ->
+                    val display = categoryDisplay(id, customCategories)
                     FilterChip(
-                        selected = filter.category == category,
-                        onClick = { onToggleCategory(category) },
-                        label = { Text(category) },
+                        selected = filter.categoryId == id,
+                        onClick = { onToggleCategory(id) },
+                        label = { Text(display?.name ?: stringResource(Res.string.stats_uncategorized)) },
+                        leadingIcon =
+                            display?.let {
+                                { Icon(it.icon, contentDescription = null, tint = it.color, modifier = Modifier.size(18.dp)) }
+                            },
                     )
                 }
             }
@@ -501,6 +516,7 @@ private fun BalanceSummary(
 @Composable
 private fun ExpenseRowCard(
     expense: ExpenseRow,
+    categories: List<Category>,
     onClick: () -> Unit,
 ) {
     ElevatedCard(
@@ -514,8 +530,8 @@ private fun ExpenseRowCard(
             Column(Modifier.weight(1f)) {
                 AbbreviatingText(expense.title, maxLines = 1)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    expense.category?.takeIf(String::isNotBlank)?.let { category ->
-                        CategoryPill(category)
+                    categoryDisplay(expense.categoryId, categories)?.let { display ->
+                        CategoryPill(display)
                         Spacer(Modifier.width(6.dp))
                     }
                     Text(
@@ -548,22 +564,6 @@ private fun ExpenseRowCard(
             }
             MoneyText(expense.total)
         }
-    }
-}
-
-@Composable
-private fun CategoryPill(category: String) {
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-    ) {
-        Text(
-            category,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            maxLines = 1,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-        )
     }
 }
 

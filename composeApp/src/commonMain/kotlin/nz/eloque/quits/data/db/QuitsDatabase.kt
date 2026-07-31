@@ -16,9 +16,10 @@ import androidx.room3.RoomDatabaseConstructor
         ExpenseItemEntity::class,
         ExpenseItemParticipantEntity::class,
         SettlementEntity::class,
+        CategoryEntity::class,
         FxRateEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @ConstructedBy(QuitsDatabaseConstructor::class)
@@ -32,6 +33,8 @@ abstract class QuitsDatabase : RoomDatabase() {
     abstract fun expenseDao(): ExpenseDao
 
     abstract fun settlementDao(): SettlementDao
+
+    abstract fun categoryDao(): CategoryDao
 
     abstract fun fxRateDao(): FxRateDao
 }

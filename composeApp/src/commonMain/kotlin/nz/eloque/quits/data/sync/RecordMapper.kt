@@ -1,5 +1,6 @@
 package nz.eloque.quits.data.sync
 
+import nz.eloque.quits.data.db.CategoryEntity
 import nz.eloque.quits.data.db.ExpenseEntity
 import nz.eloque.quits.data.db.ExpenseItemEntity
 import nz.eloque.quits.data.db.ExpenseItemParticipantEntity
@@ -52,7 +53,7 @@ object RecordMapper {
                     amountMinor = e.amountMinor,
                     currency = e.currency,
                     rateToBase = e.rateToBase,
-                    category = e.category,
+                    categoryId = e.categoryId,
                     spentAt = e.spentAt,
                     tzOffsetMinutes = e.tzOffsetMinutes,
                     note = e.note,
@@ -72,6 +73,15 @@ object RecordMapper {
                 ),
         )
     }
+
+    fun record(category: CategoryEntity): SyncRecord =
+        SyncRecord(
+            id = category.id,
+            updatedAt = category.sync.updatedAt,
+            deviceId = category.sync.deviceId,
+            deleted = category.sync.deleted,
+            payload = SyncPayload.Category(category.id, category.name, category.icon, category.color),
+        )
 
     fun record(settlement: SettlementEntity): SyncRecord =
         SyncRecord(
@@ -124,7 +134,7 @@ object RecordMapper {
                 amountMinor = payload.amountMinor,
                 currency = payload.currency,
                 rateToBase = payload.rateToBase,
-                category = payload.category,
+                categoryId = payload.categoryId,
                 spentAt = payload.spentAt,
                 tzOffsetMinutes = payload.tzOffsetMinutes,
                 note = payload.note,
@@ -140,6 +150,20 @@ object RecordMapper {
                     line.participants.map { ExpenseItemParticipantEntity(itemId, it) },
                 )
             },
+        )
+
+    fun categoryEntity(
+        payload: SyncPayload.Category,
+        groupId: String,
+        meta: SyncMeta,
+    ): CategoryEntity =
+        CategoryEntity(
+            id = payload.id,
+            groupId = groupId,
+            name = payload.name,
+            icon = payload.icon,
+            color = payload.color,
+            sync = meta,
         )
 
     fun settlementEntity(

@@ -1,5 +1,6 @@
 package nz.eloque.quits.data.repository
 
+import nz.eloque.quits.data.db.CategoryEntity
 import nz.eloque.quits.data.db.ExpenseItemEntity
 import nz.eloque.quits.data.db.ExpenseItemParticipantEntity
 import nz.eloque.quits.data.db.ExpensePayerEntity
@@ -8,6 +9,8 @@ import nz.eloque.quits.data.db.ExpenseWithLines
 import nz.eloque.quits.data.db.ItemWithParticipants
 import nz.eloque.quits.data.db.MemberEntity
 import nz.eloque.quits.data.db.SettlementEntity
+import nz.eloque.quits.domain.Category
+import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
@@ -38,6 +41,8 @@ internal fun splitTypeName(split: Split): String =
 
 internal fun MemberEntity.toDomain(): Member = Member(MemberId(id), name)
 
+internal fun CategoryEntity.toDomain(): Category = Category(CategoryId(id), name, icon, color)
+
 internal fun SettlementEntity.toDomain(): Settlement =
     Settlement(
         SettlementId(id),
@@ -61,7 +66,7 @@ internal fun ExpenseWithLines.toDomain(): Expense {
         expense.rateToBase,
         expense.spentAt,
         expense.tzOffsetMinutes,
-        expense.category,
+        expense.categoryId?.let { CategoryId(it) },
         expense.note,
         splitSupported = expense.splitType in KNOWN_SPLIT_TYPES,
     )

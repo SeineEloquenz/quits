@@ -22,7 +22,7 @@ data class SyncRecord(
  * decide how to handle a record written by a newer version — the same read-only downgrade the
  * unsupported-split-type rule already uses — instead of silently mis-reading it.
  */
-const val CURRENT_PAYLOAD_VERSION = 1
+const val CURRENT_PAYLOAD_VERSION = 2
 
 /** A [SyncPayload] together with the schema [v]ersion it was written with (see [CURRENT_PAYLOAD_VERSION]). */
 @Serializable

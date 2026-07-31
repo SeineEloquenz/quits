@@ -1,7 +1,11 @@
 package nz.eloque.quits.ui.expense
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,6 +60,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -67,6 +72,8 @@ import nz.eloque.compose_kit.chip.ChipSelector
 import nz.eloque.compose_kit.components.SectionCard
 import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.scaffold.AppScaffold
+import nz.eloque.quits.domain.Category
+import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currencies
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
@@ -77,6 +84,10 @@ import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_add
 import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_ok
+import nz.eloque.quits.resources.category_color
+import nz.eloque.quits.resources.category_delete
+import nz.eloque.quits.resources.category_edit_title
+import nz.eloque.quits.resources.category_icon
 import nz.eloque.quits.resources.editor_add_item
 import nz.eloque.quits.resources.editor_category_name
 import nz.eloque.quits.resources.editor_category_new
@@ -119,6 +130,12 @@ import nz.eloque.quits.resources.editor_title_edit
 import nz.eloque.quits.resources.error_invalid_amount
 import nz.eloque.quits.resources.error_invalid_paid
 import nz.eloque.quits.resources.error_invalid_total
+import nz.eloque.quits.ui.category.CATEGORY_COLORS
+import nz.eloque.quits.ui.category.CATEGORY_ICON_KEYS
+import nz.eloque.quits.ui.category.CategoryDisplay
+import nz.eloque.quits.ui.category.PRESET_CATEGORIES
+import nz.eloque.quits.ui.category.categoryColor
+import nz.eloque.quits.ui.category.categoryIcon
 import nz.eloque.quits.ui.components.CurrencyPicker
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
@@ -236,9 +253,12 @@ fun ExpenseEditorScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     CategoryField(
-                        value = state.category,
-                        onValueChange = viewModel::setCategory,
-                        suggestions = state.categorySuggestions,
+                        selectedId = state.categoryId,
+                        custom = state.categories,
+                        onSelect = viewModel::setCategoryId,
+                        onCreate = viewModel::createCategory,
+                        onUpdate = viewModel::updateCategory,
+                        onDelete = viewModel::deleteCategory,
                     )
                     Spacer(Modifier.height(8.dp))
                     // Read-only fields; a transparent overlay opens the relevant picker on tap.
@@ -520,25 +540,22 @@ fun ExpenseEditorScreen(
 }
 
 /**
- * Category picker, chip-first to match the rest of the editor. Categories used before (any group)
- * show as single-select chips — tap to choose, tap the chosen one again to clear. "New" opens a
- * dialog to create one, so a category is only ever created by a deliberate action, never as a side
- * effect of leaving typed text behind. No fixed preset list.
+ * Category picker, chip-first: built-in presets then the group's custom categories, each a
+ * single-select icon chip — tap to choose, tap the chosen one again to clear. "New" opens a dialog
+ * to create a custom category (name, icon, color); long-pressing a custom chip edits or deletes it.
+ * Presets aren't editable.
  */
 @Composable
 private fun CategoryField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    suggestions: List<String>,
+    selectedId: CategoryId?,
+    custom: List<Category>,
+    onSelect: (CategoryId?) -> Unit,
+    onCreate: (name: String, icon: String, color: Long) -> Unit,
+    onUpdate: (id: CategoryId, name: String, icon: String, color: Long) -> Unit,
+    onDelete: (CategoryId) -> Unit,
 ) {
-    var showAdd by remember { mutableStateOf(false) }
-    // Include the chosen category even if it isn't a saved suggestion yet (created earlier this session).
-    val chips =
-        if (value.isNotBlank() && suggestions.none { it.equals(value, ignoreCase = true) }) {
-            suggestions + value
-        } else {
-            suggestions
-        }
+    var showCreate by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<Category?>(null) }
 
     Text(
         stringResource(Res.string.editor_label_category),
@@ -551,56 +568,184 @@ private fun CategoryField(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        chips.forEach { category ->
-            val selected = category.equals(value, ignoreCase = true)
-            FilterChip(
-                selected = selected,
-                onClick = { onValueChange(if (selected) "" else category) },
-                label = { Text(category) },
+        PRESET_CATEGORIES.forEach { preset ->
+            CategoryChip(
+                display =
+                    CategoryDisplay(
+                        preset.id,
+                        stringResource(preset.nameRes),
+                        categoryIcon(preset.iconKey),
+                        categoryColor(preset.color),
+                    ),
+                selected = selectedId == preset.id,
+                onClick = { onSelect(if (selectedId == preset.id) null else preset.id) },
+                onLongClick = null,
+            )
+        }
+        custom.forEach { cat ->
+            CategoryChip(
+                display = CategoryDisplay(cat.id, cat.name, categoryIcon(cat.icon), categoryColor(cat.color)),
+                selected = selectedId == cat.id,
+                onClick = { onSelect(if (selectedId == cat.id) null else cat.id) },
+                onLongClick = { editing = cat },
             )
         }
         AssistChip(
-            onClick = { showAdd = true },
+            onClick = { showCreate = true },
             label = { Text(stringResource(Res.string.editor_category_new)) },
             leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp)) },
         )
     }
 
-    if (showAdd) {
-        NewCategoryDialog(
-            onConfirm = {
-                onValueChange(it)
-                showAdd = false
+    if (showCreate) {
+        CategoryDialog(
+            existing = null,
+            onConfirm = { name, icon, color ->
+                onCreate(name, icon, color)
+                showCreate = false
             },
-            onDismiss = { showAdd = false },
+            onDelete = null,
+            onDismiss = { showCreate = false },
+        )
+    }
+    editing?.let { cat ->
+        CategoryDialog(
+            existing = cat,
+            onConfirm = { name, icon, color ->
+                onUpdate(cat.id, name, icon, color)
+                editing = null
+            },
+            onDelete = {
+                onDelete(cat.id)
+                editing = null
+            },
+            onDismiss = { editing = null },
         )
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun NewCategoryDialog(
-    onConfirm: (String) -> Unit,
+private fun CategoryChip(
+    display: CategoryDisplay,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)?,
+) {
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = if (selected) display.color.copy(alpha = 0.20f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = if (selected) BorderStroke(1.dp, display.color) else null,
+        modifier = Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+        ) {
+            Icon(display.icon, contentDescription = null, tint = display.color, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(display.name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        }
+    }
+}
+
+/** Create/edit dialog for a custom category: name, an icon from the catalog, and a color. */
+@Composable
+private fun CategoryDialog(
+    existing: Category?,
+    onConfirm: (name: String, icon: String, color: Long) -> Unit,
+    onDelete: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
-    var text by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(existing?.name ?: "") }
+    var icon by remember { mutableStateOf(existing?.icon ?: CATEGORY_ICON_KEYS.first()) }
+    var color by remember { mutableStateOf(existing?.color ?: CATEGORY_COLORS.first()) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.editor_category_new_title)) },
+        title = {
+            Text(stringResource(if (existing == null) Res.string.editor_category_new_title else Res.string.category_edit_title))
+        },
         text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text(stringResource(Res.string.editor_category_name)) },
-                singleLine = true,
-            )
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(Res.string.editor_category_name)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    stringResource(Res.string.category_icon),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CATEGORY_ICON_KEYS.forEach { key ->
+                        val chosen = key == icon
+                        Surface(
+                            shape = CircleShape,
+                            color = if (chosen) categoryColor(color).copy(alpha = 0.20f) else MaterialTheme.colorScheme.surfaceVariant,
+                            border = if (chosen) BorderStroke(2.dp, categoryColor(color)) else null,
+                            modifier = Modifier.size(44.dp).clickable { icon = key },
+                        ) {
+                            Icon(
+                                categoryIcon(key),
+                                contentDescription = null,
+                                tint = categoryColor(color),
+                                modifier = Modifier.padding(10.dp),
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    stringResource(Res.string.category_color),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CATEGORY_COLORS.forEach { c ->
+                        val chosen = c == color
+                        Box(
+                            Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(categoryColor(c))
+                                .border(
+                                    width = if (chosen) 3.dp else 0.dp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    shape = CircleShape,
+                                )
+                                .clickable { color = c },
+                        )
+                    }
+                }
+            }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(text.trim()) }, enabled = text.isNotBlank()) {
-                Text(stringResource(Res.string.action_add))
+            TextButton(onClick = { onConfirm(name.trim(), icon, color) }, enabled = name.isNotBlank()) {
+                Text(stringResource(if (existing == null) Res.string.action_add else Res.string.action_ok))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                onDelete?.let {
+                    TextButton(onClick = it) {
+                        Text(stringResource(Res.string.category_delete), color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
+            }
         },
     )
 }

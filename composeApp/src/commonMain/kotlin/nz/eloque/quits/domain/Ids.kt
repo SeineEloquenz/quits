@@ -21,3 +21,8 @@ value class ExpenseId(
 value class SettlementId(
     val value: String,
 )
+
+@JvmInline
+value class CategoryId(
+    val value: String,
+)
