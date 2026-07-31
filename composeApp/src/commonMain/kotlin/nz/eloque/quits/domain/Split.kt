@@ -104,7 +104,7 @@ sealed interface Split {
         ) {
             init {
                 require(participants.isNotEmpty()) { "an item needs at least one participant" }
-                require(amount.isPositive) { "an item amount must be positive" }
+                require(!amount.isZero) { "an item amount must not be zero" }
             }
         }
     }
@@ -120,9 +120,13 @@ internal fun distribute(
     members: List<MemberId>,
     weights: List<Long>,
 ): Map<MemberId, Money> {
-    require(total.minorUnits >= 0) { "total must be non-negative" }
     val totalWeight = weights.sum()
     require(totalWeight > 0) { "weights must not all be zero" }
+
+    if (total.minorUnits < 0) {
+        return distribute(Money(-total.minorUnits, total.currency), members, weights)
+            .mapValues { Money(-it.value.minorUnits, total.currency) }
+    }
 
     val amounts = LongArray(members.size) { total.minorUnits * weights[it] / totalWeight }
     var leftover = total.minorUnits - amounts.sum()

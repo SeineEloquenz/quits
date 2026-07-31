@@ -220,6 +220,7 @@
     <string name="error_exact_sum">Exakte Beträge müssen zusammen den Gesamtbetrag ergeben</string>
     <string name="error_no_items">Füge mindestens eine Position hinzu</string>
     <string name="error_items_sum">Positionen müssen zusammen den Gesamtbetrag ergeben</string>
+    <string name="error_discount_too_large">Ein Rabatt darf den Anteil einer Person nicht negativ machen</string>
 
     <!-- Statistik -->
     <string name="stats_title">Statistik</string>

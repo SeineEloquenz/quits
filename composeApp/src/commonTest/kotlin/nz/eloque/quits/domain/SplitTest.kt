@@ -70,8 +70,26 @@ class SplitTest {
     }
 
     @Test
-    fun itemized_item_needs_participants_and_positive_amount() {
+    fun itemized_item_needs_participants_and_nonzero_amount() {
         assertFailsWith<IllegalArgumentException> { Split.Itemized.Item("x", usd(100), emptySet()) }
         assertFailsWith<IllegalArgumentException> { Split.Itemized.Item("x", usd(0), setOf(a)) }
+    }
+
+    @Test
+    fun itemized_supports_discount_lines() {
+        // A 100.00 dinner shared by all three, minus a 30.00 coupon also shared by all three → net 70.00.
+        val split =
+            Split.Itemized(
+                listOf(
+                    Split.Itemized.Item("Dinner", usd(10000), setOf(a, b, c)),
+                    Split.Itemized.Item("Coupon", usd(-3000), setOf(a, b, c)),
+                ),
+            )
+        val shares = split.divide(usd(7000))
+        assertEquals(usd(7000), shares.values.reduce { x, y -> x + y })
+        // 100/3 = 3334/3333/3333 (extra cent to lowest id a); -30/3 = -1000 each → 2334/2333/2333.
+        assertEquals(usd(2334), shares[a])
+        assertEquals(usd(2333), shares[b])
+        assertEquals(usd(2333), shares[c])
     }
 }

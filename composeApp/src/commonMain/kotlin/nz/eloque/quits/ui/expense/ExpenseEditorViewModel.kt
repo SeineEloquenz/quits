@@ -30,6 +30,7 @@ import nz.eloque.quits.domain.Payment
 import nz.eloque.quits.domain.Split
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.editor_expense_fallback_title
+import nz.eloque.quits.resources.error_discount_too_large
 import nz.eloque.quits.resources.error_exact_sum
 import nz.eloque.quits.resources.error_invalid_amount
 import nz.eloque.quits.resources.error_invalid_expense
@@ -404,6 +405,7 @@ class ExpenseEditorViewModel(
             if (!s.isDraftValid()) {
                 s
             } else {
+                // A negative amount (typed directly) makes this a discount line.
                 s.copy(
                     items = s.items + ItemInput(newId(), s.draftLabel.trim(), s.draftAmount.trim(), s.draftParticipants),
                     draftLabel = "",
@@ -485,6 +487,7 @@ class ExpenseEditorViewModel(
             is ExpenseValidationError.ExactSum -> getString(Res.string.error_exact_sum)
             is ExpenseValidationError.NoItems -> getString(Res.string.error_no_items)
             is ExpenseValidationError.ItemsSum -> getString(Res.string.error_items_sum)
+            is ExpenseValidationError.DiscountTooLarge -> getString(Res.string.error_discount_too_large)
         }
 
     private fun setError(message: String) = _state.update { it.copy(error = message) }
@@ -534,6 +537,8 @@ sealed class ExpenseValidationError {
     data object NoItems : ExpenseValidationError()
 
     data object ItemsSum : ExpenseValidationError()
+
+    data object DiscountTooLarge : ExpenseValidationError()
 }
 
 /** Everything [ExpenseEditorViewModel.save] needs to build the domain [Expense] once fields check out. */
@@ -605,7 +610,7 @@ fun ExpenseEditorUiState.isValid(): Boolean = validate() is ExpenseValidation.Va
 /** Parses one editor line into a domain item, or null if it isn't a complete, valid line yet. */
 private fun ItemInput.toItem(currency: Currency): Split.Itemized.Item? {
     val money = Money.parse(amount.trim(), currency) ?: return null
-    if (!money.isPositive || participants.isEmpty()) return null
+    if (money.isZero || participants.isEmpty()) return null
     return Split.Itemized.Item(label.trim(), money, participants)
 }
 
@@ -723,7 +728,12 @@ private fun buildSplit(
             } else if (built.fold(Money.zero(currency)) { acc, i -> acc + i.amount } != total) {
                 SplitOutcome.Invalid(ExpenseValidationError.ItemsSum)
             } else {
-                SplitOutcome.Valid(Split.Itemized(built))
+                val itemized = Split.Itemized(built)
+                if (itemized.divide(total).values.any { it.isNegative }) {
+                    SplitOutcome.Invalid(ExpenseValidationError.DiscountTooLarge)
+                } else {
+                    SplitOutcome.Valid(itemized)
+                }
             }
         }
     }

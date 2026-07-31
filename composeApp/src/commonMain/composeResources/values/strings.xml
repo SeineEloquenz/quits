@@ -226,6 +226,7 @@
     <string name="error_exact_sum">Exact amounts must add up to the total</string>
     <string name="error_no_items">Add at least one item</string>
     <string name="error_items_sum">Items must add up to the total</string>
+    <string name="error_discount_too_large">A discount can\'t make someone\'s share negative</string>
 
     <!-- Statistics -->
     <string name="stats_title">Statistics</string>
