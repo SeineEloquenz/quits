@@ -19,7 +19,7 @@ import androidx.room3.RoomDatabaseConstructor
         CategoryEntity::class,
         FxRateEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @ConstructedBy(QuitsDatabaseConstructor::class)

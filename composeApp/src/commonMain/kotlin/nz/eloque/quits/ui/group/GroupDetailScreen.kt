@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
@@ -42,6 +43,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -87,6 +89,7 @@ import nz.eloque.quits.resources.cd_more
 import nz.eloque.quits.resources.cd_search
 import nz.eloque.quits.resources.cd_sync
 import nz.eloque.quits.resources.detail_add_expense
+import nz.eloque.quits.resources.detail_add_income
 import nz.eloque.quits.resources.detail_add_member
 import nz.eloque.quits.resources.detail_add_members_first
 import nz.eloque.quits.resources.detail_add_members_hint
@@ -122,6 +125,7 @@ import nz.eloque.quits.ui.category.CategoryPill
 import nz.eloque.quits.ui.category.categoryDisplay
 import nz.eloque.quits.ui.components.BalanceText
 import nz.eloque.quits.ui.components.EmptyHint
+import nz.eloque.quits.ui.components.IncomeText
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.MoneyText
@@ -139,6 +143,7 @@ fun GroupDetailScreen(
     groupId: GroupId,
     onOpenDrawer: () -> Unit,
     onAddExpense: () -> Unit,
+    onAddIncome: () -> Unit,
     onOpenExpense: (ExpenseId) -> Unit,
     onOpenMember: (MemberId) -> Unit,
     onOpenSettlement: (SettlementId) -> Unit,
@@ -249,11 +254,19 @@ fun GroupDetailScreen(
         },
         floatingActionButton = {
             if (state.members.isNotEmpty()) {
-                ExtendedFloatingActionButton(
-                    onClick = onAddExpense,
-                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text(stringResource(Res.string.detail_add_expense)) },
-                )
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    FloatingActionButton(
+                        onClick = onAddIncome,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    ) {
+                        Icon(Icons.Default.Savings, contentDescription = stringResource(Res.string.detail_add_income))
+                    }
+                    ExtendedFloatingActionButton(
+                        onClick = onAddExpense,
+                        icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                        text = { Text(stringResource(Res.string.detail_add_expense)) },
+                    )
+                }
             }
         },
         snackbarHostState = snackbarHostState,
@@ -562,7 +575,7 @@ private fun ExpenseRowCard(
                     }
                 }
             }
-            MoneyText(expense.total)
+            if (expense.isIncome) IncomeText(expense.total) else MoneyText(expense.total)
         }
     }
 }

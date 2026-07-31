@@ -38,6 +38,7 @@ sealed interface SyncPayload {
         val tzOffsetMinutes: Int = 0,
         val note: String?,
         val splitType: String,
+        val kind: String = "EXPENSE",
         val payers: List<Payer>,
         val splits: List<SplitLine>,
         /** Line items for an itemized split; null/absent for every other split kind. */

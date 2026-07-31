@@ -49,6 +49,8 @@ data class StatsKey(
 data class ExpenseEditorKey(
     val groupId: String,
     val expenseId: String? = null,
+    /** "EXPENSE" or "INCOME" — the kind for a new entry (ignored when editing an existing one). */
+    val kind: String = "EXPENSE",
 ) : NavKey
 
 /** Edit an existing recorded settlement (amount, who paid whom, date, note) or delete it. */

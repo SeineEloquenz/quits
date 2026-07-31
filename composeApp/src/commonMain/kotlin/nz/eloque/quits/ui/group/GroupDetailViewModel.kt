@@ -19,6 +19,7 @@ import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.EntryKind
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
@@ -62,6 +63,7 @@ data class ExpenseRow(
     val offsetMinutes: Int = 0,
     val categoryId: CategoryId? = null,
     val note: String? = null,
+    val isIncome: Boolean = false,
     /** Everyone tied to the expense (payers and share-holders), for the member filter. */
     val participants: Set<MemberId> = emptySet(),
     /** False for a split type this version doesn't support (created by a newer version). */
@@ -288,6 +290,7 @@ private fun Group.toUiState(filter: ActivityFilter): GroupDetailUiState {
                     expense.tzOffsetMinutes,
                     expense.categoryId,
                     expense.note,
+                    expense.kind == EntryKind.INCOME,
                     participants,
                     expense.splitSupported,
                 ),

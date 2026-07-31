@@ -8,6 +8,7 @@ import nz.eloque.quits.data.db.MIGRATION_2_3
 import nz.eloque.quits.data.db.MIGRATION_3_4
 import nz.eloque.quits.data.db.MIGRATION_4_5
 import nz.eloque.quits.data.db.MIGRATION_5_6
+import nz.eloque.quits.data.db.MIGRATION_6_7
 import nz.eloque.quits.data.db.QuitsDatabase
 import org.koin.dsl.module
 
@@ -21,7 +22,7 @@ val databaseModule =
         single<QuitsDatabase> {
             get<RoomDatabase.Builder<QuitsDatabase>>()
                 .setDriver(get<SQLiteDriver>())
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .setQueryCoroutineContext(Dispatchers.Default)
                 .build()
         }

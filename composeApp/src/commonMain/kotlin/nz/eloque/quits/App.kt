@@ -23,6 +23,7 @@ import nz.eloque.quits.data.invite.InviteResolution
 import nz.eloque.quits.data.invite.InviteResolver
 import nz.eloque.quits.data.invite.PendingInvite
 import nz.eloque.quits.data.sync.SyncSettings
+import nz.eloque.quits.domain.EntryKind
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
@@ -125,7 +126,8 @@ fun App() {
                                 onOpenSettings = { backStack.add(SettingsKey) },
                                 onOpenAbout = { backStack.add(AboutKey) },
                                 onAddGroup = { backStack.add(AddGroupKey) },
-                                onAddExpense = { groupId -> backStack.add(ExpenseEditorKey(groupId.value)) },
+                                onAddExpense = { groupId -> backStack.add(ExpenseEditorKey(groupId.value, kind = EntryKind.EXPENSE.name)) },
+                                onAddIncome = { groupId -> backStack.add(ExpenseEditorKey(groupId.value, kind = EntryKind.INCOME.name)) },
                                 onOpenExpense = { groupId, expenseId -> backStack.add(ExpenseDetailKey(groupId.value, expenseId.value)) },
                                 onOpenMember = { groupId, memberId -> backStack.add(MemberDetailKey(groupId.value, memberId.value)) },
                                 onOpenSettlement = { groupId, settlementId ->
@@ -207,6 +209,7 @@ fun App() {
                             ExpenseEditorScreen(
                                 groupId = GroupId(key.groupId),
                                 expenseId = key.expenseId,
+                                kind = if (key.kind == EntryKind.INCOME.name) EntryKind.INCOME else EntryKind.EXPENSE,
                                 onDone = { backStack.removeLastOrNull() },
                                 onCancel = { backStack.removeLastOrNull() },
                             )

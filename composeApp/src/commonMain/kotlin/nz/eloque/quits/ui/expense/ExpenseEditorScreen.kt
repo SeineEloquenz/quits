@@ -76,6 +76,7 @@ import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currencies
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.EntryKind
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
@@ -116,6 +117,7 @@ import nz.eloque.quits.resources.editor_placeholder_amount
 import nz.eloque.quits.resources.editor_placeholder_percent
 import nz.eloque.quits.resources.editor_placeholder_shares
 import nz.eloque.quits.resources.editor_rate_fetching
+import nz.eloque.quits.resources.editor_received_by
 import nz.eloque.quits.resources.editor_remaining
 import nz.eloque.quits.resources.editor_remaining_done
 import nz.eloque.quits.resources.editor_remove_item
@@ -126,16 +128,19 @@ import nz.eloque.quits.resources.editor_shares_increase
 import nz.eloque.quits.resources.editor_split
 import nz.eloque.quits.resources.editor_split_between
 import nz.eloque.quits.resources.editor_title_add
+import nz.eloque.quits.resources.editor_title_add_income
 import nz.eloque.quits.resources.editor_title_edit
+import nz.eloque.quits.resources.editor_title_edit_income
 import nz.eloque.quits.resources.error_invalid_amount
 import nz.eloque.quits.resources.error_invalid_paid
 import nz.eloque.quits.resources.error_invalid_total
 import nz.eloque.quits.ui.category.CATEGORY_COLORS
 import nz.eloque.quits.ui.category.CATEGORY_ICON_KEYS
 import nz.eloque.quits.ui.category.CategoryDisplay
-import nz.eloque.quits.ui.category.PRESET_CATEGORIES
+import nz.eloque.quits.ui.category.PresetCategory
 import nz.eloque.quits.ui.category.categoryColor
 import nz.eloque.quits.ui.category.categoryIcon
+import nz.eloque.quits.ui.category.presetsFor
 import nz.eloque.quits.ui.components.CurrencyPicker
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
@@ -157,10 +162,11 @@ import org.koin.core.parameter.parametersOf
 fun ExpenseEditorScreen(
     groupId: GroupId,
     expenseId: String?,
+    kind: EntryKind,
     onDone: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    val viewModel = koinViewModel<ExpenseEditorViewModel> { parametersOf(groupId, expenseId) }
+    val viewModel = koinViewModel<ExpenseEditorViewModel> { parametersOf(groupId, expenseId, kind) }
     val state by viewModel.state.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -214,10 +220,11 @@ fun ExpenseEditorScreen(
     AppScaffold(
         title = {
             AbbreviatingText(
-                if (state.editing) {
-                    stringResource(Res.string.editor_title_edit)
-                } else {
-                    stringResource(Res.string.editor_title_add)
+                when {
+                    state.kind == EntryKind.INCOME && state.editing -> stringResource(Res.string.editor_title_edit_income)
+                    state.kind == EntryKind.INCOME -> stringResource(Res.string.editor_title_add_income)
+                    state.editing -> stringResource(Res.string.editor_title_edit)
+                    else -> stringResource(Res.string.editor_title_add)
                 },
                 style = MaterialTheme.typography.headlineMedium,
                 maxLines = 1,
@@ -254,6 +261,7 @@ fun ExpenseEditorScreen(
                     Spacer(Modifier.height(8.dp))
                     CategoryField(
                         selectedId = state.categoryId,
+                        presets = presetsFor(state.kind),
                         custom = state.categories,
                         onSelect = viewModel::setCategoryId,
                         onCreate = viewModel::createCategory,
@@ -322,9 +330,12 @@ fun ExpenseEditorScreen(
 
             SectionCard(heading = stringResource(Res.string.editor_split)) {
                 Column(Modifier.padding(16.dp)) {
-                    val splitLabels = SplitKind.entries.associateWith { it.label() }
+                    // Itemized (receipt line-items) doesn't apply to money coming in.
+                    val splitOptions =
+                        if (state.kind == EntryKind.INCOME) SplitKind.entries.filter { it != SplitKind.ITEMIZED } else SplitKind.entries
+                    val splitLabels = splitOptions.associateWith { it.label() }
                     ChipSelector(
-                        options = SplitKind.entries,
+                        options = splitOptions,
                         selectedOptions = listOf(state.splitKind),
                         onOptionSelected = viewModel::setKind,
                         onOptionDeselected = {},
@@ -452,7 +463,13 @@ fun ExpenseEditorScreen(
                 }
             }
 
-            SectionCard(heading = stringResource(Res.string.editor_paid_by)) {
+            val paidByHeading =
+                if (state.kind == EntryKind.INCOME) {
+                    stringResource(Res.string.editor_received_by)
+                } else {
+                    stringResource(Res.string.editor_paid_by)
+                }
+            SectionCard(heading = paidByHeading) {
                 Column(Modifier.padding(16.dp)) {
                     when (state.payerMode) {
                         PayerMode.EQUAL -> {
@@ -548,6 +565,7 @@ fun ExpenseEditorScreen(
 @Composable
 private fun CategoryField(
     selectedId: CategoryId?,
+    presets: List<PresetCategory>,
     custom: List<Category>,
     onSelect: (CategoryId?) -> Unit,
     onCreate: (name: String, icon: String, color: Long) -> Unit,
@@ -568,7 +586,7 @@ private fun CategoryField(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PRESET_CATEGORIES.forEach { preset ->
+        presets.forEach { preset ->
             CategoryChip(
                 display =
                     CategoryDisplay(

@@ -12,6 +12,7 @@ import nz.eloque.quits.data.db.SettlementEntity
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.EntryKind
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.Member
@@ -41,6 +42,9 @@ internal fun splitTypeName(split: Split): String =
 
 internal fun MemberEntity.toDomain(): Member = Member(MemberId(id), name)
 
+/** Parses a stored entry-kind string; an unrecognized value (e.g. a newer kind) reads as EXPENSE. */
+private fun entryKindOf(value: String): EntryKind = if (value == "INCOME") EntryKind.INCOME else EntryKind.EXPENSE
+
 internal fun CategoryEntity.toDomain(): Category = Category(CategoryId(id), name, icon, color)
 
 internal fun SettlementEntity.toDomain(): Settlement =
@@ -68,6 +72,7 @@ internal fun ExpenseWithLines.toDomain(): Expense {
         expense.tzOffsetMinutes,
         expense.categoryId?.let { CategoryId(it) },
         expense.note,
+        entryKindOf(expense.kind),
         splitSupported = expense.splitType in KNOWN_SPLIT_TYPES,
     )
 }

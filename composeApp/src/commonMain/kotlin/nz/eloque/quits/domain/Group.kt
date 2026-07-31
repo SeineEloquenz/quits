@@ -76,13 +76,16 @@ class Group(
         for (expense in expenses) {
             val baseTotal = ExchangeRate(expense.currency, baseCurrency, expense.rateToBase).convert(expense.total)
             if (!baseTotal.isPositive) continue // nothing to allocate; both sides would be zero
+            // Income is the mirror of an expense: the receiver holds group money (debited) and the
+            // beneficiaries are each owed their share (credited), so both signs flip.
+            val sign = if (expense.kind == EntryKind.INCOME) -1L else 1L
             val paidByMember = expense.payments.groupBy { it.payer }.mapValues { (_, ps) -> ps.sumOf { it.amount.minorUnits } }
             val payers = paidByMember.keys.toList()
             distribute(baseTotal, payers, payers.map { paidByMember.getValue(it) })
-                .forEach { (member, share) -> credit(member, share.minorUnits) }
+                .forEach { (member, share) -> credit(member, sign * share.minorUnits) }
             val owers = expense.shares.keys.toList()
             distribute(baseTotal, owers, owers.map { expense.shares.getValue(it).minorUnits })
-                .forEach { (member, share) -> credit(member, -share.minorUnits) }
+                .forEach { (member, share) -> credit(member, -sign * share.minorUnits) }
         }
         for (settlement in settlements) {
             val converted =

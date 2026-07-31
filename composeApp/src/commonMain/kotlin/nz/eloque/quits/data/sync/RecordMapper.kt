@@ -58,6 +58,7 @@ object RecordMapper {
                     tzOffsetMinutes = e.tzOffsetMinutes,
                     note = e.note,
                     splitType = e.splitType,
+                    kind = e.kind,
                     payers = expense.payers.map { SyncPayload.Payer(it.id, it.memberId, it.amountMinor) },
                     splits = expense.splits.map { SyncPayload.SplitLine(it.id, it.memberId, it.shareMinor, it.weight) },
                     items =
@@ -139,6 +140,7 @@ object RecordMapper {
                 tzOffsetMinutes = payload.tzOffsetMinutes,
                 note = payload.note,
                 splitType = payload.splitType,
+                kind = payload.kind,
                 sync = meta,
             ),
             payload.payers.map { ExpensePayerEntity(it.id, payload.id, it.memberId, it.amountMinor) },

@@ -20,6 +20,7 @@ import nz.eloque.quits.data.sync.syncQuietly
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.EntryKind
 import nz.eloque.quits.domain.Expense
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.Group
@@ -80,6 +81,8 @@ data class ItemInput(
 data class ExpenseEditorUiState(
     val loaded: Boolean = false,
     val editing: Boolean = false,
+    /** Whether this editor is creating/editing an expense or an income event. */
+    val kind: EntryKind = EntryKind.EXPENSE,
     val baseCurrency: Currency = Currency.of("EUR"),
     val members: List<MemberInput> = emptyList(),
     val title: String = "",
@@ -122,6 +125,7 @@ class ExpenseEditorViewModel(
     private val fxRates: FxRates,
     private val groupId: GroupId,
     private val expenseId: String?,
+    private val kind: EntryKind,
 ) : ViewModel() {
     private var rateJob: Job? = null
     private val _state = MutableStateFlow(ExpenseEditorUiState())
@@ -150,6 +154,7 @@ class ExpenseEditorViewModel(
             return ExpenseEditorUiState(
                 loaded = true,
                 editing = false,
+                kind = kind,
                 baseCurrency = group.baseCurrency,
                 members = members,
                 categories = group.categories,
@@ -183,6 +188,7 @@ class ExpenseEditorViewModel(
         return ExpenseEditorUiState(
             loaded = true,
             editing = true,
+            kind = existing.kind,
             baseCurrency = group.baseCurrency,
             members = members,
             categories = group.categories,
@@ -455,6 +461,7 @@ class ExpenseEditorViewModel(
                         tzOffsetMinutes = s.tzOffsetMinutes,
                         categoryId = s.categoryId,
                         note = s.note.trim().ifEmpty { null },
+                        kind = s.kind,
                     )
                 } catch (_: IllegalArgumentException) {
                     setError(getString(Res.string.error_invalid_expense))

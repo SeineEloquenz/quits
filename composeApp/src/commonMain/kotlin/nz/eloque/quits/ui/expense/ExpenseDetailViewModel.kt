@@ -16,6 +16,7 @@ import nz.eloque.quits.data.sync.syncQuietly
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.EntryKind
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
@@ -40,6 +41,7 @@ data class ExpenseDetailUiState(
     /** False once the expense (or the group) no longer exists, e.g. it was deleted elsewhere. */
     val found: Boolean = true,
     val title: String = "",
+    val kind: EntryKind = EntryKind.EXPENSE,
     val categoryId: CategoryId? = null,
     /** The group's custom categories, for resolving the category's name/icon/color. */
     val categories: List<Category> = emptyList(),
@@ -76,6 +78,7 @@ class ExpenseDetailViewModel(
                         loaded = true,
                         found = true,
                         title = expense.title,
+                        kind = expense.kind,
                         categoryId = expense.categoryId,
                         categories = group.categories,
                         note = expense.note,

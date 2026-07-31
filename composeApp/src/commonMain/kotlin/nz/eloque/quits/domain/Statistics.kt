@@ -30,6 +30,9 @@ data class Spending(
  * largest-remainder method [balances] uses — so both breakdowns reconcile exactly to the total.
  */
 fun Group.spending(): Spending {
+    // Income is money in, not spending — it's excluded from every breakdown here.
+    val expenses = expenses.filter { it.kind == EntryKind.EXPENSE }
+
     fun baseTotal(expense: Expense): Money = ExchangeRate(expense.currency, baseCurrency, expense.rateToBase).convert(expense.total)
 
     val total = expenses.fold(Money.zero(baseCurrency)) { acc, e -> acc + baseTotal(e) }

@@ -59,6 +59,32 @@ class StatisticsTest {
     }
 
     @Test
+    fun spending_excludes_income() {
+        val group =
+            Group(
+                GroupId("g"),
+                "Trip",
+                USD,
+                members,
+                expenses =
+                    listOf(
+                        Expense(ExpenseId("e1"), "Dinner", listOf(Payment(a, usd(3000))), Split.Equal(listOf(a, b, c))),
+                        Expense(
+                            ExpenseId("i1"),
+                            "Refund",
+                            listOf(Payment(a, usd(9000))),
+                            Split.Equal(listOf(a, b, c)),
+                            kind = EntryKind.INCOME,
+                        ),
+                    ),
+            )
+        val s = group.spending()
+        // Only the 30.00 expense counts; the income is ignored entirely.
+        assertEquals(usd(3000), s.total)
+        assertEquals(1, s.byCategory.size)
+    }
+
+    @Test
     fun uncategorized_expenses_group_under_null() {
         val group =
             Group(

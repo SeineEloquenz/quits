@@ -165,6 +165,7 @@ class GroupRepository(
                 tzOffsetMinutes = expense.tzOffsetMinutes,
                 note = expense.note,
                 splitType = splitTypeName(expense.split),
+                kind = expense.kind.name,
                 sync = meta(),
             ),
             payerRows(expense),

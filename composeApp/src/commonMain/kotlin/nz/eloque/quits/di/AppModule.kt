@@ -2,6 +2,7 @@ package nz.eloque.quits.di
 
 import nz.eloque.quits.data.invite.InviteResolver
 import nz.eloque.quits.data.invite.PendingInvite
+import nz.eloque.quits.domain.EntryKind
 import nz.eloque.quits.domain.ExpenseId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
@@ -28,7 +29,9 @@ val appModule =
         viewModelOf(::GroupsViewModel)
         viewModelOf(::SettingsViewModel)
         viewModel { params -> GroupDetailViewModel(get(), get(), get(), params.get<GroupId>()) }
-        viewModel { params -> ExpenseEditorViewModel(get(), get(), get(), params.get<GroupId>(), params.getOrNull<String>()) }
+        viewModel { params ->
+            ExpenseEditorViewModel(get(), get(), get(), params.get<GroupId>(), params.getOrNull<String>(), params.get<EntryKind>())
+        }
         viewModel { params -> ExpenseDetailViewModel(get(), get(), params.get<GroupId>(), params.get<ExpenseId>()) }
         viewModel { params -> MemberDetailViewModel(get(), get(), params.get<GroupId>(), params.get<MemberId>()) }
         viewModel { params -> SettlementEditorViewModel(get(), get(), params.get<GroupId>(), params.get<SettlementId>()) }

@@ -59,6 +59,7 @@ data class ExpenseEntity(
     @ColumnInfo(defaultValue = "0") val tzOffsetMinutes: Int = 0,
     val note: String?,
     val splitType: String,
+    @ColumnInfo(defaultValue = "EXPENSE") val kind: String = "EXPENSE",
     @Embedded val sync: SyncMeta,
 )
 

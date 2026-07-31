@@ -1,5 +1,12 @@
 package nz.eloque.quits.domain
 
+/**
+ * Whether an entry is money going out ([EXPENSE]) or coming in ([INCOME]). Income is the mirror of
+ * an expense in [Group.balances]: the receiver holds group money (debited) and the beneficiaries are
+ * each owed their share (credited) — the same structure with both signs flipped.
+ */
+enum class EntryKind { EXPENSE, INCOME }
+
 /** Who paid, and how much (in the expense currency). */
 data class Payment(
     val payer: MemberId,
@@ -34,6 +41,8 @@ class Expense(
     /** Preset id (app-defined) or custom [Category] id; null when uncategorized. */
     val categoryId: CategoryId? = null,
     val note: String? = null,
+    /** Whether this entry is money out (expense) or in (income). See [EntryKind]. */
+    val kind: EntryKind = EntryKind.EXPENSE,
     /**
      * False when this expense was reconstructed from a split type this app version doesn't recognize
      * (created by a newer version). Its balances are still correct — [split] is rebuilt as [Split.Exact]

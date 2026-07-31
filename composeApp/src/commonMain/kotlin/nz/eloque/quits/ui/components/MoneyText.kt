@@ -25,6 +25,16 @@ fun MoneyText(
     Text(money.display(), modifier = modifier, style = style)
 }
 
+/** An income amount: the value with a leading "+", colored to read as money coming in. */
+@Composable
+fun IncomeText(
+    money: Money,
+    modifier: Modifier = Modifier,
+    style: TextStyle = LocalTextStyle.current,
+) {
+    Text("+${money.display()}", modifier = modifier, color = balanceGreen(), style = style)
+}
+
 /**
  * A net balance, colored by sign: owed-to-them (positive) in primary, owing (negative) in error,
  * settled (zero) muted.

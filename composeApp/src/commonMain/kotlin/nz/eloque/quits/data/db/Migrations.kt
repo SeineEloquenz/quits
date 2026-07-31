@@ -95,3 +95,15 @@ val MIGRATION_2_3 =
             )
         }
     }
+
+/**
+ * v6 -> v7: income events. Adds `expense.kind` ("EXPENSE"/"INCOME") so an entry can represent money
+ * coming in. Additive — existing rows default to "EXPENSE"; income is the balance mirror of an
+ * expense. No flag day: existing records stay valid.
+ */
+val MIGRATION_6_7 =
+    object : Migration(6, 7) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE expense ADD COLUMN kind TEXT NOT NULL DEFAULT 'EXPENSE'")
+        }
+    }

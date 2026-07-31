@@ -44,7 +44,7 @@ class RecordMapperTest {
     fun expense_with_lines_round_trips() {
         val expense =
             ExpenseWithLines(
-                ExpenseEntity("e1", "g1", "Hotel", 10000, "EUR", 1.1, "lodging", 7, 120, "two nights", "SHARES", meta),
+                ExpenseEntity("e1", "g1", "Hotel", 10000, "EUR", 1.1, "lodging", 7, 120, "two nights", "SHARES", "INCOME", meta),
                 listOf(
                     ExpensePayerEntity("e1:payer:0", "e1", "m1", 6000),
                     ExpensePayerEntity("e1:payer:1", "e1", "m2", 4000),
@@ -65,7 +65,7 @@ class RecordMapperTest {
     fun itemized_expense_with_items_round_trips() {
         val expense =
             ExpenseWithLines(
-                ExpenseEntity("e2", "g1", "Groceries", 5000, "USD", 1.0, null, 3, 0, null, "ITEMIZED", meta),
+                ExpenseEntity("e2", "g1", "Groceries", 5000, "USD", 1.0, null, 3, 0, null, "ITEMIZED", "EXPENSE", meta),
                 listOf(ExpensePayerEntity("e2:payer:0", "e2", "m1", 5000)),
                 listOf(
                     ExpenseSplitEntity("e2:m1", "e2", "m1", 3500, weight = null),

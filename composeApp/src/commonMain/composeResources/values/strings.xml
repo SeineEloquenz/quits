@@ -89,6 +89,7 @@
     <string name="settlement_delete_body">This removes the settlement for everyone in the group once synced. This can\'t be undone.</string>
     <string name="detail_paid_by">paid by %1$s</string>
     <string name="detail_owed_by">Owed by</string>
+    <string name="detail_for_whom">For whom</string>
     <string name="detail_items">Items</string>
     <string name="detail_split_unsupported">This expense was created with a newer version of the app. Update to view and edit how it\'s split.</string>
     <string name="detail_note">Note</string>
@@ -119,11 +120,14 @@
     <string name="member_detail_remove_body_plain">%1$s isn't tied to any expenses yet — this removes them from the group.</string>
     <string name="detail_add_members_first">Add members first</string>
     <string name="detail_add_expense">Add expense</string>
+    <string name="detail_add_income">Add income</string>
     <string name="dialog_rename_title">Rename member</string>
 
     <!-- Expense editor -->
     <string name="editor_title_add">Add expense</string>
     <string name="editor_title_edit">Edit expense</string>
+    <string name="editor_title_add_income">Add income</string>
+    <string name="editor_title_edit_income">Edit income</string>
     <string name="editor_label_title">Title</string>
     <string name="editor_label_category">Category (optional)</string>
     <string name="editor_label_date">Date</string>
@@ -146,12 +150,19 @@
     <string name="category_travel">Travel</string>
     <string name="category_gifts">Gifts</string>
     <string name="category_other">Other</string>
+    <string name="category_income_salary">Salary</string>
+    <string name="category_income_refund">Refund</string>
+    <string name="category_income_rental">Rental</string>
+    <string name="category_income_reimbursement">Reimbursement</string>
+    <string name="category_income_gift">Gift</string>
+    <string name="category_income_other">Other</string>
     <string name="editor_label_note">Note (optional)</string>
     <string name="editor_label_amount">Amount</string>
     <string name="editor_label_currency">Currency</string>
     <string name="editor_label_rate">Rate → %1$s</string>
     <string name="editor_rate_fetching">Fetching live rate…</string>
     <string name="editor_paid_by">Paid by</string>
+    <string name="editor_received_by">Received by</string>
     <string name="editor_paid_by_hint">%1$s paid %2$s</string>
     <string name="editor_paid_by_prompt">Tap who paid</string>
     <string name="editor_customize_paid_link">Customize amounts ›</string>

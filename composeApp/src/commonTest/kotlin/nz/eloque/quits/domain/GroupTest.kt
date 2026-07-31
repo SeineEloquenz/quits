@@ -34,6 +34,25 @@ class GroupTest {
     }
 
     @Test
+    fun income_mirrors_an_expense_in_balances() {
+        // A receives a 90.00 refund shared equally A/B/C: A holds group money (-60 net),
+        // B and C are each owed 30. Exactly the negation of the same-shaped expense.
+        val income =
+            Expense(
+                ExpenseId("i1"),
+                "Refund",
+                listOf(Payment(a, usd(9000))),
+                Split.Equal(listOf(a, b, c)),
+                kind = EntryKind.INCOME,
+            )
+        val balances = Group(GroupId("g"), "Trip", USD, members, listOf(income)).balances()
+        assertEquals(usd(-6000), balances.of(a))
+        assertEquals(usd(3000), balances.of(b))
+        assertEquals(usd(3000), balances.of(c))
+        assertEquals(0L, balances.net.values.sumOf { it.minorUnits })
+    }
+
+    @Test
     fun settle_up_clears_every_debt() {
         val balances = dinnerGroup().balances()
         val transfers = balances.simplify()
