@@ -34,7 +34,7 @@
     <string name="groups_base_currency">Basiswährung</string>
     <string name="groups_join_group">Gruppe beitreten</string>
     <string name="groups_heading">Gruppen</string>
-    <string name="groups_join_not_found">Keine Gruppe für Code \"%1$s\" gefunden</string>
+    <string name="groups_join_not_found">Keine Gruppe für Code "%1$s" gefunden</string>
     <string name="groups_member_count">%1$d Mitglieder · %2$s</string>
     <string name="cd_add_group">Gruppe hinzufügen</string>
 
@@ -93,7 +93,7 @@
     <string name="detail_edit_income">Einnahme bearbeiten</string>
     <string name="detail_delete_income">Einnahme löschen</string>
     <string name="detail_expense_not_found">Dieser Eintrag existiert nicht mehr.</string>
-    <string name="expense_delete_title">\"%1$s\" löschen?</string>
+    <string name="expense_delete_title">"%1$s" löschen?</string>
     <string name="expense_delete_body">Dies entfernt die Ausgabe für alle in der Gruppe, sobald synchronisiert wurde. Das kann nicht rückgängig gemacht werden.</string>
     <string name="income_delete_body">Dies entfernt die Einnahme für alle in der Gruppe, sobald synchronisiert wurde. Das kann nicht rückgängig gemacht werden.</string>
     <string name="group_leave_menu">Gruppe verlassen</string>
@@ -102,8 +102,8 @@
     <string name="group_archived_label">Archiviert</string>
     <string name="drawer_archived">Archiviert (%1$d)</string>
     <string name="group_leave_title">Gruppe verlassen?</string>
-    <string name="group_leave_body_local">Dies entfernt \"%1$s\" und alles darin von diesem Gerät. Sie wird mit niemandem geteilt, daher kann dies nicht rückgängig gemacht werden.</string>
-    <string name="group_leave_body_shared">Dies entfernt \"%1$s\" nur von diesem Gerät. Andere Mitglieder behalten ihre Kopie, und du kannst später mit dem Freigabecode wieder beitreten.</string>
+    <string name="group_leave_body_local">Dies entfernt "%1$s" und alles darin von diesem Gerät. Sie wird mit niemandem geteilt, daher kann dies nicht rückgängig gemacht werden.</string>
+    <string name="group_leave_body_shared">Dies entfernt "%1$s" nur von diesem Gerät. Andere Mitglieder behalten ihre Kopie, und du kannst später mit dem Freigabecode wieder beitreten.</string>
     <string name="group_leave_confirm">Verlassen</string>
     <string name="detail_add_members_first">Erst Mitglieder hinzufügen</string>
     <string name="detail_add_expense">Ausgabe hinzufügen</string>

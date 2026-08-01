@@ -36,7 +36,7 @@
     <string name="groups_base_currency">Base currency</string>
     <string name="groups_join_group">Join group</string>
     <string name="groups_heading">Groups</string>
-    <string name="groups_join_not_found">No group found for code \"%1$s\"</string>
+    <string name="groups_join_not_found">No group found for code "%1$s"</string>
     <string name="groups_member_count">%1$d members · %2$s</string>
     <string name="cd_add_group">Add a group</string>
 
@@ -89,13 +89,13 @@
     <string name="settlement_editor_title">Edit settlement</string>
     <string name="settlement_not_found">This settlement no longer exists.</string>
     <string name="settlement_delete_title">Delete settlement?</string>
-    <string name="settlement_delete_body">This removes the settlement for everyone in the group once synced. This can\'t be undone.</string>
+    <string name="settlement_delete_body">This removes the settlement for everyone in the group once synced. This can't be undone.</string>
     <string name="detail_paid_by">paid by %1$s</string>
     <string name="detail_received_by">received by %1$s</string>
     <string name="detail_owed_by">Owed by</string>
     <string name="detail_for_whom">For whom</string>
     <string name="detail_items">Items</string>
-    <string name="detail_split_unsupported">This entry was created with a newer version of the app. Update to view and edit how it\'s split.</string>
+    <string name="detail_split_unsupported">This entry was created with a newer version of the app. Update to view and edit how it's split.</string>
     <string name="detail_note">Note</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d people</string>
     <string name="detail_edit_expense">Edit expense</string>
@@ -103,17 +103,17 @@
     <string name="detail_edit_income">Edit income</string>
     <string name="detail_delete_income">Delete income</string>
     <string name="detail_expense_not_found">This entry no longer exists.</string>
-    <string name="expense_delete_title">Delete \"%1$s\"?</string>
+    <string name="expense_delete_title">Delete "%1$s"?</string>
     <string name="expense_delete_body">This removes the expense for everyone in the group once synced. This can't be undone.</string>
-    <string name="income_delete_body">This removes the income for everyone in the group once synced. This can\'t be undone.</string>
+    <string name="income_delete_body">This removes the income for everyone in the group once synced. This can't be undone.</string>
     <string name="group_leave_menu">Leave group</string>
     <string name="group_archive_menu">Archive group</string>
     <string name="group_unarchive_menu">Unarchive group</string>
     <string name="group_archived_label">Archived</string>
     <string name="drawer_archived">Archived (%1$d)</string>
     <string name="group_leave_title">Leave group?</string>
-    <string name="group_leave_body_local">This removes \"%1$s\" and everything in it from this device. It isn't shared with anyone, so this can't be undone.</string>
-    <string name="group_leave_body_shared">This removes \"%1$s\" from this device only. Other members keep their copy, and you can re-join later with the share code.</string>
+    <string name="group_leave_body_local">This removes "%1$s" and everything in it from this device. It isn't shared with anyone, so this can't be undone.</string>
+    <string name="group_leave_body_shared">This removes "%1$s" from this device only. Other members keep their copy, and you can re-join later with the share code.</string>
     <string name="group_leave_confirm">Leave</string>
 
     <!-- Member detail -->
@@ -251,7 +251,7 @@
     <string name="error_exact_sum">Exact amounts must add up to the total</string>
     <string name="error_no_items">Add at least one item</string>
     <string name="error_items_sum">Items must add up to the total</string>
-    <string name="error_discount_too_large">A discount can\'t make someone\'s share negative</string>
+    <string name="error_discount_too_large">A discount can't make someone's share negative</string>
 
     <!-- Statistics -->
     <string name="stats_title">Statistics</string>
