@@ -1,4 +1,16 @@
+@file:OptIn(ExperimentalTime::class)
+
 package nz.eloque.quits.domain
+
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.UtcOffset
+import kotlinx.datetime.asTimeZone
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 /** Spend for one category ([categoryId] null = uncategorized), in the group's base currency. */
 data class CategoryTotal(
@@ -57,4 +69,60 @@ fun Group.spending(): Spending {
             .sortedByDescending { it.amount.minorUnits }
 
     return Spending(baseCurrency, total, byCategory, byMember)
+}
+
+/** Bucket size for the spend-over-time chart. */
+enum class SpendPeriod { WEEK, MONTH }
+
+/** Total spend in one bucket, keyed by the bucket's [start] date (Monday for a week, the 1st for a month). */
+data class PeriodTotal(
+    val start: LocalDate,
+    val amount: Money,
+)
+
+/** Chart never renders more than this many buckets; older ones are dropped. */
+private const val MAX_PERIODS = 60
+
+private fun SpendPeriod.startOf(date: LocalDate): LocalDate =
+    when (this) {
+        SpendPeriod.WEEK -> date.minus(DatePeriod(days = date.dayOfWeek.ordinal))
+        SpendPeriod.MONTH -> LocalDate(date.year, date.month, 1)
+    }
+
+private fun SpendPeriod.next(start: LocalDate): LocalDate =
+    when (this) {
+        SpendPeriod.WEEK -> start.plus(DatePeriod(days = 7))
+        SpendPeriod.MONTH -> start.plus(DatePeriod(months = 1))
+    }
+
+/**
+ * Expense spend over time in [baseCurrency], bucketed by [period]. Each expense is converted as a unit
+ * (income and settlements excluded) and summed into the bucket its local date falls in — using the
+ * offset it was entered in, so a night-out counts on the day the enterer meant. Gaps between the first
+ * and last active bucket are filled with zero so the timeline stays continuous; capped to the most
+ * recent [MAX_PERIODS] buckets.
+ */
+fun Group.spendOverTime(period: SpendPeriod): List<PeriodTotal> {
+    val totals = HashMap<LocalDate, Long>()
+    for (entry in entries) {
+        if (!entry.kind.isExpense) continue
+        val base = ExchangeRate(entry.currency, baseCurrency, entry.rateToBase).convert(entry.total)
+        if (!base.isPositive) continue
+        val date =
+            Instant.fromEpochMilliseconds(entry.spentAt)
+                .toLocalDateTime(UtcOffset(minutes = entry.tzOffsetMinutes).asTimeZone())
+                .date
+        val start = period.startOf(date)
+        totals[start] = (totals[start] ?: 0L) + base.minorUnits
+    }
+    if (totals.isEmpty()) return emptyList()
+
+    val out = mutableListOf<PeriodTotal>()
+    var cur = totals.keys.min()
+    val last = totals.keys.max()
+    while (cur <= last) {
+        out += PeriodTotal(cur, Money(totals[cur] ?: 0L, baseCurrency))
+        cur = period.next(cur)
+    }
+    return out.takeLast(MAX_PERIODS)
 }

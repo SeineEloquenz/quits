@@ -29,3 +29,20 @@ actual fun formatUtcTime(epochMillis: Long): String =
         dateStyle = NSDateFormatterNoStyle
         timeStyle = NSDateFormatterShortStyle
     }.stringFromDate(nsDate(epochMillis))
+
+// The template gives the fields; the locale reorders them and localizes the month name.
+private fun formatTemplate(
+    template: String,
+    epochMillis: Long,
+): String =
+    NSDateFormatter().apply {
+        locale = NSLocale.currentLocale
+        timeZone = utc
+        setLocalizedDateFormatFromTemplate(template)
+    }.stringFromDate(nsDate(epochMillis))
+
+actual fun formatUtcMonthAbbrev(epochMillis: Long): String = formatTemplate("LLL", epochMillis)
+
+actual fun formatUtcMonthYear(epochMillis: Long): String = formatTemplate("LLLLy", epochMillis)
+
+actual fun formatUtcDayMonth(epochMillis: Long): String = formatTemplate("dLLL", epochMillis)

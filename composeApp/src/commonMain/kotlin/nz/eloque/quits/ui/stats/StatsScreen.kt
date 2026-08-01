@@ -1,10 +1,14 @@
 package nz.eloque.quits.ui.stats
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,38 +21,56 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.GroupId
+import nz.eloque.quits.domain.SpendPeriod
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.cd_back
 import nz.eloque.quits.resources.stats_by_category
 import nz.eloque.quits.resources.stats_by_member
 import nz.eloque.quits.resources.stats_empty
+import nz.eloque.quits.resources.stats_over_time
+import nz.eloque.quits.resources.stats_period_month
+import nz.eloque.quits.resources.stats_period_week
 import nz.eloque.quits.resources.stats_title
 import nz.eloque.quits.resources.stats_total
 import nz.eloque.quits.resources.stats_uncategorized
+import nz.eloque.quits.resources.stats_week_of
 import nz.eloque.quits.ui.category.categoryDisplay
 import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.MoneyText
+import nz.eloque.quits.util.formatUtcDate
+import nz.eloque.quits.util.formatUtcDayMonth
+import nz.eloque.quits.util.formatUtcMonthAbbrev
+import nz.eloque.quits.util.formatUtcMonthYear
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,9 +117,16 @@ fun StatsScreen(
                 MoneyText(state.total, style = MaterialTheme.typography.headlineLarge)
             }
 
-            Spacer(Modifier.height(24.dp))
-            SectionHeader(stringResource(Res.string.stats_by_category))
-            state.byCategory.forEach { StatBarRow(it, state.customCategories) }
+            if (state.availablePeriods.isNotEmpty()) {
+                Spacer(Modifier.height(24.dp))
+                OverTimeSection(state.period, state.availablePeriods, state.overTime, viewModel::setPeriod)
+            }
+
+            if (state.byCategory.any { it.categoryId != null }) {
+                Spacer(Modifier.height(24.dp))
+                SectionHeader(stringResource(Res.string.stats_by_category))
+                state.byCategory.forEach { StatBarRow(it, state.customCategories) }
+            }
 
             Spacer(Modifier.height(16.dp))
             SectionHeader(stringResource(Res.string.stats_by_member))
@@ -107,6 +136,129 @@ fun StatsScreen(
         }
     }
 }
+
+private val BAR_AREA_HEIGHT = 132.dp
+private val BAR_WIDTH = 28.dp
+
+/** UTC midnight of this calendar day, so the locale month/day formatters render the date as-is. */
+@OptIn(ExperimentalTime::class)
+private fun LocalDate.utcMillis(): Long = atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+
+@Composable
+private fun OverTimeSection(
+    period: SpendPeriod,
+    availablePeriods: List<SpendPeriod>,
+    bars: List<TimeBar>,
+    onPeriod: (SpendPeriod) -> Unit,
+) {
+    SectionHeader(stringResource(Res.string.stats_over_time))
+    if (availablePeriods.size > 1) {
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            availablePeriods.forEach { p ->
+                FilterChip(
+                    selected = p == period,
+                    onClick = { onPeriod(p) },
+                    label = { Text(stringResource(periodChipRes(p))) },
+                )
+            }
+        }
+    }
+    if (bars.isEmpty()) return
+    Spacer(Modifier.height(12.dp))
+    SpendChart(bars, period)
+}
+
+private fun periodChipRes(period: SpendPeriod) =
+    when (period) {
+        SpendPeriod.WEEK -> Res.string.stats_period_week
+        SpendPeriod.MONTH -> Res.string.stats_period_month
+    }
+
+@Composable
+private fun SpendChart(
+    bars: List<TimeBar>,
+    period: SpendPeriod,
+) {
+    var selected by remember(bars) { mutableIntStateOf(bars.lastIndex) }
+    val scroll = rememberScrollState()
+    LaunchedEffect(bars, scroll.maxValue) { scroll.scrollTo(scroll.maxValue) }
+
+    val current = bars.getOrElse(selected) { bars.last() }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            periodLabel(current.start, period),
+            Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.outline,
+        )
+        MoneyText(current.amount, style = MaterialTheme.typography.titleMedium)
+    }
+    Spacer(Modifier.height(8.dp))
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(scroll),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        bars.forEachIndexed { index, bar ->
+            BarColumn(bar, period, index == selected) { selected = index }
+        }
+    }
+}
+
+@Composable
+private fun BarColumn(
+    bar: TimeBar,
+    period: SpendPeriod,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val color =
+        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(BAR_WIDTH).clip(RoundedCornerShape(6.dp)).clickable(onClick = onClick),
+    ) {
+        Box(Modifier.height(BAR_AREA_HEIGHT).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+            // A nonzero bucket keeps a sliver of bar so small spend never vanishes to nothing.
+            val fraction = if (bar.amount.minorUnits > 0) bar.fraction.coerceAtLeast(0.02f) else 0f
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(fraction)
+                    .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                    .background(color),
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            axisLabel(bar.start, period),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline,
+            maxLines = 1,
+        )
+    }
+}
+
+/** Caption label for the selected bucket: "July 2026" or "Week of 21 Jul 2026". */
+@Composable
+private fun periodLabel(
+    start: LocalDate,
+    period: SpendPeriod,
+): String =
+    when (period) {
+        SpendPeriod.MONTH -> formatUtcMonthYear(start.utcMillis())
+        SpendPeriod.WEEK -> stringResource(Res.string.stats_week_of, formatUtcDate(start.utcMillis()))
+    }
+
+/** Compact axis label under a bar: "Jul" for months, "21 Jul" for weeks. */
+private fun axisLabel(
+    start: LocalDate,
+    period: SpendPeriod,
+): String =
+    when (period) {
+        SpendPeriod.MONTH -> formatUtcMonthAbbrev(start.utcMillis())
+        SpendPeriod.WEEK -> formatUtcDayMonth(start.utcMillis())
+    }
 
 @Composable
 private fun SectionHeader(text: String) {
