@@ -9,7 +9,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -24,7 +27,10 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -37,6 +43,7 @@ import nz.eloque.quits.resources.about_title
 import nz.eloque.quits.resources.app_name
 import nz.eloque.quits.resources.cd_add_group
 import nz.eloque.quits.resources.cd_settings
+import nz.eloque.quits.resources.drawer_archived
 import nz.eloque.quits.resources.settings_title
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.group.GroupDetailScreen
@@ -138,6 +145,8 @@ private fun GroupDrawer(
     onOpenAbout: () -> Unit,
 ) {
     val rows by viewModel.homeRows.collectAsState()
+    val (archived, active) = rows.partition { it.archived }
+    var archivedExpanded by remember { mutableStateOf(false) }
 
     Column(Modifier.verticalScroll(rememberScrollState())) {
         Text(
@@ -147,13 +156,39 @@ private fun GroupDrawer(
             modifier = Modifier.padding(16.dp),
         )
 
-        rows.forEach { row ->
+        active.forEach { row ->
             NavigationDrawerItem(
                 label = { Text(row.name) },
                 selected = row.id == activeGroup,
                 onClick = { onSelect(row.id) },
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
             )
+        }
+
+        if (archived.isNotEmpty()) {
+            NavigationDrawerItem(
+                label = { Text(stringResource(Res.string.drawer_archived, archived.size)) },
+                selected = false,
+                icon = { Icon(Icons.Default.Inventory2, contentDescription = null) },
+                badge = {
+                    Icon(
+                        if (archivedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                    )
+                },
+                onClick = { archivedExpanded = !archivedExpanded },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+            )
+            if (archivedExpanded) {
+                archived.forEach { row ->
+                    NavigationDrawerItem(
+                        label = { Text(row.name) },
+                        selected = row.id == activeGroup,
+                        onClick = { onSelect(row.id) },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    )
+                }
+            }
         }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp))

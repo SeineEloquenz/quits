@@ -98,6 +98,10 @@
     <string name="expense_delete_body">Dies entfernt die Ausgabe für alle in der Gruppe, sobald synchronisiert wurde. Das kann nicht rückgängig gemacht werden.</string>
     <string name="income_delete_body">Dies entfernt die Einnahme für alle in der Gruppe, sobald synchronisiert wurde. Das kann nicht rückgängig gemacht werden.</string>
     <string name="group_leave_menu">Gruppe verlassen</string>
+    <string name="group_archive_menu">Gruppe archivieren</string>
+    <string name="group_unarchive_menu">Archivierung aufheben</string>
+    <string name="group_archived_label">Archiviert</string>
+    <string name="drawer_archived">Archiviert (%1$d)</string>
     <string name="group_leave_title">Gruppe verlassen?</string>
     <string name="group_leave_body_local">Dies entfernt \"%1$s\" und alles darin von diesem Gerät. Sie wird mit niemandem geteilt, daher kann dies nicht rückgängig gemacht werden.</string>
     <string name="group_leave_body_shared">Dies entfernt \"%1$s\" nur von diesem Gerät. Andere Mitglieder behalten ihre Kopie, und du kannst später mit dem Freigabecode wieder beitreten.</string>
@@ -255,5 +259,6 @@
 
     <!-- Export -->
     <string name="export_csv_menu">CSV exportieren</string>
+    <string name="sync_now_menu">Jetzt synchronisieren</string>
     <string name="export_empty">Nichts zum Exportieren.</string>
 </resources>

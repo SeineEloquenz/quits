@@ -8,6 +8,14 @@ import androidx.room3.Transaction
 import androidx.room3.Upsert
 import kotlinx.coroutines.flow.Flow
 
+/** A groups-list row: the group's synced identity plus its local [archived] preference (false if none). */
+data class GroupListRow(
+    val id: String,
+    val name: String,
+    val baseCurrency: String,
+    val archived: Boolean,
+)
+
 @Dao
 interface GroupDao {
     @Upsert
@@ -19,8 +27,11 @@ interface GroupDao {
     @Query("SELECT * FROM groups WHERE deleted = 0")
     suspend fun all(): List<GroupEntity>
 
-    @Query("SELECT * FROM groups WHERE deleted = 0")
-    fun allFlow(): Flow<List<GroupEntity>>
+    @Query(
+        "SELECT g.id, g.name, g.baseCurrency, COALESCE(p.archived, 0) AS archived " +
+            "FROM groups g LEFT JOIN group_prefs p ON p.groupId = g.id WHERE g.deleted = 0",
+    )
+    fun summariesFlow(): Flow<List<GroupListRow>>
 
     @Query("SELECT * FROM groups WHERE id = :id")
     fun byIdFlow(id: String): Flow<GroupEntity?>
@@ -34,6 +45,21 @@ interface GroupDao {
         id: String,
         updatedAt: Long,
         deviceId: String,
+    )
+}
+
+@Dao
+interface GroupPrefsDao {
+    @Query("SELECT archived FROM group_prefs WHERE groupId = :groupId")
+    fun archivedFlow(groupId: String): Flow<Boolean?>
+
+    @Query(
+        "INSERT INTO group_prefs (groupId, archived) VALUES (:groupId, :archived) " +
+            "ON CONFLICT(groupId) DO UPDATE SET archived = :archived",
+    )
+    suspend fun setArchived(
+        groupId: String,
+        archived: Boolean,
     )
 }
 

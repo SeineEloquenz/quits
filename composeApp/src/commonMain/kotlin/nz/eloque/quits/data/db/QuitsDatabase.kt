@@ -9,6 +9,7 @@ import androidx.room3.RoomDatabaseConstructor
     entities = [
         GroupSyncEntity::class,
         GroupEntity::class,
+        GroupPrefsEntity::class,
         MemberEntity::class,
         EntryEntity::class,
         EntryPayerEntity::class,
@@ -19,7 +20,7 @@ import androidx.room3.RoomDatabaseConstructor
         CategoryEntity::class,
         FxRateEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 @ConstructedBy(QuitsDatabaseConstructor::class)
@@ -27,6 +28,8 @@ abstract class QuitsDatabase : RoomDatabase() {
     abstract fun groupSyncDao(): GroupSyncDao
 
     abstract fun groupDao(): GroupDao
+
+    abstract fun groupPrefsDao(): GroupPrefsDao
 
     abstract fun memberDao(): MemberDao
 

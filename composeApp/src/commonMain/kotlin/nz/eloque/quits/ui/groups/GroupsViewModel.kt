@@ -42,6 +42,7 @@ data class GroupHomeRow(
     val memberCount: Int,
     /** True once every member's net balance is zero (or there are no members yet). */
     val settled: Boolean,
+    val archived: Boolean,
 )
 
 sealed interface GroupsEvent {
@@ -154,4 +155,5 @@ private fun GroupSummary.toHomeRow(group: Group?): GroupHomeRow =
         baseCurrency = baseCurrency,
         memberCount = group?.members?.size ?: 0,
         settled = group?.balances()?.net?.values?.all { it.isZero } ?: true,
+        archived = archived,
     )

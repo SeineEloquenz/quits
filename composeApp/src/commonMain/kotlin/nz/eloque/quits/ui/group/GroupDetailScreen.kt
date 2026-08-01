@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
@@ -28,12 +29,14 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,6 +50,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -55,6 +59,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -88,7 +93,6 @@ import nz.eloque.quits.resources.cd_clear_search
 import nz.eloque.quits.resources.cd_menu
 import nz.eloque.quits.resources.cd_more
 import nz.eloque.quits.resources.cd_search
-import nz.eloque.quits.resources.cd_sync
 import nz.eloque.quits.resources.detail_add_expense
 import nz.eloque.quits.resources.detail_add_income
 import nz.eloque.quits.resources.detail_add_member
@@ -112,15 +116,19 @@ import nz.eloque.quits.resources.detail_share_hint
 import nz.eloque.quits.resources.detail_sharing
 import nz.eloque.quits.resources.detail_split_unsupported
 import nz.eloque.quits.resources.export_csv_menu
+import nz.eloque.quits.resources.group_archive_menu
+import nz.eloque.quits.resources.group_archived_label
 import nz.eloque.quits.resources.group_fallback_name
 import nz.eloque.quits.resources.group_leave_body_local
 import nz.eloque.quits.resources.group_leave_body_shared
 import nz.eloque.quits.resources.group_leave_confirm
 import nz.eloque.quits.resources.group_leave_menu
 import nz.eloque.quits.resources.group_leave_title
+import nz.eloque.quits.resources.group_unarchive_menu
 import nz.eloque.quits.resources.label_share_code
 import nz.eloque.quits.resources.stats_title
 import nz.eloque.quits.resources.stats_uncategorized
+import nz.eloque.quits.resources.sync_now_menu
 import nz.eloque.quits.ui.category.CategoryPill
 import nz.eloque.quits.ui.category.categoryDisplay
 import nz.eloque.quits.ui.components.BalanceText
@@ -191,11 +199,26 @@ fun GroupDetailScreen(
 
     AppScaffold(
         title = {
-            AbbreviatingText(
-                state.name.ifEmpty { stringResource(Res.string.group_fallback_name) },
-                style = MaterialTheme.typography.headlineMedium,
-                maxLines = 1,
-            )
+            // Archived groups read in a muted tone with a leading archive glyph; the name is still editable.
+            val titleColor = if (state.archived) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (state.archived) {
+                    Icon(
+                        Icons.Default.Inventory2,
+                        contentDescription = stringResource(Res.string.group_archived_label),
+                        tint = titleColor,
+                        // Small, so it reads as a label prefix on the title rather than a second nav icon.
+                        modifier = Modifier.padding(end = 6.dp).size(16.dp),
+                    )
+                }
+                CompositionLocalProvider(LocalContentColor provides titleColor) {
+                    AbbreviatingText(
+                        state.name.ifEmpty { stringResource(Res.string.group_fallback_name) },
+                        style = MaterialTheme.typography.headlineMedium,
+                        maxLines = 1,
+                    )
+                }
+            }
         },
         navigationIcon = {
             IconButton(onClick = onOpenDrawer) {
@@ -209,21 +232,33 @@ fun GroupDetailScreen(
             }) {
                 Icon(Icons.Default.Search, contentDescription = stringResource(Res.string.cd_search))
             }
-            IconButton(onClick = { showShare = true }) {
-                Icon(Icons.Default.Share, contentDescription = stringResource(Res.string.detail_sharing))
-            }
+            // Only search and the overflow menu stay in the bar; sharing and sync live in the menu, and
+            // only an active sync's progress shows here — so the bar stays uncluttered.
             if (syncStatus == SyncStatus.Syncing) {
                 CircularProgressIndicator(Modifier.padding(12.dp).size(20.dp), strokeWidth = 2.dp)
-            } else {
-                IconButton(onClick = viewModel::sync) {
-                    Icon(Icons.Default.Refresh, contentDescription = stringResource(Res.string.cd_sync))
-                }
             }
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.cd_more))
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.detail_share_group)) },
+                        leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            showShare = true
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.sync_now_menu)) },
+                        leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                        enabled = syncStatus != SyncStatus.Syncing,
+                        onClick = {
+                            menuExpanded = false
+                            viewModel.sync()
+                        },
+                    )
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.stats_title)) },
                         leadingIcon = { Icon(Icons.Default.BarChart, contentDescription = null) },
@@ -238,6 +273,18 @@ fun GroupDetailScreen(
                         onClick = {
                             menuExpanded = false
                             viewModel.exportCsv()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(stringResource(if (state.archived) Res.string.group_unarchive_menu else Res.string.group_archive_menu))
+                        },
+                        leadingIcon = {
+                            Icon(if (state.archived) Icons.Default.Unarchive else Icons.Default.Archive, contentDescription = null)
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            viewModel.setArchived(!state.archived)
                         },
                     )
                     DropdownMenuItem(

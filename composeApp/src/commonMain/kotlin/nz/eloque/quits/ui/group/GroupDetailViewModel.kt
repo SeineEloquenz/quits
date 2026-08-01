@@ -130,6 +130,7 @@ data class GroupDetailUiState(
     val settled: Boolean = true,
     val shareCode: String? = null,
     val lastSyncedAt: Long? = null,
+    val archived: Boolean = false,
 )
 
 class GroupDetailViewModel(
@@ -141,9 +142,14 @@ class GroupDetailViewModel(
     private val filter = MutableStateFlow(ActivityFilter())
 
     val state: StateFlow<GroupDetailUiState> =
-        combine(repo.groupFlow(groupId), engine.syncInfoFlow(groupId), filter) { group, info, filter ->
+        combine(repo.groupFlow(groupId), engine.syncInfoFlow(groupId), filter, repo.archivedFlow(groupId)) {
+            group,
+            info,
+            filter,
+            archived,
+            ->
             (group?.toUiState(filter) ?: GroupDetailUiState(filter = filter))
-                .copy(shareCode = info.code, lastSyncedAt = info.lastSyncedAt)
+                .copy(shareCode = info.code, lastSyncedAt = info.lastSyncedAt, archived = archived)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupDetailUiState())
 
     private val _syncStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
@@ -216,6 +222,10 @@ class GroupDetailViewModel(
      */
     fun leave() {
         viewModelScope.launch { repo.leaveGroup(groupId) }
+    }
+
+    fun setArchived(archived: Boolean) {
+        viewModelScope.launch { repo.setArchived(groupId, archived) }
     }
 
     fun addMember(name: String) {

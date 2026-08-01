@@ -28,6 +28,7 @@ data class GroupSummary(
     val id: GroupId,
     val name: String,
     val baseCurrency: Currency,
+    val archived: Boolean,
 )
 
 class GroupRepository(
@@ -55,9 +56,20 @@ class GroupRepository(
     }
 
     fun groupsFlow(): Flow<List<GroupSummary>> =
-        db.groupDao().allFlow().map { groups ->
-            groups.map { GroupSummary(GroupId(it.id), it.name, Currency.of(it.baseCurrency)) }
+        db.groupDao().summariesFlow().map { rows ->
+            rows.map { GroupSummary(GroupId(it.id), it.name, Currency.of(it.baseCurrency), it.archived) }
         }
+
+    /** Whether [id] is archived (local-only). */
+    fun archivedFlow(id: GroupId): Flow<Boolean> = db.groupPrefsDao().archivedFlow(id.value).map { it ?: false }
+
+    /** Archives or unarchives [id] locally; never touches sync state. */
+    suspend fun setArchived(
+        id: GroupId,
+        archived: Boolean,
+    ) {
+        db.groupPrefsDao().setArchived(id.value, archived)
+    }
 
     /** The full aggregate as a reactive stream; emits null while the group doesn't exist. */
     fun groupFlow(id: GroupId): Flow<Group?> =

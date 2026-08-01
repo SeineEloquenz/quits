@@ -15,6 +15,27 @@ data class GroupEntity(
     @Embedded val sync: SyncMeta,
 )
 
+/**
+ * Per-device, non-synced state for a group (currently just [archived]). Kept in its own table so the
+ * sync-authoritative [GroupEntity] row can be rewritten wholesale without touching local preferences.
+ */
+@Entity(
+    tableName = "group_prefs",
+    foreignKeys = [
+        ForeignKey(
+            entity = GroupEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["groupId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class GroupPrefsEntity(
+    @PrimaryKey val groupId: String,
+    /** Hides the group into the drawer's "Archived" section. */
+    val archived: Boolean = false,
+)
+
 @Entity(
     tableName = "member",
     foreignKeys = [

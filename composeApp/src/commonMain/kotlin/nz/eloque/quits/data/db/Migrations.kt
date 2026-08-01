@@ -145,3 +145,19 @@ val MIGRATION_7_8 =
             connection.execSQL("DELETE FROM group_sync")
         }
     }
+
+/**
+ * v8 -> v9: archiving. Adds a local-only `group_prefs` table (currently just `archived`) that hides a
+ * group into the drawer's "Archived" section. Kept out of the synced `groups` row so a sync update can
+ * never clobber it. Additive, not synced; no flag day.
+ */
+val MIGRATION_8_9 =
+    object : Migration(8, 9) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                "CREATE TABLE IF NOT EXISTS `group_prefs` (`groupId` TEXT NOT NULL, `archived` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`groupId`), " +
+                    "FOREIGN KEY(`groupId`) REFERENCES `groups`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)",
+            )
+        }
+    }
