@@ -151,7 +151,7 @@ fun SettlementEditorScreen(
                     showDelete = false
                     viewModel.delete()
                 }) {
-                    Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(Res.string.action_delete))
                 }
             },
             dismissButton = {
@@ -173,7 +173,6 @@ fun SettlementEditorScreen(
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = stringResource(Res.string.settlement_delete_title),
-                        tint = MaterialTheme.colorScheme.error,
                     )
                 }
             }

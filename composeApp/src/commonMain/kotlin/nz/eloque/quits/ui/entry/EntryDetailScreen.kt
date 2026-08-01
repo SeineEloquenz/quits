@@ -100,7 +100,7 @@ fun EntryDetailScreen(
                         viewModel.delete()
                     },
                 ) {
-                    Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(Res.string.action_delete))
                 }
             },
             dismissButton = {

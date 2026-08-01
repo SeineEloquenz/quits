@@ -291,7 +291,7 @@ fun GroupDetailScreen(
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.group_leave_menu)) },
                         leadingIcon = {
-                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
                         },
                         onClick = {
                             menuExpanded = false
@@ -675,7 +675,7 @@ private fun LeaveGroupDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(stringResource(Res.string.group_leave_confirm), color = MaterialTheme.colorScheme.error)
+                Text(stringResource(Res.string.group_leave_confirm))
             }
         },
         dismissButton = {

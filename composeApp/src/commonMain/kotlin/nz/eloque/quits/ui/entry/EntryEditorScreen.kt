@@ -733,7 +733,7 @@ private fun CategoryDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 onDelete?.let {
                     TextButton(onClick = it) {
-                        Text(stringResource(Res.string.category_delete), color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(Res.string.category_delete))
                     }
                 }
                 TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }

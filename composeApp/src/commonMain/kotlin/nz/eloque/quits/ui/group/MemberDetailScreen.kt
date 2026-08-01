@@ -163,7 +163,7 @@ fun MemberDetailScreen(
                         DropdownMenuItem(
                             text = { Text(stringResource(Res.string.cd_remove, state.name)) },
                             leadingIcon = {
-                                Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                Icon(Icons.Default.Delete, contentDescription = null)
                             },
                             onClick = {
                                 menuExpanded = false
@@ -361,7 +361,7 @@ private fun RemoveMemberDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(stringResource(Res.string.cd_remove, state.name), color = MaterialTheme.colorScheme.error)
+                Text(stringResource(Res.string.cd_remove, state.name))
             }
         },
         dismissButton = {
