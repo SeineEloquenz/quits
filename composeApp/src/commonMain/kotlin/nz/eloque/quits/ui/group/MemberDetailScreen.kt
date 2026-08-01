@@ -1,6 +1,7 @@
 package nz.eloque.quits.ui.group
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,12 +9,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,16 +40,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.scaffold.AppScaffold
+import nz.eloque.quits.domain.Category
+import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
+import nz.eloque.quits.domain.isIncome
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_save
 import nz.eloque.quits.resources.cd_back
 import nz.eloque.quits.resources.cd_remove
 import nz.eloque.quits.resources.cd_rename
+import nz.eloque.quits.resources.detail_note
+import nz.eloque.quits.resources.detail_split_unsupported
 import nz.eloque.quits.resources.dialog_rename_title
 import nz.eloque.quits.resources.label_name
 import nz.eloque.quits.resources.member_detail_appears_in
@@ -59,11 +71,14 @@ import nz.eloque.quits.resources.member_detail_remove_title
 import nz.eloque.quits.resources.member_detail_status_owed
 import nz.eloque.quits.resources.member_detail_status_owes
 import nz.eloque.quits.resources.member_detail_status_settled
+import nz.eloque.quits.ui.category.CategoryPill
+import nz.eloque.quits.ui.category.categoryDisplay
 import nz.eloque.quits.ui.components.BalanceText
 import nz.eloque.quits.ui.components.EmptyHint
+import nz.eloque.quits.ui.components.EntryAmountText
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
-import nz.eloque.quits.ui.components.MoneyText
+import nz.eloque.quits.ui.components.dayGroupLabel
 import nz.eloque.quits.ui.components.display
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -75,6 +90,7 @@ fun MemberDetailScreen(
     groupId: GroupId,
     memberId: MemberId,
     onBack: () -> Unit,
+    onOpenEntry: (EntryId) -> Unit,
 ) {
     val viewModel = koinViewModel<MemberDetailViewModel>(key = memberId.value) { parametersOf(groupId, memberId) }
     val state by viewModel.state.collectAsState()
@@ -160,11 +176,31 @@ fun MemberDetailScreen(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
+            Spacer(Modifier.height(4.dp))
             if (state.entries.isEmpty()) {
                 EmptyHint(stringResource(Res.string.member_detail_no_expenses))
             } else {
                 Column(Modifier.padding(horizontal = 16.dp)) {
-                    state.entries.forEach { row -> MemberEntryCard(row) }
+                    var lastDayLabel: String? = null
+                    state.entries.forEach { row ->
+                        val dayLabel = dayGroupLabel(row.spentAt, row.offsetMinutes)
+                        if (dayLabel != lastDayLabel) {
+                            if (lastDayLabel != null) Spacer(Modifier.height(8.dp))
+                            Text(
+                                dayLabel,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.padding(bottom = 4.dp),
+                            )
+                            lastDayLabel = dayLabel
+                        }
+                        MemberEntryCard(
+                            row = row,
+                            categories = state.customCategories,
+                            onClick = { onOpenEntry(row.id) },
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
                 }
             }
 
@@ -203,20 +239,59 @@ private fun statusWord(
     }
 
 @Composable
-private fun MemberEntryCard(row: MemberEntryRow) {
-    ElevatedCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun MemberEntryCard(
+    row: MemberEntryRow,
+    categories: List<Category>,
+    onClick: () -> Unit,
+) {
+    ElevatedCard(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+        Row(
+            Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
             Column(Modifier.weight(1f)) {
-                Text(row.title)
-                val meta =
-                    if (row.paidByThem.isPositive) {
-                        stringResource(Res.string.member_detail_paid_and_owed, row.paidByThem.display(), row.owedByThem.display())
-                    } else {
-                        stringResource(Res.string.member_detail_owed_only, row.owedByThem.display())
+                AbbreviatingText(row.title, maxLines = 1)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    categoryDisplay(row.categoryId, categories)?.let { display ->
+                        CategoryPill(display)
+                        Spacer(Modifier.width(6.dp))
                     }
-                Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                    val meta =
+                        if (row.paidByThem.isPositive) {
+                            stringResource(Res.string.member_detail_paid_and_owed, row.paidByThem.display(), row.owedByThem.display())
+                        } else {
+                            stringResource(Res.string.member_detail_owed_only, row.owedByThem.display())
+                        }
+                    Text(
+                        meta,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (!row.note.isNullOrBlank()) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            Icons.AutoMirrored.Filled.Notes,
+                            contentDescription = stringResource(Res.string.detail_note),
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                    if (!row.splitSupported) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = stringResource(Res.string.detail_split_unsupported),
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                }
             }
-            MoneyText(row.total)
+            EntryAmountText(row.total, row.kind.isIncome)
         }
     }
 }

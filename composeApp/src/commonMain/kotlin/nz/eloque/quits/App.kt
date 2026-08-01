@@ -158,6 +158,7 @@ fun App() {
                                 groupId = GroupId(key.groupId),
                                 memberId = MemberId(key.memberId),
                                 onBack = { backStack.removeLastOrNull() },
+                                onOpenEntry = { entryId -> backStack.add(EntryDetailKey(key.groupId, entryId.value)) },
                             )
                         }
                         entry<SettleUpKey> { key ->

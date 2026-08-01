@@ -15,8 +15,11 @@ import kotlinx.coroutines.launch
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.data.sync.syncQuietly
+import nz.eloque.quits.domain.Category
+import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.EntryId
+import nz.eloque.quits.domain.EntryKind
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
@@ -30,6 +33,13 @@ data class MemberEntryRow(
     val total: Money,
     val paidByThem: Money,
     val owedByThem: Money,
+    val spentAt: Long,
+    val offsetMinutes: Int = 0,
+    val categoryId: CategoryId? = null,
+    val kind: EntryKind = EntryKind.EXPENSE,
+    val note: String? = null,
+    /** False for a split type this version doesn't support (created by a newer version). */
+    val splitSupported: Boolean = true,
 )
 
 data class MemberDetailUiState(
@@ -37,7 +47,10 @@ data class MemberDetailUiState(
     val found: Boolean = true,
     val name: String = "",
     val net: Money = Money.zero(Currency.of("USD")),
+    /** Entries the member appears in, newest-first, matching the group feed's order. */
     val entries: List<MemberEntryRow> = emptyList(),
+    /** The group's custom categories, for resolving names/icons in the feed. */
+    val customCategories: List<Category> = emptyList(),
 )
 
 class MemberDetailViewModel(
@@ -55,9 +68,10 @@ class MemberDetailViewModel(
                     MemberDetailUiState(loaded = true, found = false)
                 } else {
                     val related =
-                        group.entries.filter { entry ->
-                            memberId in entry.shares.keys || entry.payments.any { it.member == memberId }
-                        }
+                        group.entries
+                            .filter { entry ->
+                                memberId in entry.shares.keys || entry.payments.any { it.member == memberId }
+                            }.sortedByDescending { it.spentAt }
                     MemberDetailUiState(
                         loaded = true,
                         found = true,
@@ -71,8 +85,15 @@ class MemberDetailViewModel(
                                     entry.total,
                                     entry.paymentsBy(memberId),
                                     entry.shareOf(memberId),
+                                    entry.spentAt,
+                                    entry.tzOffsetMinutes,
+                                    entry.categoryId,
+                                    entry.kind,
+                                    entry.note,
+                                    entry.splitSupported,
                                 )
                             },
+                        customCategories = group.categories,
                     )
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MemberDetailUiState())
