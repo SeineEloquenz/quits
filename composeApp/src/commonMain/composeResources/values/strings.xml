@@ -254,6 +254,10 @@
     <string name="stats_by_member">By member</string>
     <string name="stats_uncategorized">Uncategorized</string>
     <string name="stats_empty">No expenses to summarize yet.</string>
+    <string name="stats_over_time">Spending over time</string>
+    <string name="stats_period_week">Weekly</string>
+    <string name="stats_period_month">Monthly</string>
+    <string name="stats_week_of">Week of %1$s</string>
 
     <!-- Export -->
     <string name="export_csv_menu">Export CSV</string>

@@ -11,6 +11,15 @@ expect fun formatUtcDate(epochMillis: Long): String
 
 expect fun formatUtcTime(epochMillis: Long): String
 
+/** Localized abbreviated standalone month, e.g. "Jul" / "Juli". */
+expect fun formatUtcMonthAbbrev(epochMillis: Long): String
+
+/** Localized month and year, e.g. "July 2026" / "Juli 2026". */
+expect fun formatUtcMonthYear(epochMillis: Long): String
+
+/** Localized day and abbreviated month, e.g. "21 Jul". */
+expect fun formatUtcDayMonth(epochMillis: Long): String
+
 private fun shift(
     epochMillis: Long,
     offsetMinutes: Int,

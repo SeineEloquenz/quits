@@ -11,3 +11,18 @@ private fun jsFormatDate(millis: Double): String =
 
 private fun jsFormatTime(millis: Double): String =
     js("new Intl.DateTimeFormat(undefined, { timeStyle: 'short', timeZone: 'UTC' }).format(new Date(millis))")
+
+actual fun formatUtcMonthAbbrev(epochMillis: Long): String = jsMonthAbbrev(epochMillis.toDouble())
+
+actual fun formatUtcMonthYear(epochMillis: Long): String = jsMonthYear(epochMillis.toDouble())
+
+actual fun formatUtcDayMonth(epochMillis: Long): String = jsDayMonth(epochMillis.toDouble())
+
+private fun jsMonthAbbrev(millis: Double): String =
+    js("new Intl.DateTimeFormat(undefined, { month: 'short', timeZone: 'UTC' }).format(new Date(millis))")
+
+private fun jsMonthYear(millis: Double): String =
+    js("new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(millis))")
+
+private fun jsDayMonth(millis: Double): String =
+    js("new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(millis))")
