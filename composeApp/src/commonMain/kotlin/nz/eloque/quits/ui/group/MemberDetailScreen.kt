@@ -2,6 +2,7 @@ package nz.eloque.quits.ui.group
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,7 +20,10 @@ import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -53,6 +57,7 @@ import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_save
 import nz.eloque.quits.resources.cd_back
+import nz.eloque.quits.resources.cd_more
 import nz.eloque.quits.resources.cd_remove
 import nz.eloque.quits.resources.cd_rename
 import nz.eloque.quits.resources.detail_note
@@ -60,7 +65,6 @@ import nz.eloque.quits.resources.detail_split_unsupported
 import nz.eloque.quits.resources.dialog_rename_title
 import nz.eloque.quits.resources.label_name
 import nz.eloque.quits.resources.member_detail_appears_in
-import nz.eloque.quits.resources.member_detail_manage
 import nz.eloque.quits.resources.member_detail_no_expenses
 import nz.eloque.quits.resources.member_detail_not_found
 import nz.eloque.quits.resources.member_detail_owed_only
@@ -98,6 +102,7 @@ fun MemberDetailScreen(
 
     var renaming by remember { mutableStateOf(false) }
     var confirmingRemove by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
@@ -137,6 +142,36 @@ fun MemberDetailScreen(
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.cd_back))
+            }
+        },
+        actions = {
+            // Rename/remove live behind the overflow menu, matching the group screen's app-bar pattern.
+            if (state.loaded && state.found) {
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.cd_more))
+                    }
+                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.cd_rename, state.name)) },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                            onClick = {
+                                menuExpanded = false
+                                renaming = true
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.cd_remove, state.name)) },
+                            leadingIcon = {
+                                Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                confirmingRemove = true
+                            },
+                        )
+                    }
+                }
             }
         },
         snackbarHostState = snackbarHostState,
@@ -204,24 +239,6 @@ fun MemberDetailScreen(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-            Text(
-                stringResource(Res.string.member_detail_manage),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-            ManageRow(
-                icon = Icons.Default.Edit,
-                label = stringResource(Res.string.cd_rename, state.name),
-                onClick = { renaming = true },
-            )
-            ManageRow(
-                icon = Icons.Default.Delete,
-                label = stringResource(Res.string.cd_remove, state.name),
-                danger = true,
-                onClick = { confirmingRemove = true },
-            )
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -293,26 +310,6 @@ private fun MemberEntryCard(
             }
             EntryAmountText(row.total, row.kind.isIncome)
         }
-    }
-}
-
-@Composable
-private fun ManageRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    danger: Boolean = false,
-    onClick: () -> Unit,
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        val tint = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-        Icon(icon, contentDescription = null, tint = tint)
-        Text(label, color = tint, modifier = Modifier.padding(start = 16.dp))
     }
 }
 
