@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -480,20 +481,32 @@ private fun SettlementRowCard(
     row: SettlementRow,
     onClick: () -> Unit,
 ) {
-    ElevatedCard(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+    ) {
         Row(
             Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("⇄", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.outline)
-            Column(Modifier.weight(1f).padding(start = 16.dp)) {
-                Text(stringResource(Res.string.detail_settlement_title), style = MaterialTheme.typography.labelLarge)
-                Text(
-                    stringResource(Res.string.detail_settlement_row, row.from, row.to),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
+            Column(Modifier.weight(1f)) {
+                AbbreviatingText(stringResource(Res.string.detail_settlement_title), maxLines = 1)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.SwapHoriz,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        stringResource(Res.string.detail_settlement_row, row.from, row.to),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             MoneyText(row.amount)
         }
