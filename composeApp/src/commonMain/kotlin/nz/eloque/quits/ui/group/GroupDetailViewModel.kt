@@ -237,19 +237,30 @@ class GroupDetailViewModel(
         }
     }
 
-    fun record(transfer: Transfer) {
+    /**
+     * Records a settlement payment. Amount, date and note are all caller-supplied so the settle-up
+     * sheet can record a partial payment on a chosen date with an optional note; the defaults keep
+     * the common "record this in full, now" case a one-liner.
+     */
+    fun record(
+        from: MemberId,
+        to: MemberId,
+        amount: Money,
+        note: String? = null,
+        paidAt: Long = nowMillis(),
+        tzOffsetMinutes: Int = currentOffsetMinutes(),
+    ) {
         viewModelScope.launch {
-            // paidAt lives on the domain object now — the repository still accepts an explicit
-            // override, but recording always means "now" here, so this is the single source of truth.
             repo.upsertSettlement(
                 groupId,
                 Settlement(
                     SettlementId(newId()),
-                    transfer.from,
-                    transfer.to,
-                    transfer.amount,
-                    paidAt = nowMillis(),
-                    tzOffsetMinutes = currentOffsetMinutes(),
+                    from,
+                    to,
+                    amount,
+                    paidAt = paidAt,
+                    tzOffsetMinutes = tzOffsetMinutes,
+                    note = note?.ifBlank { null },
                 ),
             )
             trySync()

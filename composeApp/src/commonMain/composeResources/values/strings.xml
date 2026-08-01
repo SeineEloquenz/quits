@@ -65,8 +65,11 @@
     <string name="detail_balances_summary">%1$d members</string>
     <string name="detail_add_members_hint">Add members to start splitting.</string>
     <string name="detail_settle_up">Settle up</string>
-    <string name="detail_settle_up_link">%1$d suggested settlements</string>
     <string name="settle_up_none">No outstanding balances — everyone's settled up.</string>
+    <string name="settle_up_all_settled">All settled up</string>
+    <string name="settle_up_suggested">Suggested payments</string>
+    <string name="settle_up_payer_owes">%1$s owes</string>
+    <string name="settle_up_record_title">Record payment</string>
     <string name="settle_up_custom_link">Record a different amount ›</string>
     <string name="settle_up_from">From</string>
     <string name="settle_up_to">To</string>
@@ -116,7 +119,6 @@
     <!-- Member detail -->
     <string name="member_detail_appears_in">Appears in</string>
     <string name="member_detail_no_expenses">Not tied to anything yet.</string>
-    <string name="member_detail_manage">Manage</string>
     <string name="member_detail_status_owes">owes the group</string>
     <string name="member_detail_status_owed">is owed</string>
     <string name="member_detail_status_settled">is settled up</string>

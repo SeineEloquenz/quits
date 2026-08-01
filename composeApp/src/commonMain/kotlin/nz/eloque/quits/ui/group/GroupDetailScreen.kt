@@ -109,7 +109,7 @@ import nz.eloque.quits.resources.detail_no_matches
 import nz.eloque.quits.resources.detail_not_synced
 import nz.eloque.quits.resources.detail_note
 import nz.eloque.quits.resources.detail_search_hint
-import nz.eloque.quits.resources.detail_settle_up_link
+import nz.eloque.quits.resources.detail_settle_up
 import nz.eloque.quits.resources.detail_settlement_row
 import nz.eloque.quits.resources.detail_settlement_title
 import nz.eloque.quits.resources.detail_share_group
@@ -304,6 +304,15 @@ fun GroupDetailScreen(
         floatingActionButton = {
             if (state.members.isNotEmpty()) {
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Only offered when there's actually something to settle.
+                    if (state.transfers.isNotEmpty()) {
+                        FloatingActionButton(
+                            onClick = onSettleUp,
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        ) {
+                            Icon(Icons.Default.SwapHoriz, contentDescription = stringResource(Res.string.detail_settle_up))
+                        }
+                    }
                     FloatingActionButton(
                         onClick = onAddIncome,
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -339,7 +348,6 @@ fun GroupDetailScreen(
                 expanded = balancesExpanded,
                 onToggle = { balancesExpanded = !balancesExpanded },
                 onOpenMember = onOpenMember,
-                onSettleUp = onSettleUp,
                 onAddMember = viewModel::addMember,
             )
 
@@ -519,7 +527,6 @@ private fun BalanceSummary(
     expanded: Boolean,
     onToggle: () -> Unit,
     onOpenMember: (MemberId) -> Unit,
-    onSettleUp: () -> Unit,
     onAddMember: (String) -> Unit,
 ) {
     ElevatedCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onToggle)) {
@@ -554,22 +561,6 @@ private fun BalanceSummary(
                     } else {
                         state.members.forEach { member ->
                             MemberBalanceRow(member = member, onClick = { onOpenMember(member.id) })
-                        }
-
-                        if (state.transfers.isNotEmpty()) {
-                            Spacer(Modifier.height(8.dp))
-                            Row(
-                                Modifier.fillMaxWidth().clickable(onClick = onSettleUp).padding(vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    stringResource(Res.string.detail_settle_up_link, state.transfers.size),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            }
                         }
                     }
 

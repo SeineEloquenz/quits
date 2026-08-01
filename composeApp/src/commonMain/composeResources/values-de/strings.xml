@@ -59,7 +59,6 @@
     <string name="detail_balances_summary">%1$d Mitglieder</string>
     <string name="detail_add_members_hint">Füge Mitglieder hinzu, um aufzuteilen.</string>
     <string name="detail_settle_up">Ausgleichen</string>
-    <string name="detail_settle_up_link">%1$d vorgeschlagene Ausgleiche</string>
     <string name="settle_up_none">Keine offenen Salden — alle sind ausgeglichen.</string>
     <string name="settle_up_custom_link">Anderen Betrag verbuchen ›</string>
     <string name="settle_up_from">Von</string>
@@ -114,7 +113,6 @@
     <!-- Member detail -->
     <string name="member_detail_appears_in">Erscheint in</string>
     <string name="member_detail_no_expenses">Noch mit nichts verknüpft.</string>
-    <string name="member_detail_manage">Verwalten</string>
     <string name="member_detail_status_owes">schuldet der Gruppe</string>
     <string name="member_detail_status_owed">bekommt Geld</string>
     <string name="member_detail_status_settled">ist ausgeglichen</string>
