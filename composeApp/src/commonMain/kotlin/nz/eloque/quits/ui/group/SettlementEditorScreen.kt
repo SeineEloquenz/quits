@@ -237,7 +237,10 @@ fun SettlementEditorScreen(
             )
 
             // Read-only fields; a transparent overlay opens the relevant picker on tap.
-            Row(verticalAlignment = Alignment.Top) {
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Box(Modifier.weight(1f)) {
                     OutlinedTextField(
                         value = formatLocalDate(state.paidAt, state.tzOffsetMinutes),
@@ -249,7 +252,6 @@ fun SettlementEditorScreen(
                     )
                     Box(Modifier.matchParentSize().clickable { showDatePicker = true })
                 }
-                Spacer(Modifier.width(8.dp))
                 Box {
                     OutlinedTextField(
                         value = formatLocalTime(state.paidAt, state.tzOffsetMinutes),

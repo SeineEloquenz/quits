@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -269,10 +268,12 @@ private fun MemberEntryCard(
         ) {
             Column(Modifier.weight(1f)) {
                 AbbreviatingText(row.title, maxLines = 1)
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     categoryDisplay(row.categoryId, categories)?.let { display ->
                         CategoryPill(display)
-                        Spacer(Modifier.width(6.dp))
                     }
                     val meta =
                         if (row.paidByThem.isPositive) {
@@ -289,7 +290,6 @@ private fun MemberEntryCard(
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     if (!row.note.isNullOrBlank()) {
-                        Spacer(Modifier.width(6.dp))
                         Icon(
                             Icons.AutoMirrored.Filled.Notes,
                             contentDescription = stringResource(Res.string.detail_note),
@@ -298,7 +298,6 @@ private fun MemberEntryCard(
                         )
                     }
                     if (!row.splitSupported) {
-                        Spacer(Modifier.width(6.dp))
                         Icon(
                             Icons.Default.Info,
                             contentDescription = stringResource(Res.string.detail_split_unsupported),

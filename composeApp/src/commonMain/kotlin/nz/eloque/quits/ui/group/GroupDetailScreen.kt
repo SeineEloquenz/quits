@@ -499,14 +499,16 @@ private fun SettlementRowCard(
         ) {
             Column(Modifier.weight(1f)) {
                 AbbreviatingText(stringResource(Res.string.detail_settlement_title), maxLines = 1)
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     Icon(
                         Icons.Default.SwapHoriz,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(14.dp),
                     )
-                    Spacer(Modifier.width(6.dp))
                     Text(
                         stringResource(Res.string.detail_settlement_row, row.from, row.to),
                         style = MaterialTheme.typography.bodySmall,
@@ -594,10 +596,12 @@ private fun EntryRowCard(
         ) {
             Column(Modifier.weight(1f)) {
                 AbbreviatingText(entry.title, maxLines = 1)
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     categoryDisplay(entry.categoryId, categories)?.let { display ->
                         CategoryPill(display)
-                        Spacer(Modifier.width(6.dp))
                     }
                     Text(
                         stringResource(entry.kind.payerFeedRes(), entry.paidBy),
@@ -608,7 +612,6 @@ private fun EntryRowCard(
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     if (!entry.note.isNullOrBlank()) {
-                        Spacer(Modifier.width(6.dp))
                         Icon(
                             Icons.AutoMirrored.Filled.Notes,
                             contentDescription = stringResource(Res.string.detail_note),
@@ -617,7 +620,6 @@ private fun EntryRowCard(
                         )
                     }
                     if (!entry.splitSupported) {
-                        Spacer(Modifier.width(6.dp))
                         Icon(
                             Icons.Default.Info,
                             contentDescription = stringResource(Res.string.detail_split_unsupported),

@@ -1,10 +1,9 @@
 package nz.eloque.quits.ui.category
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -57,10 +56,10 @@ fun CategoryPill(
     Surface(shape = MaterialTheme.shapes.small, color = display.color.copy(alpha = 0.15f), modifier = modifier) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
         ) {
             Icon(display.icon, contentDescription = null, tint = display.color, modifier = Modifier.size(14.dp))
-            Spacer(Modifier.width(4.dp))
             Text(
                 display.name,
                 style = MaterialTheme.typography.labelSmall,

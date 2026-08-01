@@ -277,17 +277,18 @@ private fun StatBarRow(
     val display = if (bar.memberId == null) categoryDisplay(bar.categoryId, categories) else null
     val barColor = display?.color ?: MaterialTheme.colorScheme.primary
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             when {
                 bar.memberId != null -> {
                     MemberAvatar(name = bar.label ?: "?", id = bar.memberId, size = 28.dp)
-                    Spacer(Modifier.width(10.dp))
                     Text(bar.label ?: "?", Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
 
                 display != null -> {
                     Icon(display.icon, contentDescription = null, tint = display.color, modifier = Modifier.size(22.dp))
-                    Spacer(Modifier.width(10.dp))
                     Text(display.name, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
 

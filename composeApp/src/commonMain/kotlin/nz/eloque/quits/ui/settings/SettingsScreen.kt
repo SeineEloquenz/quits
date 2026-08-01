@@ -2,6 +2,7 @@ package nz.eloque.quits.ui.settings
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -107,6 +108,7 @@ private fun AdvancedSection(content: @Composable () -> Unit) {
         Column(Modifier.fillMaxWidth()) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -117,7 +119,7 @@ private fun AdvancedSection(content: @Composable () -> Unit) {
                 Text(
                     text = stringResource(Res.string.settings_advanced),
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(start = 16.dp).weight(1f),
+                    modifier = Modifier.weight(1f),
                 )
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,

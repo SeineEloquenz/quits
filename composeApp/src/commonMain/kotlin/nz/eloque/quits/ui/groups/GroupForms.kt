@@ -1,12 +1,12 @@
 package nz.eloque.quits.ui.groups
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -76,7 +76,10 @@ fun JoinGroupForm(
     var joinCode by remember { mutableStateOf("") }
 
     Column(modifier.padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             OutlinedTextField(
                 value = joinCode,
                 onValueChange = {
@@ -88,7 +91,6 @@ fun JoinGroupForm(
                 isError = error != null,
                 modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.width(12.dp))
             Button(
                 onClick = { onJoin(joinCode) },
                 enabled = joinCode.isNotBlank(),

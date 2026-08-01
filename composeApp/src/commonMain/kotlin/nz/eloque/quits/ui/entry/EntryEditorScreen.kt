@@ -256,7 +256,10 @@ fun EntryEditorScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     // Read-only fields; a transparent overlay opens the relevant picker on tap.
-                    Row(verticalAlignment = Alignment.Top) {
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         Box(Modifier.weight(1f)) {
                             OutlinedTextField(
                                 value = formatLocalDate(state.spentAt, state.tzOffsetMinutes),
@@ -268,7 +271,6 @@ fun EntryEditorScreen(
                             )
                             Box(Modifier.matchParentSize().clickable { showDatePicker = true })
                         }
-                        Spacer(Modifier.width(8.dp))
                         Box {
                             OutlinedTextField(
                                 value = formatLocalTime(state.spentAt, state.tzOffsetMinutes),
@@ -355,9 +357,11 @@ fun EntryEditorScreen(
                                 color = MaterialTheme.colorScheme.outline,
                             )
                             Spacer(Modifier.height(8.dp))
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                                state.members.forEachIndexed { index, member ->
-                                    if (index > 0) Spacer(Modifier.width(12.dp))
+                            Row(
+                                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                state.members.forEach { member ->
                                     MemberChip(
                                         member = member,
                                         selected = member.id in state.equalSelected,
@@ -453,9 +457,11 @@ fun EntryEditorScreen(
                 Column(Modifier.padding(16.dp)) {
                     when (state.payerMode) {
                         PayerMode.EQUAL -> {
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                                state.members.forEachIndexed { index, member ->
-                                    if (index > 0) Spacer(Modifier.width(12.dp))
+                            Row(
+                                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                state.members.forEach { member ->
                                     MemberChip(
                                         member = member,
                                         selected = member.id in state.payerSelected,
@@ -632,10 +638,10 @@ private fun CategoryChip(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
         ) {
             Icon(display.icon, contentDescription = null, tint = display.color, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
             Text(display.name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
         }
     }
@@ -928,7 +934,10 @@ private fun ItemizedEditor(
 
     OutlinedCard(Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Column(Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 OutlinedTextField(
                     value = draftLabel,
                     onValueChange = onDraftLabel,
@@ -937,7 +946,6 @@ private fun ItemizedEditor(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.weight(1f).focusRequester(labelFocus),
                 )
-                Spacer(Modifier.width(8.dp))
                 OutlinedTextField(
                     value = draftAmount,
                     onValueChange = onDraftAmount,
@@ -950,13 +958,16 @@ private fun ItemizedEditor(
                 )
             }
             Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
                 Text(
                     stringResource(Res.string.editor_item_shared_by),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.outline,
                 )
-                Spacer(Modifier.weight(1f))
                 TextButton(onClick = onToggleAll, contentPadding = PaddingValues(horizontal = 8.dp)) {
                     Text(
                         stringResource(

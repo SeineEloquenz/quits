@@ -265,9 +265,10 @@ private fun ParticipantRow(row: EntryParticipantRow) {
     Row(
         Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         MemberAvatar(name = row.name, id = row.id, size = 32.dp)
-        Text(row.name, Modifier.weight(1f).padding(start = 12.dp))
+        Text(row.name, Modifier.weight(1f))
         MoneyText(row.amount)
     }
 }
@@ -277,8 +278,9 @@ private fun ItemRow(item: EntryItemRow) {
     Row(
         Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+        Column(Modifier.weight(1f)) {
             Text(item.label.ifEmpty { stringResource(Res.string.editor_item_label) })
             Text(
                 item.participants.joinToString(", "),
