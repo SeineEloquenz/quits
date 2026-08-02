@@ -10,3 +10,8 @@ jobs:
   # Reuses the shared workflow from github:SeineEloquenz/ci.
   nix:
     uses: SeineEloquenz/ci/.github/workflows/nix-ci.yml@main
+    permissions:
+      contents: read
+      packages: write
+    with:
+      images: '["server-image"]'
