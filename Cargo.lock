@@ -1530,7 +1530,7 @@ dependencies = [
 
 [[package]]
 name = "quits-server"
-version = "0.5.1"
+version = "0.8.0"
 dependencies = [
  "axum",
  "base64 0.23.0",
