@@ -26,6 +26,8 @@
     <string name="cd_delete">%1$s löschen</string>
     <string name="cd_menu">Gruppenmenü öffnen</string>
     <string name="cd_more">Weitere Optionen</string>
+    <string name="cd_open_menu">Aktionen öffnen</string>
+    <string name="cd_close_menu">Aktionen schließen</string>
     <string name="cd_search">Aktivität durchsuchen</string>
     <string name="cd_clear_search">Suche löschen</string>
 

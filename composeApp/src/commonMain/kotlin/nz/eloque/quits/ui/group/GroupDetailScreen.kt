@@ -1,8 +1,15 @@
 package nz.eloque.quits.ui.group
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,7 +52,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -56,7 +62,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -69,6 +77,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -91,8 +102,10 @@ import nz.eloque.quits.resources.action_copy
 import nz.eloque.quits.resources.action_copy_link
 import nz.eloque.quits.resources.action_share_link
 import nz.eloque.quits.resources.cd_clear_search
+import nz.eloque.quits.resources.cd_close_menu
 import nz.eloque.quits.resources.cd_menu
 import nz.eloque.quits.resources.cd_more
+import nz.eloque.quits.resources.cd_open_menu
 import nz.eloque.quits.resources.cd_search
 import nz.eloque.quits.resources.detail_add_expense
 import nz.eloque.quits.resources.detail_add_income
@@ -169,6 +182,7 @@ fun GroupDetailScreen(
     var menuExpanded by remember(groupId) { mutableStateOf(false) }
     var showLeave by remember(groupId) { mutableStateOf(false) }
     var showSearch by remember(groupId) { mutableStateOf(false) }
+    var fabExpanded by remember(groupId) { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(syncStatus) {
@@ -304,26 +318,54 @@ fun GroupDetailScreen(
         floatingActionButton = {
             if (state.members.isNotEmpty()) {
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Only offered when there's actually something to settle.
-                    if (state.transfers.isNotEmpty()) {
-                        FloatingActionButton(
-                            onClick = onSettleUp,
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        ) {
-                            Icon(Icons.Default.SwapHoriz, contentDescription = stringResource(Res.string.detail_settle_up))
+                    // Speed dial: the main FAB toggles open to reveal the actions, primary (Add expense)
+                    // nearest the thumb. Settle-up only appears when there's something to settle.
+                    AnimatedVisibility(
+                        visible = fabExpanded,
+                        enter = fadeIn() + expandVertically(expandFrom = Alignment.Bottom),
+                        exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom),
+                    ) {
+                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            if (state.transfers.isNotEmpty()) {
+                                SpeedDialItem(
+                                    label = stringResource(Res.string.detail_settle_up),
+                                    icon = Icons.Default.SwapHoriz,
+                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                    onClick = {
+                                        fabExpanded = false
+                                        onSettleUp()
+                                    },
+                                )
+                            }
+                            SpeedDialItem(
+                                label = stringResource(Res.string.detail_add_income),
+                                icon = Icons.Default.Savings,
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                onClick = {
+                                    fabExpanded = false
+                                    onAddIncome()
+                                },
+                            )
+                            SpeedDialItem(
+                                label = stringResource(Res.string.detail_add_expense),
+                                icon = Icons.Default.Add,
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                onClick = {
+                                    fabExpanded = false
+                                    onAddExpense()
+                                },
+                            )
                         }
                     }
-                    FloatingActionButton(
-                        onClick = onAddIncome,
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    ) {
-                        Icon(Icons.Default.Savings, contentDescription = stringResource(Res.string.detail_add_income))
+                    val fabRotation by animateFloatAsState(if (fabExpanded) 45f else 0f, label = "fabRotation")
+                    FloatingActionButton(onClick = { fabExpanded = !fabExpanded }) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription =
+                                stringResource(if (fabExpanded) Res.string.cd_close_menu else Res.string.cd_open_menu),
+                            modifier = Modifier.rotate(fabRotation),
+                        )
                     }
-                    ExtendedFloatingActionButton(
-                        onClick = onAddExpense,
-                        icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                        text = { Text(stringResource(Res.string.detail_add_expense)) },
-                    )
                 }
             }
         },
@@ -335,86 +377,133 @@ fun GroupDetailScreen(
             return@AppScaffold
         }
 
-        Column(
-            Modifier
-                .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
-                .verticalScroll(rememberScrollState()),
-        ) {
-            Spacer(Modifier.height(8.dp))
+        Box(Modifier.fillMaxSize()) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                Spacer(Modifier.height(8.dp))
 
-            BalanceSummary(
-                state = state,
-                expanded = balancesExpanded,
-                onToggle = { balancesExpanded = !balancesExpanded },
-                onOpenMember = onOpenMember,
-                onAddMember = viewModel::addMember,
-            )
-
-            Spacer(Modifier.height(16.dp))
-            Text(
-                stringResource(Res.string.detail_expenses),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-            Spacer(Modifier.height(4.dp))
-
-            AnimatedVisibility(visible = showSearch) {
-                ActivitySearchBar(
-                    filter = state.filter,
-                    categoryIds = state.categoryIds,
-                    customCategories = state.customCategories,
-                    members = state.members,
-                    onQuery = viewModel::setQuery,
-                    onToggleCategory = viewModel::toggleCategoryFilter,
-                    onToggleMember = viewModel::toggleMemberFilter,
+                BalanceSummary(
+                    state = state,
+                    expanded = balancesExpanded,
+                    onToggle = { balancesExpanded = !balancesExpanded },
+                    onOpenMember = onOpenMember,
+                    onAddMember = viewModel::addMember,
                 )
-            }
 
-            if (state.activity.isEmpty()) {
-                EmptyHint(
-                    when {
-                        state.filter.isActive -> stringResource(Res.string.detail_no_matches)
-                        state.members.isEmpty() -> stringResource(Res.string.detail_add_members_first)
-                        else -> stringResource(Res.string.detail_expenses_empty)
-                    },
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    stringResource(Res.string.detail_expenses),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
-            } else {
-                Column(Modifier.padding(horizontal = 16.dp)) {
-                    var lastDayLabel: String? = null
-                    state.activity.forEach { item ->
-                        val dayLabel = dayGroupLabel(item.timestamp, item.offsetMinutes)
-                        if (dayLabel != lastDayLabel) {
-                            if (lastDayLabel != null) Spacer(Modifier.height(8.dp))
-                            Text(
-                                dayLabel,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.padding(bottom = 4.dp),
-                            )
-                            lastDayLabel = dayLabel
-                        }
-                        when (item) {
-                            is ActivityItem.EntryItem -> {
-                                val entry = item.row
-                                EntryRowCard(
-                                    entry = entry,
-                                    categories = state.customCategories,
-                                    onClick = { onOpenEntry(entry.id) },
+                Spacer(Modifier.height(4.dp))
+
+                AnimatedVisibility(visible = showSearch) {
+                    ActivitySearchBar(
+                        filter = state.filter,
+                        categoryIds = state.categoryIds,
+                        customCategories = state.customCategories,
+                        members = state.members,
+                        onQuery = viewModel::setQuery,
+                        onToggleCategory = viewModel::toggleCategoryFilter,
+                        onToggleMember = viewModel::toggleMemberFilter,
+                    )
+                }
+
+                if (state.activity.isEmpty()) {
+                    EmptyHint(
+                        when {
+                            state.filter.isActive -> stringResource(Res.string.detail_no_matches)
+                            state.members.isEmpty() -> stringResource(Res.string.detail_add_members_first)
+                            else -> stringResource(Res.string.detail_expenses_empty)
+                        },
+                    )
+                } else {
+                    Column(Modifier.padding(horizontal = 16.dp)) {
+                        var lastDayLabel: String? = null
+                        state.activity.forEach { item ->
+                            val dayLabel = dayGroupLabel(item.timestamp, item.offsetMinutes)
+                            if (dayLabel != lastDayLabel) {
+                                if (lastDayLabel != null) Spacer(Modifier.height(8.dp))
+                                Text(
+                                    dayLabel,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    modifier = Modifier.padding(bottom = 4.dp),
                                 )
+                                lastDayLabel = dayLabel
                             }
+                            when (item) {
+                                is ActivityItem.EntryItem -> {
+                                    val entry = item.row
+                                    EntryRowCard(
+                                        entry = entry,
+                                        categories = state.customCategories,
+                                        onClick = { onOpenEntry(entry.id) },
+                                    )
+                                }
 
-                            is ActivityItem.SettlementItem -> {
-                                val settlement = item.row
-                                SettlementRowCard(settlement, onClick = { onOpenSettlement(settlement.id) })
+                                is ActivityItem.SettlementItem -> {
+                                    val settlement = item.row
+                                    SettlementRowCard(settlement, onClick = { onOpenSettlement(settlement.id) })
+                                }
                             }
+                            Spacer(Modifier.height(8.dp))
                         }
-                        Spacer(Modifier.height(8.dp))
                     }
                 }
+                Spacer(Modifier.height(88.dp)) // room for the FAB
             }
-            Spacer(Modifier.height(88.dp)) // room for the FAB
+
+            // Tap-outside scrim: dims content and dismisses the open speed dial. Sits above the
+            // list but below the FAB slot, so the FAB and its expanded items stay bright.
+            AnimatedVisibility(
+                visible = fabExpanded,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.matchParentSize(),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) { fabExpanded = false }
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
+                )
+            }
+        }
+    }
+}
+
+/** One expanded speed-dial action: a label chip beside a small FAB, centered under the main FAB. */
+@Composable
+private fun SpeedDialItem(
+    label: String,
+    icon: ImageVector,
+    containerColor: Color,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.padding(end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Surface(shape = MaterialTheme.shapes.small, tonalElevation = 3.dp, shadowElevation = 3.dp) {
+            Text(
+                label,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+        SmallFloatingActionButton(onClick = onClick, containerColor = containerColor) {
+            Icon(icon, contentDescription = null)
         }
     }
 }

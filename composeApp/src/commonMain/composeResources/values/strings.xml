@@ -28,6 +28,8 @@
     <string name="cd_delete">Delete %1$s</string>
     <string name="cd_menu">Open groups menu</string>
     <string name="cd_more">More options</string>
+    <string name="cd_open_menu">Open actions</string>
+    <string name="cd_close_menu">Close actions</string>
     <string name="cd_search">Search activity</string>
     <string name="cd_clear_search">Clear search</string>
 
