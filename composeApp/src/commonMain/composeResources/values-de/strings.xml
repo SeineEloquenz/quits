@@ -223,9 +223,17 @@
     <string name="search_currency">Währung suchen</string>
 
     <!-- Errors / notices -->
-    <string name="error_relay_unreachable">Relay nicht erreichbar: %1$s</string>
     <string name="error_member_in_use">Ein Mitglied, das an einem Eintrag oder einem Ausgleich beteiligt ist, kann nicht entfernt werden.</string>
-    <string name="error_sync_failed">Synchronisierung fehlgeschlagen: %1$s</string>
+    <string name="error_sync_unreachable">Der Sync-Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.</string>
+    <string name="error_sync_rate_limited">Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.</string>
+    <string name="error_sync_rate_limited_wait">Zu viele Anfragen. Versuche es in %1$d s erneut.</string>
+    <string name="error_sync_server_busy">Der Sync-Server ist gerade ausgelastet. Versuche es gleich erneut.</string>
+    <string name="error_sync_server_error">Auf dem Sync-Server ist ein Problem aufgetreten. Versuche es gleich erneut.</string>
+    <string name="error_sync_unauthorized">Dieses Gerät ist nicht berechtigt, diese Gruppe zu synchronisieren. Eventuell musst du erneut beitreten.</string>
+    <string name="error_sync_group_gone">Diese geteilte Gruppe existiert auf dem Server nicht mehr.</string>
+    <string name="error_sync_rejected">Der Sync-Server hat die Anfrage abgelehnt. Ein App-Update kann helfen.</string>
+    <string name="error_sync_incompatible">Die Antwort des Servers konnte nicht gelesen werden. Die App muss möglicherweise aktualisiert werden.</string>
+    <string name="error_sync_unexpected">Synchronisierung fehlgeschlagen. Bitte versuche es erneut.</string>
     <string name="rate_cached">Offline - zwischengespeicherter Kurs vom %1$s wird verwendet</string>
     <string name="rate_fetch_failed">Kurs konnte nicht abgerufen werden - bitte manuell eingeben.</string>
     <string name="error_invalid_rate">Gib einen gültigen Wechselkurs zu %1$s ein</string>

@@ -13,15 +13,19 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /** Talks to the relay over HTTP. Payloads are JSON, base64-encoded on the wire. */
 class RelayClient(
@@ -35,69 +39,99 @@ class RelayClient(
 
     private val baseUrl: String get() = settings.relayUrl.trimEnd('/')
 
-    override suspend fun createGroup(lookupId: String): GroupHandle {
-        val response =
-            client.post("$baseUrl/v1/groups") {
-                contentType(ContentType.Application.Json)
-                settings.instanceSecret?.let { header("X-Quits-Instance", it) }
-                setBody(GroupLookupRequest(lookupId))
-            }
-        val body: CreateGroupResponse = response.decode()
-        return GroupHandle(body.groupId, body.token)
-    }
+    override suspend fun createGroup(lookupId: String): GroupHandle =
+        relayCall {
+            val response =
+                client.post("$baseUrl/v1/groups") {
+                    contentType(ContentType.Application.Json)
+                    settings.instanceSecret?.let { header("X-Quits-Instance", it) }
+                    setBody(GroupLookupRequest(lookupId))
+                }
+            val body: CreateGroupResponse = response.decode()
+            GroupHandle(body.groupId, body.token)
+        }
 
-    override suspend fun joinGroup(lookupId: String): GroupHandle? {
-        val response: HttpResponse =
-            client.post("$baseUrl/v1/groups/join") {
-                contentType(ContentType.Application.Json)
-                setBody(GroupLookupRequest(lookupId))
-            }
-        if (response.status == HttpStatusCode.NotFound) return null
-        val body: JoinGroupResponse = response.decode()
-        return GroupHandle(body.groupId, body.token)
-    }
+    override suspend fun joinGroup(lookupId: String): GroupHandle? =
+        relayCall {
+            val response: HttpResponse =
+                client.post("$baseUrl/v1/groups/join") {
+                    contentType(ContentType.Application.Json)
+                    setBody(GroupLookupRequest(lookupId))
+                }
+            // No such invite code is an expected outcome, not a failure, so it stays a null return
+            // rather than a GroupGone error.
+            if (response.status == HttpStatusCode.NotFound) return@relayCall null
+            val body: JoinGroupResponse = response.decode()
+            GroupHandle(body.groupId, body.token)
+        }
 
     override suspend fun push(
         remoteId: String,
         token: String,
         records: List<EncryptedRecord>,
-    ): PushResult {
-        val response =
-            client.post("$baseUrl/v1/groups/$remoteId/changes") {
-                bearerAuth(token)
-                contentType(ContentType.Application.Json)
-                setBody(PushRequestDto(records.map { it.toWire() }))
-            }
-        val body: PushResponseDto = response.decode()
-        return PushResult(body.seq, body.applied, body.rejected)
-    }
+    ): PushResult =
+        relayCall {
+            val response =
+                client.post("$baseUrl/v1/groups/$remoteId/changes") {
+                    bearerAuth(token)
+                    contentType(ContentType.Application.Json)
+                    setBody(PushRequestDto(records.map { it.toWire() }))
+                }
+            val body: PushResponseDto = response.decode()
+            PushResult(body.seq, body.applied, body.rejected)
+        }
 
     override suspend fun pull(
         remoteId: String,
         token: String,
         since: Long,
-    ): PullResult {
-        val response =
-            client.get("$baseUrl/v1/groups/$remoteId/changes") {
-                bearerAuth(token)
-                parameter("since", since)
-            }
-        val body: PullResponseDto = response.decode()
-        return PullResult(body.records.map { it.toRecord() }, body.seq)
-    }
+    ): PullResult =
+        relayCall {
+            val response =
+                client.get("$baseUrl/v1/groups/$remoteId/changes") {
+                    bearerAuth(token)
+                    parameter("since", since)
+                }
+            val body: PullResponseDto = response.decode()
+            PullResult(body.records.map { it.toRecord() }, body.seq)
+        }
 
     /**
-     * Deserializes a 2xx body as [T]; on any other status raises a [RelayException] carrying the
-     * relay's own `{"error": …}` text. Without this, a non-2xx body (e.g. `{"error":"forbidden"}`)
-     * is fed to [T]'s deserializer and fails as a misleading "missing fields" error.
+     * Runs [block] and re-expresses every failure as a [SyncError]
+     */
+    private inline fun <T> relayCall(block: () -> T): T =
+        try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: SyncError) {
+            throw e
+        } catch (e: Exception) {
+            throw SyncError.Unreachable(e)
+        }
+
+    /**
+     * Deserializes a 2xx body as [T]. A non-2xx status becomes the matching [SyncError]
      */
     private suspend inline fun <reified T> HttpResponse.decode(): T {
-        if (status.isSuccess()) return body()
+        if (status.isSuccess()) {
+            return try {
+                body()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                throw SyncError.Protocol(e)
+            }
+        }
         val message =
             runCatching { body<RelayErrorResponse>().error }.getOrNull()
                 ?: runCatching { bodyAsText() }.getOrNull()?.take(200)
-        throw RelayException(status.value, message?.takeIf { it.isNotBlank() } ?: status.description)
+        throw syncErrorForStatus(status.value, retryAfterHint(), message?.takeIf { it.isNotBlank() })
     }
+
+    /** Parses the `Retry-After` header (delta-seconds form, as the relay emits) into a [Duration]. */
+    private fun HttpResponse.retryAfterHint(): Duration? =
+        headers[HttpHeaders.RetryAfter]?.trim()?.toLongOrNull()?.takeIf { it >= 0 }?.seconds
 
     @OptIn(ExperimentalEncodingApi::class)
     private fun EncryptedRecord.toWire(): WireRecordIn =

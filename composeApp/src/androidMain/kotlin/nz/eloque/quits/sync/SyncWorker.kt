@@ -9,6 +9,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import nz.eloque.quits.data.sync.SyncEngine
+import nz.eloque.quits.data.sync.SyncRunResult
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.concurrent.TimeUnit
@@ -22,7 +23,12 @@ class SyncWorker(
 
     override suspend fun doWork(): Result =
         try {
-            if (engine.syncAll()) Result.success() else Result.retry()
+            when (engine.syncAll()) {
+                SyncRunResult.Success -> Result.success()
+                SyncRunResult.Retriable -> Result.retry()
+                // Nothing transient failed — retrying the same work won't help, so don't.
+                SyncRunResult.Permanent -> Result.failure()
+            }
         } catch (e: Exception) {
             Result.retry()
         }

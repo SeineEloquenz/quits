@@ -30,11 +30,10 @@ import nz.eloque.quits.domain.Settlement
 import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.domain.Transfer
 import nz.eloque.quits.resources.Res
-import nz.eloque.quits.resources.error_relay_unreachable
-import nz.eloque.quits.resources.error_sync_failed
 import nz.eloque.quits.resources.export_empty
 import nz.eloque.quits.ui.category.INCOME_PRESET_CATEGORIES
 import nz.eloque.quits.ui.category.PRESET_CATEGORIES
+import nz.eloque.quits.ui.sync.toSyncMessage
 import nz.eloque.quits.util.FileExporter
 import nz.eloque.quits.util.csvFileName
 import nz.eloque.quits.util.currentOffsetMinutes
@@ -185,7 +184,7 @@ class GroupDetailViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _syncStatus.value = SyncStatus.Failed(getString(Res.string.error_relay_unreachable, e.message ?: ""))
+                _syncStatus.value = SyncStatus.Failed(e.toSyncMessage())
             }
         }
     }
@@ -285,7 +284,7 @@ class GroupDetailViewModel(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            _syncStatus.value = SyncStatus.Failed(getString(Res.string.error_sync_failed, e.message ?: ""))
+            _syncStatus.value = SyncStatus.Failed(e.toSyncMessage())
         }
     }
 }

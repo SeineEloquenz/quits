@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import nz.eloque.quits.data.sync.SyncEngine
+import nz.eloque.quits.data.sync.SyncRunResult
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import platform.BackgroundTasks.BGAppRefreshTask
@@ -44,8 +45,8 @@ object IosBackgroundSync : KoinComponent {
         schedule() // chain the next refresh
         val job =
             scope.launch {
-                val ok = runCatching { engine.syncAll() }.getOrDefault(false)
-                task.setTaskCompletedWithSuccess(ok)
+                val result = runCatching { engine.syncAll() }.getOrDefault(SyncRunResult.Retriable)
+                task.setTaskCompletedWithSuccess(result == SyncRunResult.Success)
             }
         task.expirationHandler = { job.cancel() }
     }

@@ -233,9 +233,17 @@
     <string name="search_currency">Search currency</string>
 
     <!-- Errors / notices -->
-    <string name="error_relay_unreachable">Couldn't reach the relay: %1$s</string>
     <string name="error_member_in_use">Can't remove a member who's in an entry or settlement.</string>
-    <string name="error_sync_failed">Sync failed: %1$s</string>
+    <string name="error_sync_unreachable">Couldn't reach the sync server. Check your connection and try again.</string>
+    <string name="error_sync_rate_limited">Too many requests. Please wait a moment and try again.</string>
+    <string name="error_sync_rate_limited_wait">Too many requests. Try again in %1$d s.</string>
+    <string name="error_sync_server_busy">The sync server is busy right now. Try again shortly.</string>
+    <string name="error_sync_server_error">The sync server ran into a problem. Try again shortly.</string>
+    <string name="error_sync_unauthorized">This device isn't authorized to sync this group. You may need to rejoin it.</string>
+    <string name="error_sync_group_gone">This shared group no longer exists on the server.</string>
+    <string name="error_sync_rejected">The sync server rejected the request. Updating the app may help.</string>
+    <string name="error_sync_incompatible">Couldn't read the server's response. The app may need updating.</string>
+    <string name="error_sync_unexpected">Sync failed. Please try again.</string>
     <string name="rate_cached">Offline — using cached rate from %1$s</string>
     <string name="rate_fetch_failed">Couldn't fetch a rate - enter it manually.</string>
     <string name="error_invalid_rate">Enter a valid exchange rate to %1$s</string>

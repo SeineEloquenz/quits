@@ -18,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalEncodingApi::class)
 class RelayClientTest {
@@ -57,19 +58,62 @@ class RelayClientTest {
         }
 
     @Test
-    fun create_group_surfaces_relay_error_body() =
+    fun bad_request_carries_server_detail() =
         runTest {
             val relay =
                 client {
                     respond(
-                        """{"error":"forbidden"}""",
-                        HttpStatusCode.Forbidden,
+                        """{"error":"group already exists"}""",
+                        HttpStatusCode.BadRequest,
                         headersOf(HttpHeaders.ContentType, "application/json"),
                     )
                 }
-            val error = assertFailsWith<RelayException> { relay.createGroup("look-1") }
-            assertEquals(403, error.status)
-            assertEquals("forbidden", error.message)
+            val error = assertFailsWith<SyncError.BadRequest> { relay.createGroup("look-1") }
+            assertEquals("group already exists", error.detail)
+        }
+
+    @Test
+    fun forbidden_maps_to_unauthorized() =
+        runTest {
+            val relay = client { respond("""{"error":"forbidden"}""", HttpStatusCode.Forbidden) }
+            assertFailsWith<SyncError.Unauthorized> { relay.createGroup("look-1") }
+        }
+
+    @Test
+    fun rate_limited_parses_retry_after() =
+        runTest {
+            val relay =
+                client {
+                    respond(
+                        "Too Many Requests! Wait for 30s",
+                        HttpStatusCode.TooManyRequests,
+                        headersOf(HttpHeaders.RetryAfter, "30"),
+                    )
+                }
+            val error = assertFailsWith<SyncError.RateLimited> { relay.createGroup("look-1") }
+            assertEquals(30.seconds, error.retryAfter)
+        }
+
+    @Test
+    fun capacity_maps_to_server_unavailable() =
+        runTest {
+            val relay = client { respond("""{"error":"server at capacity"}""", HttpStatusCode.ServiceUnavailable) }
+            assertFailsWith<SyncError.ServerUnavailable> { relay.createGroup("look-1") }
+        }
+
+    @Test
+    fun transport_failure_maps_to_unreachable() =
+        runTest {
+            val relay = client { throw RuntimeException("connection refused") }
+            assertFailsWith<SyncError.Unreachable> { relay.createGroup("look-1") }
+        }
+
+    @Test
+    fun push_surfaces_group_gone_on_404() =
+        runTest {
+            val relay = client { respond("""{"error":"not found"}""", HttpStatusCode.NotFound) }
+            val record = EncryptedRecord("m1", updatedAt = 1, deviceId = "dev", deleted = false, ciphertext = byteArrayOf(1))
+            assertFailsWith<SyncError.GroupGone> { relay.push("rid", "tok", listOf(record)) }
         }
 
     @Test

@@ -75,19 +75,31 @@ class SyncEngine(
             SyncInfo(code = it?.code, lastSyncedAt = it?.lastSyncedAt?.takeIf { ts -> ts > 0 })
         }
 
-    /** Syncs every shared group; returns false if any group failed (so the worker can retry). */
-    suspend fun syncAll(): Boolean {
-        var ok = true
+    /**
+     * Syncs every shared group
+     */
+    suspend fun syncAll(): SyncRunResult {
+        var sawRetriable = false
+        var sawPermanent = false
         db.groupSyncDao().all().forEach { handle ->
             try {
                 sync(GroupId(handle.groupId))
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
-                ok = false
+            } catch (e: SyncError) {
+                if (e.retriable) sawRetriable = true else sawPermanent = true
+                Logger.w(e) { "sync of ${handle.groupId} failed: ${e.message}" }
+            } catch (e: Exception) {
+                // An unforeseen (non-SyncError) failure is most likely transient; let it retry.
+                sawRetriable = true
+                Logger.w(e) { "sync of ${handle.groupId} failed unexpectedly" }
             }
         }
-        return ok
+        return when {
+            sawRetriable -> SyncRunResult.Retriable
+            sawPermanent -> SyncRunResult.Permanent
+            else -> SyncRunResult.Success
+        }
     }
 
     /** Pushes local changes then pulls remote ones. No-op (false) for a local-only group. */
@@ -256,6 +268,11 @@ class SyncEngine(
             record.updatedAt > local.updatedAt ||
             (record.updatedAt == local.updatedAt && record.deviceId > local.deviceId)
 }
+
+/**
+ * The aggregate outcome of syncing every shared group
+ */
+enum class SyncRunResult { Success, Retriable, Permanent }
 
 /**
  * Best-effort [sync][SyncEngine.sync] of [groupId]: the change that triggered it is already saved

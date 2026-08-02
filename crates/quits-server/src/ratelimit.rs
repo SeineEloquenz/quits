@@ -9,16 +9,15 @@ use std::time::Duration;
 
 use axum::extract::ConnectInfo;
 use axum::http::Request;
-use governor::clock::QuantaInstant;
-use governor::middleware::NoOpMiddleware;
+use governor::middleware::StateInformationMiddleware;
 use tower_governor::GovernorError;
 use tower_governor::governor::{GovernorConfig, GovernorConfigBuilder};
 use tower_governor::key_extractor::KeyExtractor;
 
 use crate::config::Config;
 
-/// Concrete config type once our key extractor is plugged in; named so builders can return it.
-pub type IpGovernorConfig = GovernorConfig<ClientIpExtractor, NoOpMiddleware<QuantaInstant>>;
+/// Concrete config type once our key extractor is plugged in
+pub type IpGovernorConfig = GovernorConfig<ClientIpExtractor, StateInformationMiddleware>;
 
 /// Requests whose IP can't be determined all share this bucket rather than bypassing limits.
 const FALLBACK_IP: IpAddr = IpAddr::V4(Ipv4Addr::UNSPECIFIED);
@@ -74,6 +73,7 @@ pub fn global_config(config: &Config) -> Option<Arc<IpGovernorConfig>> {
         .period(Duration::from_millis(config.rate_replenish_ms.max(1)))
         .burst_size(config.rate_burst)
         .key_extractor(extractor(config))
+        .use_headers()
         .finish()
         .map(Arc::new)
 }
@@ -87,6 +87,7 @@ pub fn create_config(config: &Config) -> Option<Arc<IpGovernorConfig>> {
         .period(Duration::from_secs(config.create_replenish_secs.max(1)))
         .burst_size(config.create_burst)
         .key_extractor(extractor(config))
+        .use_headers()
         .finish()
         .map(Arc::new)
 }

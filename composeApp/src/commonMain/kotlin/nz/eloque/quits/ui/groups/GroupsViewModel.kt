@@ -24,8 +24,8 @@ import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.resources.Res
-import nz.eloque.quits.resources.error_relay_unreachable
 import nz.eloque.quits.resources.groups_join_not_found
+import nz.eloque.quits.ui.sync.toSyncMessage
 import nz.eloque.quits.util.newId
 import org.jetbrains.compose.resources.getString
 
@@ -138,7 +138,7 @@ class GroupsViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _error.value = getString(Res.string.error_relay_unreachable, e.message ?: "")
+                _error.value = e.toSyncMessage()
             }
         }
     }
