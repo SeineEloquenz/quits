@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Search
@@ -86,7 +87,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.input.AbbreviatingText
-import nz.eloque.compose_kit.input.SubmittableTextField
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.data.invite.InviteLink
 import nz.eloque.quits.domain.Category
@@ -97,6 +97,7 @@ import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.domain.isIncome
 import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.action_add
 import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_copy
 import nz.eloque.quits.resources.action_copy_link
@@ -139,6 +140,7 @@ import nz.eloque.quits.resources.group_leave_confirm
 import nz.eloque.quits.resources.group_leave_menu
 import nz.eloque.quits.resources.group_leave_title
 import nz.eloque.quits.resources.group_unarchive_menu
+import nz.eloque.quits.resources.label_name
 import nz.eloque.quits.resources.label_share_code
 import nz.eloque.quits.resources.stats_title
 import nz.eloque.quits.resources.stats_uncategorized
@@ -183,6 +185,7 @@ fun GroupDetailScreen(
     var showLeave by remember(groupId) { mutableStateOf(false) }
     var showSearch by remember(groupId) { mutableStateOf(false) }
     var fabExpanded by remember(groupId) { mutableStateOf(false) }
+    var addingMember by remember(groupId) { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(syncStatus) {
@@ -209,6 +212,16 @@ fun GroupDetailScreen(
                 viewModel.leave()
             },
             onDismiss = { showLeave = false },
+        )
+    }
+
+    if (addingMember) {
+        AddMemberDialog(
+            onDismiss = { addingMember = false },
+            onConfirm = { name ->
+                addingMember = false
+                viewModel.addMember(name)
+            },
         )
     }
 
@@ -316,10 +329,12 @@ fun GroupDetailScreen(
             }
         },
         floatingActionButton = {
-            if (state.members.isNotEmpty()) {
+            if (state.loaded) {
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Speed dial: the main FAB toggles open to reveal the actions, primary (Add expense)
-                    // nearest the thumb. Settle-up only appears when there's something to settle.
+                    // Speed dial: the main FAB toggles open to reveal contextual actions, primary (Add
+                    // expense) nearest the thumb. Settle-up only when there's something to settle;
+                    // expense/income only once there are members — Add member is always offered so a
+                    // brand-new group can still add its first person.
                     AnimatedVisibility(
                         visible = fabExpanded,
                         enter = fadeIn() + expandVertically(expandFrom = Alignment.Bottom),
@@ -338,23 +353,34 @@ fun GroupDetailScreen(
                                 )
                             }
                             SpeedDialItem(
-                                label = stringResource(Res.string.detail_add_income),
-                                icon = Icons.Default.Savings,
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                label = stringResource(Res.string.detail_add_member),
+                                icon = Icons.Default.PersonAdd,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 onClick = {
                                     fabExpanded = false
-                                    onAddIncome()
+                                    addingMember = true
                                 },
                             )
-                            SpeedDialItem(
-                                label = stringResource(Res.string.detail_add_expense),
-                                icon = Icons.Default.Add,
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                onClick = {
-                                    fabExpanded = false
-                                    onAddExpense()
-                                },
-                            )
+                            if (state.members.isNotEmpty()) {
+                                SpeedDialItem(
+                                    label = stringResource(Res.string.detail_add_income),
+                                    icon = Icons.Default.Savings,
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    onClick = {
+                                        fabExpanded = false
+                                        onAddIncome()
+                                    },
+                                )
+                                SpeedDialItem(
+                                    label = stringResource(Res.string.detail_add_expense),
+                                    icon = Icons.Default.Add,
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    onClick = {
+                                        fabExpanded = false
+                                        onAddExpense()
+                                    },
+                                )
+                            }
                         }
                     }
                     val fabRotation by animateFloatAsState(if (fabExpanded) 45f else 0f, label = "fabRotation")
@@ -391,7 +417,6 @@ fun GroupDetailScreen(
                     expanded = balancesExpanded,
                     onToggle = { balancesExpanded = !balancesExpanded },
                     onOpenMember = onOpenMember,
-                    onAddMember = viewModel::addMember,
                 )
 
                 Spacer(Modifier.height(16.dp))
@@ -618,7 +643,6 @@ private fun BalanceSummary(
     expanded: Boolean,
     onToggle: () -> Unit,
     onOpenMember: (MemberId) -> Unit,
-    onAddMember: (String) -> Unit,
 ) {
     ElevatedCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onToggle)) {
         Column(Modifier.padding(16.dp)) {
@@ -654,15 +678,6 @@ private fun BalanceSummary(
                             MemberBalanceRow(member = member, onClick = { onOpenMember(member.id) })
                         }
                     }
-
-                    Spacer(Modifier.height(8.dp))
-                    HorizontalDivider()
-                    Spacer(Modifier.height(8.dp))
-                    SubmittableTextField(
-                        label = stringResource(Res.string.detail_add_member),
-                        imageVector = Icons.Default.Add,
-                        onSubmit = onAddMember,
-                    )
                 }
             }
         }
@@ -739,6 +754,35 @@ private fun MemberBalanceRow(
         Spacer(Modifier.width(4.dp))
         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
     }
+}
+
+/** Names a new member. The FAB-menu counterpart to what used to be an inline field in the balances card. */
+@Composable
+private fun AddMemberDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.detail_add_member)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(stringResource(Res.string.label_name)) },
+                singleLine = true,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) {
+                Text(stringResource(Res.string.action_add))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
+        },
+    )
 }
 
 /**
