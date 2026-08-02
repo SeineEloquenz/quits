@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FileDownload
@@ -101,6 +102,7 @@ import nz.eloque.quits.resources.action_add
 import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_copy
 import nz.eloque.quits.resources.action_copy_link
+import nz.eloque.quits.resources.action_save
 import nz.eloque.quits.resources.action_share_link
 import nz.eloque.quits.resources.cd_clear_search
 import nz.eloque.quits.resources.cd_close_menu
@@ -139,6 +141,8 @@ import nz.eloque.quits.resources.group_leave_body_shared
 import nz.eloque.quits.resources.group_leave_confirm
 import nz.eloque.quits.resources.group_leave_menu
 import nz.eloque.quits.resources.group_leave_title
+import nz.eloque.quits.resources.group_rename_menu
+import nz.eloque.quits.resources.group_rename_title
 import nz.eloque.quits.resources.group_unarchive_menu
 import nz.eloque.quits.resources.label_name
 import nz.eloque.quits.resources.label_share_code
@@ -186,6 +190,7 @@ fun GroupDetailScreen(
     var showSearch by remember(groupId) { mutableStateOf(false) }
     var fabExpanded by remember(groupId) { mutableStateOf(false) }
     var addingMember by remember(groupId) { mutableStateOf(false) }
+    var showRename by remember(groupId) { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(syncStatus) {
@@ -221,6 +226,17 @@ fun GroupDetailScreen(
             onConfirm = { name ->
                 addingMember = false
                 viewModel.addMember(name)
+            },
+        )
+    }
+
+    if (showRename) {
+        RenameGroupDialog(
+            initial = state.name,
+            onDismiss = { showRename = false },
+            onConfirm = { name ->
+                showRename = false
+                viewModel.rename(name)
             },
         )
     }
@@ -301,6 +317,14 @@ fun GroupDetailScreen(
                         onClick = {
                             menuExpanded = false
                             viewModel.exportCsv()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.group_rename_menu)) },
+                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            showRename = true
                         },
                     )
                     DropdownMenuItem(
@@ -777,6 +801,36 @@ private fun AddMemberDialog(
         confirmButton = {
             TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) {
                 Text(stringResource(Res.string.action_add))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
+        },
+    )
+}
+
+/** Renames the group. Prefilled with the current name; syncs like any other edit. */
+@Composable
+private fun RenameGroupDialog(
+    initial: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var name by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.group_rename_title)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(stringResource(Res.string.label_name)) },
+                singleLine = true,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) {
+                Text(stringResource(Res.string.action_save))
             }
         },
         dismissButton = {

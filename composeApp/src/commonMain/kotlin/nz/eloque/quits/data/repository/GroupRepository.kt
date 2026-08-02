@@ -130,6 +130,14 @@ class GroupRepository(
         db.memberDao().upsert(listOf(existing.copy(name = name, sync = meta())))
     }
 
+    suspend fun renameGroup(
+        groupId: GroupId,
+        name: String,
+    ) {
+        val existing = db.groupDao().byId(groupId.value) ?: return
+        db.groupDao().upsert(existing.copy(name = name, sync = meta()))
+    }
+
     /** Soft-deletes a member, unless they're still referenced by an entry or settlement. */
     suspend fun removeMember(
         groupId: GroupId,

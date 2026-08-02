@@ -98,6 +98,8 @@
     <string name="expense_delete_title">"%1$s" löschen?</string>
     <string name="expense_delete_body">Dies entfernt die Ausgabe für alle in der Gruppe, sobald synchronisiert wurde. Das kann nicht rückgängig gemacht werden.</string>
     <string name="income_delete_body">Dies entfernt die Einnahme für alle in der Gruppe, sobald synchronisiert wurde. Das kann nicht rückgängig gemacht werden.</string>
+    <string name="group_rename_menu">Gruppe umbenennen</string>
+    <string name="group_rename_title">Gruppe umbenennen</string>
     <string name="group_leave_menu">Gruppe verlassen</string>
     <string name="group_archive_menu">Gruppe archivieren</string>
     <string name="group_unarchive_menu">Archivierung aufheben</string>

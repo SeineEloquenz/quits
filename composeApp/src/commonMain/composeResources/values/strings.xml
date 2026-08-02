@@ -108,6 +108,8 @@
     <string name="expense_delete_title">Delete "%1$s"?</string>
     <string name="expense_delete_body">This removes the expense for everyone in the group once synced. This can't be undone.</string>
     <string name="income_delete_body">This removes the income for everyone in the group once synced. This can't be undone.</string>
+    <string name="group_rename_menu">Rename group</string>
+    <string name="group_rename_title">Rename group</string>
     <string name="group_leave_menu">Leave group</string>
     <string name="group_archive_menu">Archive group</string>
     <string name="group_unarchive_menu">Unarchive group</string>

@@ -237,6 +237,15 @@ class GroupDetailViewModel(
         }
     }
 
+    fun rename(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            repo.renameGroup(groupId, trimmed)
+            trySync()
+        }
+    }
+
     /**
      * Records a settlement payment. Amount, date and note are all caller-supplied so the settle-up
      * sheet can record a partial payment on a chosen date with an optional note; the defaults keep
