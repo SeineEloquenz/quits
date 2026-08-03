@@ -1,5 +1,8 @@
 package nz.eloque.quits.ui.groups
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,7 +59,10 @@ fun AddGroupScreen(
             onJoin = viewModel::join,
             error = error,
             onJoinInput = viewModel::clearError,
-            modifier = Modifier,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
         )
     }
 }
