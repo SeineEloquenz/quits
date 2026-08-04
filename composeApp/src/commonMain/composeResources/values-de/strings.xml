@@ -30,6 +30,9 @@
     <string name="cd_close_menu">Aktionen schließen</string>
     <string name="cd_search">Aktivität durchsuchen</string>
     <string name="cd_clear_search">Suche löschen</string>
+    <string name="cd_category_color_option">Farbe %1$d</string>
+    <string name="cd_expanded">Ausgeklappt</string>
+    <string name="cd_collapsed">Eingeklappt</string>
 
     <!-- Groups list -->
     <string name="groups_new_group">Neue Gruppe</string>

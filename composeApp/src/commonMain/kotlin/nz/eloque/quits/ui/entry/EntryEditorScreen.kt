@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -64,6 +66,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -90,6 +95,7 @@ import nz.eloque.quits.resources.category_color
 import nz.eloque.quits.resources.category_delete
 import nz.eloque.quits.resources.category_edit_title
 import nz.eloque.quits.resources.category_icon
+import nz.eloque.quits.resources.cd_category_color_option
 import nz.eloque.quits.resources.editor_add_item
 import nz.eloque.quits.resources.editor_category_name
 import nz.eloque.quits.resources.editor_category_new
@@ -131,6 +137,7 @@ import nz.eloque.quits.ui.category.CategoryDisplay
 import nz.eloque.quits.ui.category.PresetCategory
 import nz.eloque.quits.ui.category.categoryColor
 import nz.eloque.quits.ui.category.categoryIcon
+import nz.eloque.quits.ui.category.categoryIconLabel
 import nz.eloque.quits.ui.category.presetsFor
 import nz.eloque.quits.ui.components.CurrencyPicker
 import nz.eloque.quits.ui.components.LoadingBox
@@ -686,11 +693,16 @@ private fun CategoryDialog(
                 ) {
                     CATEGORY_ICON_KEYS.forEach { key ->
                         val chosen = key == icon
+                        val iconLabel = categoryIconLabel(key)
                         Surface(
                             shape = CircleShape,
                             color = if (chosen) categoryColor(color).copy(alpha = 0.20f) else MaterialTheme.colorScheme.surfaceVariant,
                             border = if (chosen) BorderStroke(2.dp, categoryColor(color)) else null,
-                            modifier = Modifier.size(44.dp).clickable { icon = key },
+                            modifier =
+                                Modifier
+                                    .size(44.dp)
+                                    .selectable(selected = chosen, role = Role.RadioButton) { icon = key }
+                                    .semantics { contentDescription = iconLabel },
                         ) {
                             Icon(
                                 categoryIcon(key),
@@ -712,8 +724,9 @@ private fun CategoryDialog(
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    CATEGORY_COLORS.forEach { c ->
+                    CATEGORY_COLORS.forEachIndexed { index, c ->
                         val chosen = c == color
+                        val colorLabel = stringResource(Res.string.cd_category_color_option, index + 1)
                         Box(
                             Modifier
                                 .size(32.dp)
@@ -724,7 +737,8 @@ private fun CategoryDialog(
                                     color = MaterialTheme.colorScheme.onSurface,
                                     shape = CircleShape,
                                 )
-                                .clickable { color = c },
+                                .selectable(selected = chosen, role = Role.RadioButton) { color = c }
+                                .semantics { contentDescription = colorLabel },
                         )
                     }
                 }
@@ -757,7 +771,7 @@ private fun MemberChip(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier.toggleable(value = selected, role = Role.Checkbox, onValueChange = { onClick() }),
     ) {
         Box {
             MemberAvatar(name = member.name, id = member.id, size = 40.dp)

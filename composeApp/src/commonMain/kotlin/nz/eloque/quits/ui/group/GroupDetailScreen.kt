@@ -84,6 +84,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -106,6 +108,8 @@ import nz.eloque.quits.resources.action_save
 import nz.eloque.quits.resources.action_share_link
 import nz.eloque.quits.resources.cd_clear_search
 import nz.eloque.quits.resources.cd_close_menu
+import nz.eloque.quits.resources.cd_collapsed
+import nz.eloque.quits.resources.cd_expanded
 import nz.eloque.quits.resources.cd_menu
 import nz.eloque.quits.resources.cd_more
 import nz.eloque.quits.resources.cd_open_menu
@@ -668,7 +672,14 @@ private fun BalanceSummary(
     onToggle: () -> Unit,
     onOpenMember: (MemberId) -> Unit,
 ) {
-    ElevatedCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onToggle)) {
+    val stateLabel = stringResource(if (expanded) Res.string.cd_expanded else Res.string.cd_collapsed)
+    ElevatedCard(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .semantics { stateDescription = stateLabel }
+            .clickable(onClick = onToggle),
+    ) {
         Column(Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -147,6 +147,9 @@ private val ICONS: Map<String, ImageVector> =
 /** Resolves an icon key to a drawable; unknown keys (e.g. from a newer build) fall back to a generic icon. */
 fun categoryIcon(key: String): ImageVector = ICONS[key] ?: Icons.Filled.Category
 
+/** A human-readable label for an icon key, used as the accessibility content description in the icon picker. */
+fun categoryIconLabel(key: String): String = key.replace('_', ' ')
+
 /** Renders a stored ARGB [argb] color; the low 32 bits are the AARRGGBB pattern. */
 fun categoryColor(argb: Long): Color = Color(argb.toInt())
 
