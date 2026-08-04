@@ -113,7 +113,7 @@ fun EntryDetailScreen(
         title = {
             Text(
                 state.title.ifEmpty { stringResource(fallbackTitleRes) },
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
             )
         },

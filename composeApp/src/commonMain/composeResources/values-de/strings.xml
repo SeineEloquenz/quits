@@ -55,6 +55,10 @@
     <!-- Group detail -->
     <string name="group_fallback_name">Gruppe</string>
     <string name="detail_sharing">Freigabe</string>
+    <string name="action_share_link">Link teilen</string>
+    <string name="action_copy_link">Link kopieren</string>
+    <string name="invite_join_title">Gruppe beitreten</string>
+    <string name="invite_join_body">Du wurdest zu einer geteilten Gruppe eingeladen. Beim Beitreten wird sie mit diesem Gerät synchronisiert.</string>
     <string name="detail_local_only">Diese Gruppe ist nur lokal.</string>
     <string name="detail_share_group">Gruppe freigeben</string>
     <string name="detail_share_hint">Andere treten mit diesem Code der Gruppe bei.</string>
@@ -68,6 +72,10 @@
     <string name="settle_up_custom_link">Anderen Betrag verbuchen ›</string>
     <string name="settle_up_from">Von</string>
     <string name="settle_up_to">An</string>
+    <string name="settle_up_suggested">Vorgeschlagene Zahlungen</string>
+    <string name="settle_up_payer_owes">%1$s schuldet</string>
+    <string name="settle_up_record_title">Zahlung erfassen</string>
+    <string name="settle_up_all_settled">Alles ausgeglichen</string>
     <string name="detail_transfer_row">%1$s → %2$s</string>
     <string name="settle_up_confirm_title">Zahlung erfassen?</string>
     <string name="settle_up_confirm_body">Erfassen, dass %1$s %2$s %3$s gezahlt hat?</string>

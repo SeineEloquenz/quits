@@ -55,7 +55,7 @@ fun JoinInviteScreen(
     }
 
     AppScaffold(
-        title = { Text(stringResource(Res.string.invite_join_title), style = MaterialTheme.typography.headlineSmall) },
+        title = { Text(stringResource(Res.string.invite_join_title), style = MaterialTheme.typography.titleLarge) },
         navigationIcon = {
             IconButton(onClick = onCancel) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.cd_back))

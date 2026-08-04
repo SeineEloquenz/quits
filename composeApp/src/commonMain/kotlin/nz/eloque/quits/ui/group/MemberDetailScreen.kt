@@ -137,7 +137,7 @@ fun MemberDetailScreen(
     }
 
     AppScaffold(
-        title = { Text(state.name, style = MaterialTheme.typography.headlineMedium, maxLines = 1) },
+        title = { Text(state.name, style = MaterialTheme.typography.titleLarge, maxLines = 1) },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.cd_back))

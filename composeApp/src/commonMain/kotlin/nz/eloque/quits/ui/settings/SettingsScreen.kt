@@ -56,7 +56,7 @@ fun SettingsScreen(onBack: () -> Unit) {
         title = {
             AbbreviatingText(
                 stringResource(Res.string.settings_title),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
             )
         },

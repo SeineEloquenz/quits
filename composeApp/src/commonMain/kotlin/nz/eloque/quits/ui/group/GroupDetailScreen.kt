@@ -69,6 +69,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -262,7 +263,7 @@ fun GroupDetailScreen(
                 CompositionLocalProvider(LocalContentColor provides titleColor) {
                     AbbreviatingText(
                         state.name.ifEmpty { stringResource(Res.string.group_fallback_name) },
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         maxLines = 1,
                     )
                 }
@@ -555,7 +556,11 @@ private fun SpeedDialItem(
                 style = MaterialTheme.typography.labelLarge,
             )
         }
-        SmallFloatingActionButton(onClick = onClick, containerColor = containerColor) {
+        SmallFloatingActionButton(
+            onClick = onClick,
+            containerColor = containerColor,
+            modifier = Modifier.minimumInteractiveComponentSize(),
+        ) {
             Icon(icon, contentDescription = null)
         }
     }

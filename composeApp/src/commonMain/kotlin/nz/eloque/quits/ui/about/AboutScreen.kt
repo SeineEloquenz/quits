@@ -41,7 +41,7 @@ fun AboutScreen(
         title = {
             AbbreviatingText(
                 stringResource(Res.string.about_title),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
             )
         },

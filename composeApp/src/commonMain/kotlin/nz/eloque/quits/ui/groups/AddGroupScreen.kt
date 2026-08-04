@@ -46,7 +46,7 @@ fun AddGroupScreen(
     }
 
     AppScaffold(
-        title = { Text(stringResource(Res.string.add_group_title), style = MaterialTheme.typography.headlineSmall) },
+        title = { Text(stringResource(Res.string.add_group_title), style = MaterialTheme.typography.titleLarge) },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.cd_back))

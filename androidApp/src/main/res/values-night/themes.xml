@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark counterpart of Theme.Quits: keeps the pre-Compose window background dark so a
+         cold start in dark mode doesn't flash white. Compose still draws the actual UI. -->
+    <style name="Theme.Quits" parent="android:Theme.Material.NoActionBar" />
+</resources>

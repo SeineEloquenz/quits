@@ -74,7 +74,7 @@ fun AddGroupContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                stringResource(Res.string.add_group_new_here) + " ",
+                stringResource(Res.string.add_group_new_here),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

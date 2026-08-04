@@ -51,6 +51,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -219,7 +220,7 @@ fun EntryEditorScreen(
         title = {
             AbbreviatingText(
                 stringResource(state.kind.titleRes(state.editing)),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
             )
         },
@@ -500,7 +501,7 @@ fun EntryEditorScreen(
                                     OutlinedTextField(
                                         value = text,
                                         onValueChange = { viewModel.setPaid(member.id, it) },
-                                        placeholder = { Text("0") },
+                                        placeholder = { Text(stringResource(Res.string.editor_placeholder_amount)) },
                                         suffix = { Text(Currencies.symbol(currency)) },
                                         singleLine = true,
                                         isError = !valid,
@@ -641,7 +642,7 @@ private fun CategoryChip(
         shape = MaterialTheme.shapes.small,
         color = if (selected) display.color.copy(alpha = 0.20f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         border = if (selected) BorderStroke(1.dp, display.color) else null,
-        modifier = Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        modifier = Modifier.minimumInteractiveComponentSize().combinedClickable(onClick = onClick, onLongClick = onLongClick),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -649,7 +650,12 @@ private fun CategoryChip(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
         ) {
             Icon(display.icon, contentDescription = null, tint = display.color, modifier = Modifier.size(18.dp))
-            Text(display.name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            Text(
+                display.name,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
         }
     }
 }
@@ -700,6 +706,7 @@ private fun CategoryDialog(
                             border = if (chosen) BorderStroke(2.dp, categoryColor(color)) else null,
                             modifier =
                                 Modifier
+                                    .minimumInteractiveComponentSize()
                                     .size(44.dp)
                                     .selectable(selected = chosen, role = Role.RadioButton) { icon = key }
                                     .semantics { contentDescription = iconLabel },
@@ -729,6 +736,7 @@ private fun CategoryDialog(
                         val colorLabel = stringResource(Res.string.cd_category_color_option, index + 1)
                         Box(
                             Modifier
+                                .minimumInteractiveComponentSize()
                                 .size(32.dp)
                                 .clip(CircleShape)
                                 .background(categoryColor(c))

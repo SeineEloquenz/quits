@@ -161,7 +161,7 @@ fun SettlementEditorScreen(
     }
 
     AppScaffold(
-        title = { Text(stringResource(Res.string.settlement_editor_title), style = MaterialTheme.typography.headlineMedium) },
+        title = { Text(stringResource(Res.string.settlement_editor_title), style = MaterialTheme.typography.titleLarge) },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.action_cancel))

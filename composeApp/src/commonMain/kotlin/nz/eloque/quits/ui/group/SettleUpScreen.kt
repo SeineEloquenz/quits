@@ -124,7 +124,7 @@ fun SettleUpScreen(
     }
 
     AppScaffold(
-        title = { Text(stringResource(Res.string.detail_settle_up), style = MaterialTheme.typography.headlineMedium) },
+        title = { Text(stringResource(Res.string.detail_settle_up), style = MaterialTheme.typography.titleLarge) },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.cd_back))

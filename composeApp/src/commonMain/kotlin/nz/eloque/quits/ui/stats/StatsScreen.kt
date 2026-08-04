@@ -83,7 +83,7 @@ fun StatsScreen(
 
     AppScaffold(
         title = {
-            Text(stringResource(Res.string.stats_title), style = MaterialTheme.typography.headlineMedium, maxLines = 1)
+            Text(stringResource(Res.string.stats_title), style = MaterialTheme.typography.titleLarge, maxLines = 1)
         },
         navigationIcon = {
             IconButton(onClick = onBack) {

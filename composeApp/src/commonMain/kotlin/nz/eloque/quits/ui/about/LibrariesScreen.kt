@@ -30,7 +30,7 @@ fun LibrariesScreen(onBack: () -> Unit) {
         title = {
             AbbreviatingText(
                 stringResource(Res.string.about_libraries),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
             )
         },

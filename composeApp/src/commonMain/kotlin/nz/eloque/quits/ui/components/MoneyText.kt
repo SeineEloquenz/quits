@@ -42,8 +42,10 @@ fun EntryAmountText(
 }
 
 /**
- * A net balance, colored by sign: owed-to-them (positive) in primary, owing (negative) in error,
- * settled (zero) muted.
+ * A net balance, colored by sign: owed-to-them (positive) in green, owing (negative) in red,
+ * settled (zero) muted. Green/red are fixed, theme-independent semantics shared with
+ * [EntryAmountText] — deliberately outside the (teal) color scheme so direction reads the same
+ * regardless of dynamic color.
  */
 @Composable
 fun BalanceText(
