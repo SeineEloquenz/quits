@@ -21,7 +21,7 @@ jobs:
 
   fix-lock:
     needs: metadata
-    if: needs.metadata.outputs.ecosystem == 'gradle'
+    if: contains(fromJson('["gradle", "npm_and_yarn"]'), needs.metadata.outputs.ecosystem)
     runs-on: ubuntu-latest
 
     steps:
@@ -29,6 +29,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           token: ${{ secrets.LOCK_REFRESH_PAT }}
+
+      - name: Refresh worker package-lock.json
+        if: needs.metadata.outputs.ecosystem == 'npm_and_yarn'
+        working-directory: sqliteWebWorker/worker
+        run: npm install --package-lock-only --no-audit --no-fund
 
       - uses: actions/setup-java@v5
         with:
@@ -43,12 +48,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add kotlin-js-store/wasm/yarn.lock
+          git add kotlin-js-store/wasm/yarn.lock sqliteWebWorker/worker/package-lock.json
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
           fi
 
-          git commit -m "Update Wasm yarn.lock"
+          git commit -m "Refresh wasm lockfiles"
           git push

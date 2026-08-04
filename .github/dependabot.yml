@@ -27,6 +27,15 @@ updates:
         patterns:
           - "*"
 
+  - package-ecosystem: npm
+    directory: /sqliteWebWorker/worker
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns:
+          - "*"
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
