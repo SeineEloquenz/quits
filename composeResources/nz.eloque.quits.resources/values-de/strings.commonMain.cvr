@@ -6,6 +6,7 @@ string|about_tagline|TWl0IOKdpCBnZW1hY2h0IGluIERldXRzY2hsYW5k
 string|about_title|w5xiZXI=
 string|action_add|SGluenVmw7xnZW4=
 string|action_cancel|QWJicmVjaGVu
+string|action_copy_link|TGluayBrb3BpZXJlbg==
 string|action_copy|S29waWVyZW4=
 string|action_create|RXJzdGVsbGVu
 string|action_delete|TMO2c2NoZW4=
@@ -15,6 +16,7 @@ string|action_ok|T0s=
 string|action_record|VmVyYnVjaGVu
 string|action_reset|WnVyw7xja3NldHplbg==
 string|action_save|U3BlaWNoZXJu
+string|action_share_link|TGluayB0ZWlsZW4=
 string|add_group_create_link|R3J1cHBlIGVyc3RlbGxlbiDigLo=
 string|add_group_join_hint|Qml0dGUgZGllIFBlcnNvbiwgZGllIGRpZSBHcnVwcGUgZXJzdGVsbHQgaGF0LCB1bSBkZW4gRnJlaWdhYmVjb2Rl
 string|add_group_new_here|TmV1IGhpZXI/
@@ -46,9 +48,12 @@ string|category_travel|UmVpc2U=
 string|category_utilities|TmViZW5rb3N0ZW4=
 string|cd_add_group|R3J1cHBlIGhpbnp1ZsO8Z2Vu
 string|cd_back|WnVyw7xjaw==
+string|cd_category_color_option|RmFyYmUgJTEkZA==
 string|cd_clear_search|U3VjaGUgbMO2c2NoZW4=
 string|cd_close_menu|QWt0aW9uZW4gc2NobGllw59lbg==
+string|cd_collapsed|RWluZ2VrbGFwcHQ=
 string|cd_delete|JTEkcyBsw7ZzY2hlbg==
+string|cd_expanded|QXVzZ2VrbGFwcHQ=
 string|cd_menu|R3J1cHBlbm1lbsO8IMO2ZmZuZW4=
 string|cd_more|V2VpdGVyZSBPcHRpb25lbg==
 string|cd_open_menu|QWt0aW9uZW4gw7ZmZm5lbg==
@@ -200,6 +205,8 @@ string|groups_join_not_found|S2VpbmUgR3J1cHBlIGbDvHIgQ29kZSAiJTEkcyIgZ2VmdW5kZW4
 string|groups_member_count|JTEkZCBNaXRnbGllZGVyIMK3ICUyJHM=
 string|groups_new_group|TmV1ZSBHcnVwcGU=
 string|income_delete_body|RGllcyBlbnRmZXJudCBkaWUgRWlubmFobWUgZsO8ciBhbGxlIGluIGRlciBHcnVwcGUsIHNvYmFsZCBzeW5jaHJvbmlzaWVydCB3dXJkZS4gRGFzIGthbm4gbmljaHQgcsO8Y2tnw6RuZ2lnIGdlbWFjaHQgd2VyZGVuLg==
+string|invite_join_body|RHUgd3VyZGVzdCB6dSBlaW5lciBnZXRlaWx0ZW4gR3J1cHBlIGVpbmdlbGFkZW4uIEJlaW0gQmVpdHJldGVuIHdpcmQgc2llIG1pdCBkaWVzZW0gR2Vyw6R0IHN5bmNocm9uaXNpZXJ0Lg==
+string|invite_join_title|R3J1cHBlIGJlaXRyZXRlbg==
 string|label_name|TmFtZQ==
 string|label_share_code|RnJlaWdhYmVjb2Rl
 string|member_detail_appears_in|RXJzY2hlaW50IGlu
@@ -223,11 +230,15 @@ string|settings_relay_url|UmVsYXktVVJM
 string|settings_saved|R2VzcGVpY2hlcnQ=
 string|settings_sync|U3luY2hyb25pc2llcnVuZw==
 string|settings_title|RWluc3RlbGx1bmdlbg==
+string|settle_up_all_settled|QWxsZXMgYXVzZ2VnbGljaGVu
 string|settle_up_confirm_body|RXJmYXNzZW4sIGRhc3MgJTEkcyAlMiRzICUzJHMgZ2V6YWhsdCBoYXQ/
 string|settle_up_confirm_title|WmFobHVuZyBlcmZhc3Nlbj8=
 string|settle_up_custom_link|QW5kZXJlbiBCZXRyYWcgdmVyYnVjaGVuIOKAug==
 string|settle_up_from|Vm9u
 string|settle_up_none|S2VpbmUgb2ZmZW5lbiBTYWxkZW4g4oCUIGFsbGUgc2luZCBhdXNnZWdsaWNoZW4u
+string|settle_up_payer_owes|JTEkcyBzY2h1bGRldA==
+string|settle_up_record_title|WmFobHVuZyBlcmZhc3Nlbg==
+string|settle_up_suggested|Vm9yZ2VzY2hsYWdlbmUgWmFobHVuZ2Vu
 string|settle_up_to|QW4=
 string|settlement_delete_body|RGllcyBlbnRmZXJudCBkZW4gQXVzZ2xlaWNoIGbDvHIgYWxsZSBpbiBkZXIgR3J1cHBlLCBzb2JhbGQgc3luY2hyb25pc2llcnQgd3VyZGUuIERhcyBrYW5uIG5pY2h0IHLDvGNrZ8OkbmdpZyBnZW1hY2h0IHdlcmRlbi4=
 string|settlement_delete_title|QXVzZ2xlaWNoIGzDtnNjaGVuPw==

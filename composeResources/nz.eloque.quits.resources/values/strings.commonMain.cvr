@@ -48,9 +48,12 @@ string|category_travel|VHJhdmVs
 string|category_utilities|VXRpbGl0aWVz
 string|cd_add_group|QWRkIGEgZ3JvdXA=
 string|cd_back|QmFjaw==
+string|cd_category_color_option|Q29sb3IgJTEkZA==
 string|cd_clear_search|Q2xlYXIgc2VhcmNo
 string|cd_close_menu|Q2xvc2UgYWN0aW9ucw==
+string|cd_collapsed|Q29sbGFwc2Vk
 string|cd_delete|RGVsZXRlICUxJHM=
+string|cd_expanded|RXhwYW5kZWQ=
 string|cd_menu|T3BlbiBncm91cHMgbWVudQ==
 string|cd_more|TW9yZSBvcHRpb25z
 string|cd_open_menu|T3BlbiBhY3Rpb25z
