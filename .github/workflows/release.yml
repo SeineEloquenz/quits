@@ -1,61 +1,31 @@
 name: Release
-
-# Tag a release (e.g. `v0.1.0`) to build a signed app, attach it to a GitHub release, and
-# (optionally) publish to Google Play. Modeled on the fosswallet pipeline.
-#
 # Required repository secrets:
-#   KEYSTORE              – base64-encoded upload keystore (.jks)
-#   KEYSTORE_PASSWORD     – keystore password
-#   SIGNING_KEY_ALIAS     – key alias
-#   SIGNING_KEY_PASSWORD  – key password
-#   PLAY_SERVICE_ACCOUNT_JSON – Play service-account JSON (only for the Play step)
+#   KEYSTORE, KEYSTORE_PASSWORD, SIGNING_KEY_ALIAS, SIGNING_KEY_PASSWORD
+#   SERVICE_ACCOUNT_JSON  – only needed for publish-play
 on:
   push:
     tags:
       - "v*"
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Copy CI gradle.properties
-        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
-
-      - name: Decode keystore
-        run: echo "${{ secrets.KEYSTORE }}" | base64 -di > "${RUNNER_TEMP}/keystore.jks"
-
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
-      - uses: gradle/actions/setup-gradle@v6.2.0
-
-      - name: Build signed bundle + APK
-        env:
-          KEYSTORE_PATH: ${{ runner.temp }}/keystore.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-        run: ./gradlew :androidApp:bundleRelease :androidApp:assembleRelease
-
-      - name: Attach APK to GitHub release
-        uses: softprops/action-gh-release@v3
-        with:
-          files: androidApp/build/outputs/apk/release/*.apk
-
-      # Flip `if` to true once a Play Console app + service account exist.
-      - name: Publish to Google Play
-        if: ${{ false }}
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: nz.eloque.quits
-          releaseFiles: androidApp/build/outputs/bundle/release/*.aab
-          track: internal
-          status: completed
+    permissions:
+      contents: write
+    uses: SeineEloquenz/ci/.github/workflows/android-release.yml@main
+    with:
+      version-file: gradle.properties
+      test-task: ":androidApp:testDebugUnitTest"
+      assemble-task: ":androidApp:assembleRelease"
+      bundle-task: ":androidApp:bundleRelease"
+      apk-path: androidApp/build/outputs/apk/release
+      bundle-path: androidApp/build/outputs/bundle/release
+      publish-play: false
+      play-package-name: nz.eloque.quits
+      play-track: internal
+    secrets:
+      KEYSTORE: ${{ secrets.KEYSTORE }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+      SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+      SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
