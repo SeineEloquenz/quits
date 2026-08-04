@@ -10,8 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven("https://raw.githubusercontent.com/SeineEloquenz/compose-kit/maven/") {
-            content { includeGroup("nz.eloque.compose-kit") }
+        maven("https://jitpack.io") {
+            content { includeGroup("com.github.SeineEloquenz.compose-kit") }
         }
     }
 }
@@ -24,7 +24,7 @@ val localComposeKitPath = providers.environmentVariable("LOCAL_COMPOSE_KIT").orN
 if (localComposeKitPath != null) {
     includeBuild(localComposeKitPath) {
         dependencySubstitution {
-            substitute(module("nz.eloque.compose-kit:lib")).using(project(":lib"))
+            substitute(module("com.github.SeineEloquenz.compose-kit:lib")).using(project(":lib"))
         }
     }
 }

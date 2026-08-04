@@ -2,7 +2,8 @@ name: iOS
 
 # iOS needs macOS + Xcode (Kotlin/Native can't target Apple from Linux). No Mac required locally:
 # this runs on a GitHub macOS runner, and the Xcode project is generated from iosApp/project.yml
-# via XcodeGen rather than hand-maintained. compose-kit resolves from its static Maven repo
+# via XcodeGen rather than hand-maintained. JitPack can't publish iOS klibs,
+# so iOS builds compose-kit from source via a sibling checkout + LOCAL_COMPOSE_KIT composite build.
 on:
   push:
     branches: [main]
@@ -19,6 +20,19 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v7
+
+      - name: Resolve compose-kit version
+        id: compose-kit
+        run: |
+          ref=$(grep -m1 '^composeKit = ' gradle/libs.versions.toml | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout compose-kit
+        uses: actions/checkout@v7
+        with:
+          repository: SeineEloquenz/compose-kit
+          ref: ${{ steps.compose-kit.outputs.ref }}
+          path: compose-kit
 
       - uses: actions/setup-java@v5
         with:
@@ -39,6 +53,8 @@ jobs:
         working-directory: iosApp
         run: xcodegen generate
       - name: Build iOS app (simulator)
+        env:
+          LOCAL_COMPOSE_KIT: ${{ github.workspace }}/compose-kit
         run: |
           xcodebuild \
             -project iosApp/iosApp.xcodeproj \
