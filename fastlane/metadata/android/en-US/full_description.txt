@@ -1,0 +1,5 @@
+Quits is a privacy-preserving, shared expense splitting application built with Kotlin Multiplatform.
+The app allows to easily split expenses between multiple people and synchronize via a public
+or self-hosted, encrypted relay server.
+
+It supports multiple groups, members, split types, categories, etc.

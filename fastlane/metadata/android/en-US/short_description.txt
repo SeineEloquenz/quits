@@ -1,0 +1,1 @@
+Quits is a privacy-preserving expense splitting application
