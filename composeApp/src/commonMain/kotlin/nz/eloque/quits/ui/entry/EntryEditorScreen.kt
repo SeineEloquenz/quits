@@ -169,9 +169,14 @@ fun EntryEditorScreen(
     val state by viewModel.state.collectAsState()
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    val titleFocus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
         viewModel.saved.collect { onDone() }
+    }
+
+    LaunchedEffect(state.loaded) {
+        if (state.loaded && !state.editing) titleFocus.requestFocus()
     }
 
     if (showDatePicker) {
@@ -250,7 +255,7 @@ fun EntryEditorScreen(
                         onValueChange = viewModel::setTitle,
                         label = { Text(stringResource(Res.string.editor_label_title)) },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().focusRequester(titleFocus),
                     )
                     Spacer(Modifier.height(8.dp))
                     CategoryField(
