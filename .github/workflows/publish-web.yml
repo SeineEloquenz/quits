@@ -40,7 +40,7 @@ jobs:
         with:
           java-version: "21"
           distribution: temurin
-      - uses: gradle/actions/setup-gradle@v6.2.0
+      - uses: gradle/actions/setup-gradle@v6.3.0
 
       # Working copy of the static repo: clone the existing `web` branch (so prior versions are
       # preserved), or start a fresh orphan branch on the very first publish.
