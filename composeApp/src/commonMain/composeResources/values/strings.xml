@@ -179,6 +179,7 @@
     <string name="editor_label_rate">Rate → %1$s</string>
     <string name="editor_rate_fetching">Fetching live rate…</string>
     <string name="editor_paid_by">Paid by</string>
+    <string name="editor_paid_for">Paid for</string>
     <string name="editor_received_by">Received by</string>
     <string name="editor_paid_by_hint">%1$s paid %2$s</string>
     <string name="editor_paid_by_prompt">Tap who paid</string>
@@ -186,8 +187,6 @@
     <string name="editor_received_by_prompt">Tap who received it</string>
     <string name="editor_customize_paid_link">Customize amounts ›</string>
     <string name="editor_equal_paid_link">‹ Split evenly</string>
-    <string name="editor_split">Split</string>
-    <string name="editor_split_between">Split between</string>
     <string name="editor_equal_hint">%1$d people · %2$s each</string>
     <string name="editor_equal_count">%1$d people</string>
     <string name="editor_split_equal">Equal</string>

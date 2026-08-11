@@ -177,6 +177,7 @@
     <string name="editor_label_rate">Kurs → %1$s</string>
     <string name="editor_rate_fetching">Live-Kurs wird abgerufen…</string>
     <string name="editor_paid_by">Bezahlt von</string>
+    <string name="editor_paid_for">Bezahlt für</string>
     <string name="editor_received_by">Erhalten von</string>
     <string name="editor_paid_by_hint">%1$s hat %2$s bezahlt</string>
     <string name="editor_paid_by_prompt">Wer hat bezahlt?</string>
@@ -184,8 +185,6 @@
     <string name="editor_received_by_prompt">Wer hat es erhalten?</string>
     <string name="editor_customize_paid_link">Beträge anpassen ›</string>
     <string name="editor_equal_paid_link">‹ Gleichmäßig aufteilen</string>
-    <string name="editor_split">Aufteilung</string>
-    <string name="editor_split_between">Aufteilen zwischen</string>
     <string name="editor_equal_hint">%1$d Personen · %2$s pro Person</string>
     <string name="editor_equal_count">%1$d Personen</string>
     <string name="editor_split_equal">Gleich</string>

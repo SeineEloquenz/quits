@@ -2,6 +2,7 @@ package nz.eloque.quits.ui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import nz.eloque.compose_kit.input.SearchablePickerField
 import nz.eloque.quits.domain.Currencies
 import nz.eloque.quits.domain.Currency
@@ -21,6 +22,29 @@ fun CurrencyPicker(
 ) {
     SearchablePickerField(
         label = label,
+        selected = selected,
+        selectedLabel = ::label,
+        onSelected = onSelected,
+        search = { Currencies.search(it) },
+        itemKey = { it.code },
+        itemLabel = ::label,
+        searchLabel = stringResource(Res.string.search_currency),
+        modifier = modifier,
+    )
+}
+
+/** The [ListPickerRow]-styled currency picker, for use inside a [ListFieldCard]. */
+@Composable
+fun CurrencyPickerRow(
+    icon: ImageVector,
+    fieldLabel: String,
+    selected: Currency,
+    onSelected: (Currency) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SearchablePickerRow(
+        icon = icon,
+        label = fieldLabel,
         selected = selected,
         selectedLabel = ::label,
         onSelected = onSelected,

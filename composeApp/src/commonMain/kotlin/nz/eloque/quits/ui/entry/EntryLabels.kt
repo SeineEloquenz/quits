@@ -16,6 +16,7 @@ import nz.eloque.quits.resources.editor_income_fallback_title
 import nz.eloque.quits.resources.editor_paid_by
 import nz.eloque.quits.resources.editor_paid_by_hint
 import nz.eloque.quits.resources.editor_paid_by_prompt
+import nz.eloque.quits.resources.editor_paid_for
 import nz.eloque.quits.resources.editor_received_by
 import nz.eloque.quits.resources.editor_received_by_hint
 import nz.eloque.quits.resources.editor_received_by_prompt
@@ -71,6 +72,9 @@ fun EntryKind.payerFeedRes(): StringResource = if (isIncome) Res.string.detail_r
 
 /** Detail heading for the share side ("Owed by" / "For whom"). */
 fun EntryKind.beneficiaryHeadingRes(): StringResource = if (isIncome) Res.string.detail_for_whom else Res.string.detail_owed_by
+
+/** Editor heading for the share side, paired with [payerHeadingRes] ("Paid for" / "For whom"). */
+fun EntryKind.beneficiaryEditorHeadingRes(): StringResource = if (isIncome) Res.string.detail_for_whom else Res.string.editor_paid_for
 
 /** Delete-confirmation body. */
 fun EntryKind.deleteBodyRes(): StringResource = if (isIncome) Res.string.income_delete_body else Res.string.expense_delete_body

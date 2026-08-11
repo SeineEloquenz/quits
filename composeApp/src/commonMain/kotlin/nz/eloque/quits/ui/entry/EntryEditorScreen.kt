@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -27,11 +26,17 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CurrencyExchange
+import androidx.compose.material.icons.filled.Numbers
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.BasicAlertDialog
@@ -45,7 +50,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -119,16 +123,12 @@ import nz.eloque.quits.resources.editor_label_rate
 import nz.eloque.quits.resources.editor_label_time
 import nz.eloque.quits.resources.editor_label_title
 import nz.eloque.quits.resources.editor_placeholder_amount
-import nz.eloque.quits.resources.editor_placeholder_percent
-import nz.eloque.quits.resources.editor_placeholder_shares
 import nz.eloque.quits.resources.editor_rate_fetching
 import nz.eloque.quits.resources.editor_remaining
 import nz.eloque.quits.resources.editor_remaining_done
 import nz.eloque.quits.resources.editor_remove_item
 import nz.eloque.quits.resources.editor_shares_decrease
 import nz.eloque.quits.resources.editor_shares_increase
-import nz.eloque.quits.resources.editor_split
-import nz.eloque.quits.resources.editor_split_between
 import nz.eloque.quits.resources.error_invalid_amount
 import nz.eloque.quits.resources.error_invalid_paid
 import nz.eloque.quits.resources.error_invalid_total
@@ -140,7 +140,12 @@ import nz.eloque.quits.ui.category.categoryColor
 import nz.eloque.quits.ui.category.categoryIcon
 import nz.eloque.quits.ui.category.categoryIconLabel
 import nz.eloque.quits.ui.category.presetsFor
-import nz.eloque.quits.ui.components.CurrencyPicker
+import nz.eloque.quits.ui.components.CurrencyPickerRow
+import nz.eloque.quits.ui.components.InlineEntryField
+import nz.eloque.quits.ui.components.ListFieldCard
+import nz.eloque.quits.ui.components.ListPickerRow
+import nz.eloque.quits.ui.components.ListRowDivider
+import nz.eloque.quits.ui.components.ListTextRow
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.display
@@ -248,93 +253,20 @@ fun EntryEditorScreen(
         ) {
             Spacer(Modifier.height(8.dp))
 
-            SectionCard {
+            ListFieldCard {
+                ListTextRow(
+                    icon = Icons.Default.Title,
+                    label = stringResource(Res.string.editor_label_title),
+                    value = state.title,
+                    onValueChange = viewModel::setTitle,
+                    fieldModifier = Modifier.focusRequester(titleFocus),
+                )
+                ListRowDivider()
+                // Itemized (receipt line-items) doesn't apply to money coming in.
+                val splitOptions =
+                    if (state.kind.isIncome) SplitKind.entries.filter { it != SplitKind.ITEMIZED } else SplitKind.entries
+                val splitLabels = splitOptions.associateWith { it.label() }
                 Column(Modifier.padding(16.dp)) {
-                    OutlinedTextField(
-                        value = state.title,
-                        onValueChange = viewModel::setTitle,
-                        label = { Text(stringResource(Res.string.editor_label_title)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().focusRequester(titleFocus),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    CategoryField(
-                        selectedId = state.categoryId,
-                        presets = presetsFor(state.kind),
-                        custom = state.categories,
-                        onSelect = viewModel::setCategoryId,
-                        onCreate = viewModel::createCategory,
-                        onUpdate = viewModel::updateCategory,
-                        onDelete = viewModel::deleteCategory,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    // Read-only fields; a transparent overlay opens the relevant picker on tap.
-                    Row(
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Box(Modifier.weight(1f)) {
-                            OutlinedTextField(
-                                value = formatLocalDate(state.spentAt, state.tzOffsetMinutes),
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text(stringResource(Res.string.editor_label_date)) },
-                                trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            Box(Modifier.matchParentSize().clickable { showDatePicker = true })
-                        }
-                        Box {
-                            OutlinedTextField(
-                                value = formatLocalTime(state.spentAt, state.tzOffsetMinutes),
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text(stringResource(Res.string.editor_label_time)) },
-                                modifier = Modifier.width(116.dp),
-                            )
-                            Box(Modifier.matchParentSize().clickable { showTimePicker = true })
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    CurrencyPicker(
-                        label = stringResource(Res.string.editor_label_currency),
-                        selected = state.currency,
-                        onSelected = viewModel::setCurrency,
-                    )
-                    if (state.isForeign) {
-                        Spacer(Modifier.height(8.dp))
-                        val notice = state.rateNotice
-                        OutlinedTextField(
-                            value = state.rate,
-                            onValueChange = viewModel::setRate,
-                            label = { Text(stringResource(Res.string.editor_label_rate, state.baseCurrency.code)) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            supportingText =
-                                when {
-                                    state.fetchingRate -> ({ Text(stringResource(Res.string.editor_rate_fetching)) })
-                                    notice != null -> ({ Text(notice) })
-                                    else -> null
-                                },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = state.note,
-                        onValueChange = viewModel::setNote,
-                        label = { Text(stringResource(Res.string.editor_label_note)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-
-            SectionCard(heading = stringResource(Res.string.editor_split)) {
-                Column(Modifier.padding(16.dp)) {
-                    // Itemized (receipt line-items) doesn't apply to money coming in.
-                    val splitOptions =
-                        if (state.kind.isIncome) SplitKind.entries.filter { it != SplitKind.ITEMIZED } else SplitKind.entries
-                    val splitLabels = splitOptions.associateWith { it.label() }
                     ChipSelector(
                         options = splitOptions,
                         selectedOptions = listOf(state.splitKind),
@@ -342,30 +274,54 @@ fun EntryEditorScreen(
                         onOptionDeselected = {},
                         optionLabel = { splitLabels.getValue(it) },
                     )
-                    Spacer(Modifier.height(12.dp))
+                }
+                ListRowDivider()
 
-                    // The total lives with the split for every method that needs one. Items has no
-                    // total to type — it's the sum of the lines entered below.
-                    if (state.splitKind != SplitKind.ITEMIZED) {
-                        val amountValid = isValidAmountInput(state.amount, state.currency)
-                        OutlinedTextField(
-                            value = state.amount,
-                            onValueChange = viewModel::setAmount,
-                            label = { Text(stringResource(Res.string.editor_label_amount)) },
-                            singleLine = true,
-                            isError = !amountValid,
-                            supportingText =
-                                if (!amountValid) ({ Text(stringResource(Res.string.error_invalid_total)) }) else null,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Spacer(Modifier.height(12.dp))
-                    }
+                // The total lives with the split for every method that needs one. Items has no
+                // total to type — it's the sum of the lines entered below.
+                if (state.splitKind != SplitKind.ITEMIZED) {
+                    val amountValid = isValidAmountInput(state.amount, state.currency)
+                    ListTextRow(
+                        icon = Icons.Default.Numbers,
+                        label = stringResource(Res.string.editor_label_amount),
+                        value = state.amount,
+                        onValueChange = viewModel::setAmount,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        isError = !amountValid,
+                        supporting = if (!amountValid) stringResource(Res.string.error_invalid_total) else null,
+                    )
+                    ListRowDivider()
+                }
 
+                // Currency, and the rate to base for a foreign currency, sit with the amount they
+                // measure — the money fields live together here rather than split across cards.
+                CurrencyPickerRow(
+                    icon = Icons.Default.Payments,
+                    fieldLabel = stringResource(Res.string.editor_label_currency),
+                    selected = state.currency,
+                    onSelected = viewModel::setCurrency,
+                )
+                if (state.isForeign) {
+                    ListRowDivider()
+                    ListTextRow(
+                        icon = Icons.Default.CurrencyExchange,
+                        label = stringResource(Res.string.editor_label_rate, state.baseCurrency.code),
+                        value = state.rate,
+                        onValueChange = viewModel::setRate,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        supporting =
+                            when {
+                                state.fetchingRate -> stringResource(Res.string.editor_rate_fetching)
+                                else -> state.rateNotice
+                            },
+                    )
+                }
+                ListRowDivider()
+                Column(Modifier.padding(16.dp)) {
                     when (state.splitKind) {
                         SplitKind.EQUAL -> {
                             Text(
-                                stringResource(Res.string.editor_split_between),
+                                stringResource(state.kind.beneficiaryEditorHeadingRes()),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.outline,
                             )
@@ -404,14 +360,12 @@ fun EntryEditorScreen(
                         SplitKind.PERCENTAGE -> {
                             state.members.forEach { member ->
                                 SplitInputRow(member = member, preview = percentagePreview(state, member.id)?.display()) {
-                                    OutlinedTextField(
+                                    InlineEntryField(
                                         value = state.splitInput[member.id].orEmpty(),
                                         onValueChange = { viewModel.setSplitInput(member.id, it) },
-                                        placeholder = { Text(splitPlaceholder(state.splitKind)) },
-                                        suffix = { Text("%") },
-                                        singleLine = true,
+                                        suffix = "%",
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        modifier = Modifier.width(110.dp),
+                                        modifier = Modifier.width(84.dp),
                                     )
                                 }
                             }
@@ -422,22 +376,19 @@ fun EntryEditorScreen(
                             state.members.forEach { member ->
                                 val text = state.splitInput[member.id].orEmpty()
                                 val valid = isValidAmountInput(text, currency, requirePositive = false)
-                                SplitInputRow(member = member, preview = null) {
-                                    OutlinedTextField(
+                                SplitInputRow(
+                                    member = member,
+                                    preview = null,
+                                    isError = !valid,
+                                    supporting = if (!valid) stringResource(Res.string.error_invalid_amount, member.name) else null,
+                                ) {
+                                    InlineEntryField(
                                         value = text,
                                         onValueChange = { viewModel.setSplitInput(member.id, it) },
-                                        placeholder = { Text(splitPlaceholder(state.splitKind)) },
-                                        suffix = { Text(Currencies.symbol(currency)) },
-                                        singleLine = true,
-                                        isError = !valid,
-                                        supportingText =
-                                            if (!valid) {
-                                                { Text(stringResource(Res.string.error_invalid_amount, member.name)) }
-                                            } else {
-                                                null
-                                            },
+                                        suffix = Currencies.symbol(currency),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                        modifier = Modifier.width(140.dp),
+                                        isError = !valid,
+                                        modifier = Modifier.width(120.dp),
                                     )
                                 }
                             }
@@ -464,10 +415,15 @@ fun EntryEditorScreen(
 
                     RemainingHint(state)
                 }
-            }
 
-            SectionCard(heading = stringResource(state.kind.payerHeadingRes())) {
+                ListRowDivider()
                 Column(Modifier.padding(16.dp)) {
+                    Text(
+                        stringResource(state.kind.payerHeadingRes()),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                    Spacer(Modifier.height(8.dp))
                     when (state.payerMode) {
                         PayerMode.EQUAL -> {
                             Row(
@@ -502,22 +458,19 @@ fun EntryEditorScreen(
                             state.members.forEach { member ->
                                 val text = state.paid[member.id].orEmpty()
                                 val valid = isValidAmountInput(text, currency)
-                                SplitInputRow(member = member, preview = null) {
-                                    OutlinedTextField(
+                                SplitInputRow(
+                                    member = member,
+                                    preview = null,
+                                    isError = !valid,
+                                    supporting = if (!valid) stringResource(Res.string.error_invalid_paid, member.name) else null,
+                                ) {
+                                    InlineEntryField(
                                         value = text,
                                         onValueChange = { viewModel.setPaid(member.id, it) },
-                                        placeholder = { Text(stringResource(Res.string.editor_placeholder_amount)) },
-                                        suffix = { Text(Currencies.symbol(currency)) },
-                                        singleLine = true,
-                                        isError = !valid,
-                                        supportingText =
-                                            if (!valid) {
-                                                { Text(stringResource(Res.string.error_invalid_paid, member.name)) }
-                                            } else {
-                                                null
-                                            },
+                                        suffix = Currencies.symbol(currency),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                        modifier = Modifier.width(140.dp),
+                                        isError = !valid,
+                                        modifier = Modifier.width(120.dp),
                                     )
                                 }
                             }
@@ -532,6 +485,44 @@ fun EntryEditorScreen(
                         }
                     }
                 }
+            }
+
+            SectionCard {
+                Column(Modifier.padding(16.dp)) {
+                    CategoryField(
+                        selectedId = state.categoryId,
+                        presets = presetsFor(state.kind),
+                        custom = state.categories,
+                        onSelect = viewModel::setCategoryId,
+                        onCreate = viewModel::createCategory,
+                        onUpdate = viewModel::updateCategory,
+                        onDelete = viewModel::deleteCategory,
+                    )
+                }
+            }
+
+            ListFieldCard {
+                ListPickerRow(
+                    icon = Icons.Default.CalendarMonth,
+                    label = stringResource(Res.string.editor_label_date),
+                    value = formatLocalDate(state.spentAt, state.tzOffsetMinutes),
+                    onClick = { showDatePicker = true },
+                )
+                ListRowDivider()
+                ListPickerRow(
+                    icon = Icons.Default.Schedule,
+                    label = stringResource(Res.string.editor_label_time),
+                    value = formatLocalTime(state.spentAt, state.tzOffsetMinutes),
+                    onClick = { showTimePicker = true },
+                )
+                ListRowDivider()
+                ListTextRow(
+                    icon = Icons.AutoMirrored.Filled.Notes,
+                    label = stringResource(Res.string.editor_label_note),
+                    value = state.note,
+                    onValueChange = viewModel::setNote,
+                    singleLine = false,
+                )
             }
 
             state.error?.let {
@@ -890,23 +881,35 @@ private fun RemainingHintText(
 private fun SplitInputRow(
     member: MemberInput,
     preview: String?,
+    supporting: String? = null,
+    isError: Boolean = false,
     field: @Composable () -> Unit,
 ) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        MemberAvatar(name = member.name, id = member.id, size = 32.dp)
-        Text(member.name, Modifier.weight(1f).padding(start = 12.dp, end = 8.dp))
-        if (preview != null) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MemberAvatar(name = member.name, id = member.id, size = 32.dp)
+            Text(member.name, Modifier.weight(1f).padding(start = 12.dp, end = 8.dp))
+            if (preview != null) {
+                Text(
+                    preview,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+            }
+            field()
+        }
+        if (supporting != null) {
             Text(
-                preview,
+                supporting,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.padding(end = 8.dp),
+                color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(start = 44.dp, bottom = 8.dp),
             )
         }
-        field()
     }
 }
 
@@ -959,32 +962,36 @@ private fun ItemizedEditor(
     }
     val allSelected = members.isNotEmpty() && draftParticipants.size == members.size
 
-    OutlinedCard(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        Column(Modifier.padding(12.dp)) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+    ) {
+        Column(Modifier.padding(16.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                OutlinedTextField(
+                InlineEntryField(
                     value = draftLabel,
                     onValueChange = onDraftLabel,
-                    placeholder = { Text(stringResource(Res.string.editor_item_label)) },
-                    singleLine = true,
+                    placeholder = stringResource(Res.string.editor_item_label),
+                    alignEnd = false,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    modifier = Modifier.weight(1f).focusRequester(labelFocus),
+                    fieldModifier = Modifier.focusRequester(labelFocus),
+                    modifier = Modifier.weight(1f),
                 )
-                OutlinedTextField(
+                InlineEntryField(
                     value = draftAmount,
                     onValueChange = onDraftAmount,
-                    placeholder = { Text(stringResource(Res.string.editor_placeholder_amount)) },
-                    suffix = { Text(Currencies.symbol(currency)) },
-                    singleLine = true,
+                    placeholder = stringResource(Res.string.editor_placeholder_amount),
+                    suffix = Currencies.symbol(currency),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { submit() }),
-                    modifier = Modifier.width(130.dp),
+                    modifier = Modifier.width(120.dp),
                 )
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1150,13 +1157,3 @@ private fun sharesPreview(
         null
     }
 }
-
-@Composable
-private fun splitPlaceholder(kind: SplitKind): String =
-    when (kind) {
-        SplitKind.SHARES -> stringResource(Res.string.editor_placeholder_shares)
-        SplitKind.PERCENTAGE -> stringResource(Res.string.editor_placeholder_percent)
-        SplitKind.EXACT -> stringResource(Res.string.editor_placeholder_amount)
-        SplitKind.EQUAL -> ""
-        SplitKind.ITEMIZED -> ""
-    }
