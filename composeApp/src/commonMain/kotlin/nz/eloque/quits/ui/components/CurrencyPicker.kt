@@ -3,7 +3,6 @@ package nz.eloque.quits.ui.components
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import nz.eloque.compose_kit.input.SearchablePickerField
 import nz.eloque.quits.domain.Currencies
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.resources.Res
@@ -12,28 +11,7 @@ import org.jetbrains.compose.resources.stringResource
 
 private fun label(currency: Currency): String = "${currency.code} — ${Currencies.displayName(currency)}"
 
-/** A searchable ISO-4217 currency picker: the currency catalog over the generic [SearchablePickerField]. */
-@Composable
-fun CurrencyPicker(
-    label: String,
-    selected: Currency,
-    onSelected: (Currency) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    SearchablePickerField(
-        label = label,
-        selected = selected,
-        selectedLabel = ::label,
-        onSelected = onSelected,
-        search = { Currencies.search(it) },
-        itemKey = { it.code },
-        itemLabel = ::label,
-        searchLabel = stringResource(Res.string.search_currency),
-        modifier = modifier,
-    )
-}
-
-/** The [ListPickerRow]-styled currency picker, for use inside a [ListFieldCard]. */
+/** The [ListPickerRow]-styled currency picker (searchable ISO-4217 catalog), for use in a [ListFieldCard]. */
 @Composable
 fun CurrencyPickerRow(
     icon: ImageVector,
