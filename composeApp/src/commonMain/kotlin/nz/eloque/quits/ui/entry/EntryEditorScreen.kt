@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -28,21 +29,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -54,10 +50,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.minimumInteractiveComponentSize
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -70,6 +63,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -117,10 +111,8 @@ import nz.eloque.quits.resources.editor_items_total
 import nz.eloque.quits.resources.editor_label_amount
 import nz.eloque.quits.resources.editor_label_category
 import nz.eloque.quits.resources.editor_label_currency
-import nz.eloque.quits.resources.editor_label_date
 import nz.eloque.quits.resources.editor_label_note
 import nz.eloque.quits.resources.editor_label_rate
-import nz.eloque.quits.resources.editor_label_time
 import nz.eloque.quits.resources.editor_label_title
 import nz.eloque.quits.resources.editor_placeholder_amount
 import nz.eloque.quits.resources.editor_rate_fetching
@@ -141,22 +133,15 @@ import nz.eloque.quits.ui.category.categoryIcon
 import nz.eloque.quits.ui.category.categoryIconLabel
 import nz.eloque.quits.ui.category.presetsFor
 import nz.eloque.quits.ui.components.CurrencyPickerRow
+import nz.eloque.quits.ui.components.DateTimeRows
 import nz.eloque.quits.ui.components.InlineEntryField
 import nz.eloque.quits.ui.components.ListFieldCard
-import nz.eloque.quits.ui.components.ListPickerRow
 import nz.eloque.quits.ui.components.ListRowDivider
 import nz.eloque.quits.ui.components.ListTextRow
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.display
 import nz.eloque.quits.ui.components.isValidAmountInput
-import nz.eloque.quits.util.formatLocalDate
-import nz.eloque.quits.util.formatLocalTime
-import nz.eloque.quits.util.localDateMillisUtc
-import nz.eloque.quits.util.localHourMinute
-import nz.eloque.quits.util.offsetZone
-import nz.eloque.quits.util.withPickedDate
-import nz.eloque.quits.util.withPickedTime
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -172,8 +157,6 @@ fun EntryEditorScreen(
 ) {
     val viewModel = koinViewModel<EntryEditorViewModel> { parametersOf(groupId, entryId, kind) }
     val state by viewModel.state.collectAsState()
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
     val titleFocus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
@@ -182,48 +165,6 @@ fun EntryEditorScreen(
 
     LaunchedEffect(state.loaded) {
         if (state.loaded && !state.editing) titleFocus.requestFocus()
-    }
-
-    if (showDatePicker) {
-        val zone = offsetZone(state.tzOffsetMinutes)
-        val pickerState = rememberDatePickerState(initialSelectedDateMillis = localDateMillisUtc(state.spentAt, zone))
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { viewModel.setSpentAt(withPickedDate(state.spentAt, it, zone)) }
-                    showDatePicker = false
-                }) { Text(stringResource(Res.string.action_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(Res.string.action_cancel)) }
-            },
-        ) {
-            DatePicker(state = pickerState)
-        }
-    }
-
-    if (showTimePicker) {
-        val zone = offsetZone(state.tzOffsetMinutes)
-        val (initialHour, initialMinute) = remember { localHourMinute(state.spentAt, zone) }
-        // No is24Hour argument: rememberTimePickerState defaults to the device's clock setting.
-        val timeState = rememberTimePickerState(initialHour = initialHour, initialMinute = initialMinute)
-        BasicAlertDialog(onDismissRequest = { showTimePicker = false }) {
-            Surface(shape = MaterialTheme.shapes.extraLarge, tonalElevation = 6.dp) {
-                Column(Modifier.padding(20.dp)) {
-                    TimePicker(state = timeState)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { showTimePicker = false }) {
-                            Text(stringResource(Res.string.action_cancel))
-                        }
-                        TextButton(onClick = {
-                            viewModel.setSpentAt(withPickedTime(state.spentAt, timeState.hour, timeState.minute, zone))
-                            showTimePicker = false
-                        }) { Text(stringResource(Res.string.action_ok)) }
-                    }
-                }
-            }
-        }
     }
 
     AppScaffold(
@@ -502,18 +443,10 @@ fun EntryEditorScreen(
             }
 
             ListFieldCard {
-                ListPickerRow(
-                    icon = Icons.Default.CalendarMonth,
-                    label = stringResource(Res.string.editor_label_date),
-                    value = formatLocalDate(state.spentAt, state.tzOffsetMinutes),
-                    onClick = { showDatePicker = true },
-                )
-                ListRowDivider()
-                ListPickerRow(
-                    icon = Icons.Default.Schedule,
-                    label = stringResource(Res.string.editor_label_time),
-                    value = formatLocalTime(state.spentAt, state.tzOffsetMinutes),
-                    onClick = { showTimePicker = true },
+                DateTimeRows(
+                    timestamp = state.spentAt,
+                    tzOffsetMinutes = state.tzOffsetMinutes,
+                    onChange = viewModel::setSpentAt,
                 )
                 ListRowDivider()
                 ListTextRow(
@@ -1068,23 +1001,56 @@ private fun SharesStepper(
 ) {
     val current = value.trim().toLongOrNull()?.coerceAtLeast(0) ?: 0L
     Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(
-            onClick = { onValueChange((current - 1).coerceAtLeast(0).toString()) },
+        StepperButton(
+            icon = Icons.Default.Remove,
+            contentDescription = stringResource(Res.string.editor_shares_decrease),
             enabled = current > 0,
-        ) {
-            Icon(Icons.Default.Remove, contentDescription = stringResource(Res.string.editor_shares_decrease))
-        }
+            onClick = { onValueChange((current - 1).coerceAtLeast(0).toString()) },
+        )
         Text(
             text = current.toString(),
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.width(28.dp),
         )
-        IconButton(
+        StepperButton(
+            icon = Icons.Default.Add,
+            contentDescription = stringResource(Res.string.editor_shares_increase),
+            enabled = true,
             onClick = { onValueChange((current + 1).toString()) },
-        ) {
-            Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.editor_shares_increase))
-        }
+        )
+    }
+}
+
+/**
+ * A compact circular −/+ button for [SharesStepper]. Unlike [IconButton] it doesn't reserve the
+ * 48dp minimum touch target, so the shares row lines up with the other splits' compact fields.
+ */
+@Composable
+private fun StepperButton(
+    icon: ImageVector,
+    contentDescription: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            tint =
+                if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                },
+            modifier = Modifier.size(22.dp),
+        )
     }
 }
 

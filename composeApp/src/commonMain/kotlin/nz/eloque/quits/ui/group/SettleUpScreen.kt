@@ -2,7 +2,6 @@ package nz.eloque.quits.ui.group
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,19 +11,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -32,13 +25,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,47 +36,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import nz.eloque.compose_kit.input.SearchablePickerField
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.GroupId
+import nz.eloque.quits.domain.Member
 import nz.eloque.quits.domain.Money
 import nz.eloque.quits.resources.Res
-import nz.eloque.quits.resources.action_cancel
-import nz.eloque.quits.resources.action_ok
 import nz.eloque.quits.resources.action_record
 import nz.eloque.quits.resources.cd_back
 import nz.eloque.quits.resources.detail_settle_up
-import nz.eloque.quits.resources.editor_label_amount
-import nz.eloque.quits.resources.editor_label_date
-import nz.eloque.quits.resources.editor_label_note
-import nz.eloque.quits.resources.editor_label_time
-import nz.eloque.quits.resources.error_invalid_total
 import nz.eloque.quits.resources.settle_up_all_settled
 import nz.eloque.quits.resources.settle_up_custom_link
-import nz.eloque.quits.resources.settle_up_from
 import nz.eloque.quits.resources.settle_up_none
 import nz.eloque.quits.resources.settle_up_payer_owes
 import nz.eloque.quits.resources.settle_up_record_title
 import nz.eloque.quits.resources.settle_up_suggested
-import nz.eloque.quits.resources.settle_up_to
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.MoneyText
-import nz.eloque.quits.ui.components.isValidAmountInput
 import nz.eloque.quits.util.currentOffsetMinutes
-import nz.eloque.quits.util.formatLocalDate
-import nz.eloque.quits.util.formatLocalTime
-import nz.eloque.quits.util.localDateMillisUtc
-import nz.eloque.quits.util.localHourMinute
 import nz.eloque.quits.util.nowMillis
-import nz.eloque.quits.util.offsetZone
-import nz.eloque.quits.util.withPickedDate
-import nz.eloque.quits.util.withPickedTime
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -110,7 +80,7 @@ fun SettleUpScreen(
 
     recording?.let { target ->
         RecordSettlementSheet(
-            members = state.members,
+            members = state.members.map { Member(it.id, it.name) },
             baseCurrency = state.baseCurrency,
             initialFrom = target.from,
             initialTo = target.to,
@@ -161,7 +131,7 @@ fun SettleUpScreen(
                             val from = state.members.firstOrNull { it.id == row.transfer.from }
                             val to = state.members.firstOrNull { it.id == row.transfer.to }
                             if (from != null && to != null) {
-                                recording = RecordTarget(from, to, row.transfer.amount)
+                                recording = RecordTarget(Member(from.id, from.name), Member(to.id, to.name), row.transfer.amount)
                             }
                         },
                     )
@@ -182,8 +152,8 @@ fun SettleUpScreen(
 
 /** What the record sheet should prefill: a tapped suggestion's parties/amount, or nulls for custom. */
 private data class RecordTarget(
-    val from: MemberBalance?,
-    val to: MemberBalance?,
+    val from: Member?,
+    val to: Member?,
     val amount: Money?,
 )
 
@@ -268,13 +238,13 @@ private fun PayerGroup(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RecordSettlementSheet(
-    members: List<MemberBalance>,
+    members: List<Member>,
     baseCurrency: Currency,
-    initialFrom: MemberBalance?,
-    initialTo: MemberBalance?,
+    initialFrom: Member?,
+    initialTo: Member?,
     initialAmount: Money?,
     onDismiss: () -> Unit,
-    onRecord: (from: MemberBalance, to: MemberBalance, amount: Money, note: String?, paidAt: Long, tzOffset: Int) -> Unit,
+    onRecord: (from: Member, to: Member, amount: Money, note: String?, paidAt: Long, tzOffset: Int) -> Unit,
 ) {
     if (members.size < 2) return
 
@@ -286,125 +256,30 @@ private fun RecordSettlementSheet(
     // The offset is captured once, as "now" in the enterer's zone; date/time edits keep it fixed.
     val tzOffset = remember { currentOffsetMinutes() }
     var paidAt by remember { mutableStateOf(nowMillis()) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-
-    if (showDatePicker) {
-        val zone = offsetZone(tzOffset)
-        val pickerState = rememberDatePickerState(initialSelectedDateMillis = localDateMillisUtc(paidAt, zone))
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { paidAt = withPickedDate(paidAt, it, zone) }
-                    showDatePicker = false
-                }) { Text(stringResource(Res.string.action_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(Res.string.action_cancel)) }
-            },
-        ) {
-            DatePicker(state = pickerState)
-        }
-    }
-
-    if (showTimePicker) {
-        val zone = offsetZone(tzOffset)
-        val (initialHour, initialMinute) = remember { localHourMinute(paidAt, zone) }
-        val timeState = rememberTimePickerState(initialHour = initialHour, initialMinute = initialMinute)
-        BasicAlertDialog(onDismissRequest = { showTimePicker = false }) {
-            Surface(shape = MaterialTheme.shapes.extraLarge, tonalElevation = 6.dp) {
-                Column(Modifier.padding(20.dp)) {
-                    TimePicker(state = timeState)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { showTimePicker = false }) { Text(stringResource(Res.string.action_cancel)) }
-                        TextButton(onClick = {
-                            paidAt = withPickedTime(paidAt, timeState.hour, timeState.minute, zone)
-                            showTimePicker = false
-                        }) { Text(stringResource(Res.string.action_ok)) }
-                    }
-                }
-            }
-        }
-    }
-
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).imePadding(),
-        ) {
-            Text(stringResource(Res.string.settle_up_record_title), style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(8.dp))
-
-            SearchablePickerField(
-                label = stringResource(Res.string.settle_up_from),
-                selected = from,
-                selectedLabel = { it.name },
-                onSelected = { from = it },
-                search = { query -> members.filter { it.name.contains(query, ignoreCase = true) } },
-                itemKey = { it.id.value },
-                itemLabel = { it.name },
-                modifier = Modifier.fillMaxWidth(),
+        Column(Modifier.fillMaxWidth().imePadding()) {
+            Text(
+                stringResource(Res.string.settle_up_record_title),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             )
-            SearchablePickerField(
-                label = stringResource(Res.string.settle_up_to),
-                selected = to,
-                selectedLabel = { it.name },
-                onSelected = { to = it },
-                search = { query -> members.filter { it.name.contains(query, ignoreCase = true) } },
-                itemKey = { it.id.value },
-                itemLabel = { it.name },
-                modifier = Modifier.fillMaxWidth(),
+            SettlementFields(
+                members = members,
+                from = from,
+                to = to,
+                onFrom = { from = it },
+                onTo = { to = it },
+                currency = baseCurrency,
+                amount = amount,
+                onAmount = { amount = it },
+                note = note,
+                onNote = { note = it },
+                timestamp = paidAt,
+                tzOffsetMinutes = tzOffset,
+                onTimestamp = { paidAt = it },
+                modifier = Modifier.padding(horizontal = 8.dp),
             )
-
-            val amountValid = isValidAmountInput(amount, baseCurrency)
-            OutlinedTextField(
-                value = amount,
-                onValueChange = { amount = it },
-                label = { Text(stringResource(Res.string.editor_label_amount)) },
-                singleLine = true,
-                isError = !amountValid,
-                supportingText = if (!amountValid) ({ Text(stringResource(Res.string.error_invalid_total)) }) else null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            // Read-only fields; a transparent overlay opens the relevant picker on tap.
-            Row(
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Box(Modifier.weight(1f)) {
-                    OutlinedTextField(
-                        value = formatLocalDate(paidAt, tzOffset),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(stringResource(Res.string.editor_label_date)) },
-                        trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Box(Modifier.matchParentSize().clickable { showDatePicker = true })
-                }
-                Box {
-                    OutlinedTextField(
-                        value = formatLocalTime(paidAt, tzOffset),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(stringResource(Res.string.editor_label_time)) },
-                        modifier = Modifier.width(116.dp),
-                    )
-                    Box(Modifier.matchParentSize().clickable { showTimePicker = true })
-                }
-            }
-
-            OutlinedTextField(
-                value = note,
-                onValueChange = { note = it },
-                label = { Text(stringResource(Res.string.editor_label_note)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
             val money = Money.parse(amount.trim(), baseCurrency)
             val canRecord = from.id != to.id && money != null && money.isPositive
             Button(
@@ -413,7 +288,7 @@ private fun RecordSettlementSheet(
                     onRecord(from, to, toRecord, note, paidAt, tzOffset)
                 },
                 enabled = canRecord,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             ) {
                 Text(stringResource(Res.string.action_record))
             }
