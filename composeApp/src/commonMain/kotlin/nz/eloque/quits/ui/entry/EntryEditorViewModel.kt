@@ -380,7 +380,8 @@ class EntryEditorViewModel(
 
     fun setKind(kind: SplitKind) =
         _state.update { s ->
-            val next = s.copy(splitKind = kind)
+            if (kind == s.splitKind) return@update s
+            val next = s.copy(splitKind = kind, splitInput = emptyMap())
             // The itemized total is the sum of its lines, not a separately typed figure.
             if (kind == SplitKind.ITEMIZED) next.withItemizedTotal() else next
         }
