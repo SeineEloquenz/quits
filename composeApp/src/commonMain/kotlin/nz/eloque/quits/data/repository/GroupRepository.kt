@@ -47,9 +47,7 @@ class GroupRepository(
         )
     }
 
-    /**
-     * Leaves the group: removes it and everything under it from *this device only*
-     */
+    /** Leaves the group: removes it and everything under it from *this device only*. */
     suspend fun leaveGroup(groupId: GroupId) {
         db.groupSyncDao().delete(groupId.value)
         db.groupDao().delete(groupId.value)
@@ -83,11 +81,7 @@ class GroupRepository(
             entity?.let { assemble(it, members, entries, settlements, categories) }
         }
 
-    /**
-     * Reconstructs the aggregate, keeping any tombstoned member still tied to a live entry or
-     * settlement so the [Group]'s referential invariant holds even after a concurrent delete-vs-use
-     * across devices.
-     */
+    /** Reconstructs the aggregate, keeping any tombstoned member still tied to a live record so [Group]'s referential invariant holds. */
     private fun assemble(
         entity: GroupEntity,
         memberEntities: List<MemberEntity>,
@@ -160,11 +154,7 @@ class GroupRepository(
         )
     }
 
-    /**
-     * Inserts or updates [entry]. The timestamp is [entry].spentAt when set (> 0); the
-     * [spentAt] parameter can still override it explicitly (existing callers keep working
-     * unchanged).
-     */
+    /** Inserts or updates [entry]; the timestamp is [entry].spentAt when set (> 0), or the [spentAt] override. */
     suspend fun upsertEntry(
         groupId: GroupId,
         entry: Entry,
@@ -200,11 +190,7 @@ class GroupRepository(
         db.entryDao().tombstone(entryId.value, now(), deviceId)
     }
 
-    /**
-     * Inserts or updates [settlement]. The timestamp is [settlement].paidAt when set (> 0), and the
-     * note is [settlement].note; the [paidAt]/[note] parameters can still override them explicitly
-     * (existing callers keep working unchanged).
-     */
+    /** Inserts or updates [settlement]; timestamp and note come from [settlement], or the [paidAt]/[note] overrides. */
     suspend fun upsertSettlement(
         groupId: GroupId,
         settlement: Settlement,

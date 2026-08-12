@@ -100,9 +100,8 @@ private fun toSplit(
                         )
                     },
             )
-        // Forward-compat: a split type from a newer app version. Never throw on well-formed synced
-        // data — rebuild it from the materialized per-member shares so balances stay correct. The
-        // caller flags it unsupported (see [EntryWithLines.toDomain]) so the UI keeps it read-only.
+        // Forward-compat: an unrecognized (newer) split type. Never throw on well-formed synced data —
+        // rebuild from the stored per-member shares (the caller flags it read-only).
         else -> Split.Exact(rows.associate { MemberId(it.memberId) to Money(it.shareMinor, currency) })
     }
 

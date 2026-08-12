@@ -115,16 +115,11 @@ class EntryDetailViewModel(
     /** Emits once the delete has been saved locally, so the screen can navigate back. */
     val deleted: Flow<Unit> = _deleted.receiveAsFlow()
 
-    /**
-     * Deletes immediately — this screen's trash icon is already the deliberate, confirmed action
-     * (unlike the swipe-then-undo on the activity feed, there's no second affordance to layer an
-     * undo window onto here without adding one), then best-effort syncs.
-     */
+    /** Deletes immediately (the trash icon is the confirmed action), then best-effort syncs. */
     fun delete() {
         viewModelScope.launch {
             repo.deleteEntry(entryId)
             _deleted.send(Unit)
-            // The deletion is already saved locally; a sync failure shouldn't block leaving the screen.
             engine.syncQuietly(groupId)
         }
     }

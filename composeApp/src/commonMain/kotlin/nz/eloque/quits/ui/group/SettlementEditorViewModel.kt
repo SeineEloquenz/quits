@@ -63,7 +63,7 @@ class SettlementEditorViewModel(
     private val _deleted = Channel<Unit>(Channel.BUFFERED)
     val deleted: Flow<Unit> = _deleted.receiveAsFlow()
 
-    // Kept to preserve the rate-to-base captured at entry when saving; currency comes from here too.
+    // Preserves the entry-captured rate-to-base and currency for save.
     private var loaded: Settlement? = null
 
     init {
@@ -125,7 +125,6 @@ class SettlementEditorViewModel(
                     return@launch
                 }
             repo.upsertSettlement(groupId, settlement)
-            // The settlement is saved locally; a sync failure shouldn't block leaving the screen.
             engine.syncQuietly(groupId)
             _saved.send(Unit)
         }

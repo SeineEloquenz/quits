@@ -69,13 +69,9 @@ fun SettleUpScreen(
     groupId: GroupId,
     onBack: () -> Unit,
 ) {
-    // Same aggregate as GroupDetailScreen, keyed by group — reactive to the same balances, so
-    // recording here or there shows up identically either way.
     val viewModel = koinViewModel<GroupDetailViewModel>(key = groupId.value) { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
 
-    // Non-null while the record sheet is open; carries what to prefill (a tapped suggestion, or
-    // nulls for a from-scratch custom payment).
     var recording by remember { mutableStateOf<RecordTarget?>(null) }
 
     recording?.let { target ->
@@ -122,8 +118,6 @@ fun SettleUpScreen(
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                // Grouped by who pays, so a debtor who owes several people reads as one block
-                // instead of repeating their name down every row.
                 state.transfers.groupBy { it.transfer.from }.forEach { (_, rows) ->
                     PayerGroup(
                         rows = rows,
@@ -181,11 +175,7 @@ private fun SettledUpHint() {
     }
 }
 
-/**
- * All of one payer's suggested payments: a header naming the debtor once, then a tappable row per
- * creditor (arrow + avatar + name + amount). Amounts share a right-aligned column so the block reads
- * cleanly regardless of name lengths.
- */
+/** All of one payer's suggested payments: a debtor header, then a tappable row per creditor. */
 @Composable
 private fun PayerGroup(
     rows: List<TransferRow>,
@@ -230,11 +220,7 @@ private fun PayerGroup(
     }
 }
 
-/**
- * One sheet for every way to record a payment. Prefilled from a tapped suggestion (parties + full
- * amount) or empty for a custom one; the amount stays editable so a partial payment is just typing a
- * smaller number. Note and date are optional and default to "no note, now".
- */
+/** Sheet to record a payment; prefilled from a tapped suggestion or empty for custom, with the amount editable for partial payments. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RecordSettlementSheet(
@@ -253,7 +239,6 @@ private fun RecordSettlementSheet(
     var to by remember { mutableStateOf(initialTo ?: members.first { it.id != start.id }) }
     var amount by remember { mutableStateOf(initialAmount?.toDecimalString() ?: "") }
     var note by remember { mutableStateOf("") }
-    // The offset is captured once, as "now" in the enterer's zone; date/time edits keep it fixed.
     val tzOffset = remember { currentOffsetMinutes() }
     var paidAt by remember { mutableStateOf(nowMillis()) }
     ModalBottomSheet(onDismissRequest = onDismiss) {

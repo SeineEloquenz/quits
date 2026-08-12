@@ -27,11 +27,7 @@ data class CategoryDisplay(
     val color: Color,
 )
 
-/**
- * Resolves [id] to its display — custom [categories] first, then app presets. Returns null when the
- * entry is uncategorized ([id] null) or the id is unknown to this build (a newer preset, or a
- * custom category not yet synced): such entries read as uncategorized until resolvable.
- */
+/** Resolves [id] to its display (custom [categories] first, then presets); null when uncategorized or the id is unknown to this build. */
 @Composable
 fun categoryDisplay(
     id: CategoryId?,

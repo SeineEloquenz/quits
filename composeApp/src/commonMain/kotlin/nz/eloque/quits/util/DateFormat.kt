@@ -44,10 +44,7 @@ fun withPickedTime(
     return LocalDateTime(date, LocalTime(hour, minute)).toInstant(timeZone).toEpochMilliseconds()
 }
 
-/**
- * The UTC-midnight millis of [spentAt]'s *local* calendar day — the form Material's DatePicker wants
- * as its selected date, so the picker highlights the day the user actually sees for this entry.
- */
+/** The UTC-midnight millis of [spentAt]'s local calendar day, the form Material's DatePicker wants as its selected date. */
 fun localDateMillisUtc(
     spentAt: Long,
     timeZone: TimeZone,
@@ -59,11 +56,7 @@ fun localDateMillisUtc(
         .atStartOfDayIn(TimeZone.UTC)
         .toEpochMilliseconds()
 
-/**
- * Replaces the calendar day of [spentAt] with the day picked in the DatePicker ([pickedUtcMidnight]
- * is its UTC-midnight value), keeping the original local time-of-day. So a backdate moves the day
- * without disturbing the time, and the result's local date is exactly the day the user tapped.
- */
+/** Replaces [spentAt]'s calendar day with the DatePicker's picked day ([pickedUtcMidnight]), keeping the local time-of-day. */
 fun withPickedDate(
     spentAt: Long,
     pickedUtcMidnight: Long,

@@ -25,10 +25,7 @@ fun MoneyText(
     Text(money.display(), modifier = modifier, style = style)
 }
 
-/**
- * An entry's amount in the activity feed/detail, signed and colored by direction: money out (expense)
- * shows "-…" in red, money in (income) shows "+…" in green. [money] is the (positive) total.
- */
+/** An entry's amount, signed and colored by direction: expense "-…" in red, income "+…" in green. [money] is the positive total. */
 @Composable
 fun EntryAmountText(
     money: Money,
@@ -41,12 +38,7 @@ fun EntryAmountText(
     Text("$sign${money.display()}", modifier = modifier, color = color, style = style)
 }
 
-/**
- * A net balance, colored by sign: owed-to-them (positive) in green, owing (negative) in red,
- * settled (zero) muted. Green/red are fixed, theme-independent semantics shared with
- * [EntryAmountText] — deliberately outside the (teal) color scheme so direction reads the same
- * regardless of dynamic color.
- */
+/** A net balance colored by sign: positive green, negative red, zero muted (fixed green/red, independent of the color scheme). */
 @Composable
 fun BalanceText(
     money: Money,

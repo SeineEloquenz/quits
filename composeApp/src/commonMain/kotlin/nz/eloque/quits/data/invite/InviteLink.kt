@@ -14,10 +14,7 @@ object InviteLink {
     /** A shareable invite URL carrying [code] in the fragment. */
     fun build(code: String): String = "$BASE#$code"
 
-    /**
-     * Extracts the share code from an invite [url] (or deep link), or null if it carries no valid
-     * code
-     */
+    /** Extracts the share code from an invite [url] (or deep link), or null if it carries no valid code. */
     fun parse(url: String): String? {
         val fragment = url.substringAfter('#', "").trim()
         if (fragment.isEmpty()) return null

@@ -24,10 +24,7 @@ import nz.eloque.quits.domain.spendOverTime
 import nz.eloque.quits.domain.spending
 import nz.eloque.quits.ui.category.PRESET_IDS
 
-/**
- * One row of a breakdown: a [label] ([null] = uncategorized, resolved by the screen), an [amount],
- * and a [fraction] of the section's largest bar — magnitude only, so a single hue reads correctly.
- */
+/** One breakdown row: [label] (null = uncategorized), [amount], and [fraction] of the section's largest bar. */
 data class StatBar(
     val label: String?,
     val amount: Money,
@@ -76,8 +73,6 @@ class StatsViewModel(
             } else {
                 val spending = group.spending()
                 val names = group.members.associate { it.id to it.name }
-                // Fold any id this build can't resolve (a newer preset, or an unsynced custom
-                // category) into the uncategorized bucket, so stats never show a nameless bar.
                 val validIds = PRESET_IDS + group.categories.map { it.id }.toSet()
                 val byCategory =
                     spending.byCategory

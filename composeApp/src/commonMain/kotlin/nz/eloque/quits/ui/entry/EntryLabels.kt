@@ -31,11 +31,7 @@ import nz.eloque.quits.resources.expense_delete_body
 import nz.eloque.quits.resources.income_delete_body
 import org.jetbrains.compose.resources.StringResource
 
-/*
- * Kind-aware user-facing copy for an entry (expense vs income), as extensions on [EntryKind] so the
- * wording branches live in one place: callers write `stringResource(kind.payerHeadingRes())` instead
- * of scattering `if (isIncome) … else …`. Each returns a [StringResource]; the caller resolves it.
- */
+// Kind-aware user-facing copy for an entry (expense vs income), as [EntryKind] extensions. Each returns a [StringResource].
 
 /** Editor screen title, e.g. "Add expense" / "Edit income". */
 fun EntryKind.titleRes(editing: Boolean): StringResource =

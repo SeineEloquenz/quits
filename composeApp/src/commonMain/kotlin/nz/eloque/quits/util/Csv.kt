@@ -10,9 +10,7 @@ import nz.eloque.quits.domain.isIncome
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-/**
- * Fixed, locale-independent symbols for exported amounts
- */
+/** Fixed, locale-independent symbols for exported amounts. */
 private object CsvNumberFormat : NumberFormatSymbols {
     override fun decimalSeparator(): Char = '.'
 
@@ -29,12 +27,7 @@ private fun csvField(value: String): String =
 
 private fun two(value: Int): String = value.toString().padStart(2, '0')
 
-/**
- * Renders this group's entries as an RFC-4180 CSV (CRLF line endings), newest first. Date and time
- * are ISO, each rendered in the offset the entry was entered in, so they read as the enterer meant.
- * [categoryName] resolves a category id to its display name (preset or custom); returns null when
- * unknown, rendered as an empty cell.
- */
+/** Renders the group's entries as an RFC-4180 CSV (CRLF), newest first; dates/times are ISO in each entry's captured offset. [categoryName] resolves a category id (null → empty cell). */
 fun Group.entriesToCsv(categoryName: (CategoryId) -> String? = { null }): String {
     val names = members.associate { it.id to it.name }
     val header = listOf("Date", "Time", "Title", "Type", "Category", "Amount", "Currency", "Paid / received by", "Note")

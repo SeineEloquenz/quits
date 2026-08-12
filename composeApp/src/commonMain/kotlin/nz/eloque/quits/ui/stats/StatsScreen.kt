@@ -219,7 +219,6 @@ private fun BarColumn(
         modifier = Modifier.width(BAR_WIDTH).clip(RoundedCornerShape(6.dp)).clickable(onClick = onClick),
     ) {
         Box(Modifier.height(BAR_AREA_HEIGHT).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-            // A nonzero bucket keeps a sliver of bar so small spend never vanishes to nothing.
             val fraction = if (bar.amount.minorUnits > 0) bar.fraction.coerceAtLeast(0.02f) else 0f
             Box(
                 Modifier
@@ -265,10 +264,7 @@ private fun SectionHeader(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
 }
 
-/**
- * One breakdown row: label + value, then a single-hue magnitude bar (length ∝ the section's largest).
- * Colour is not used to distinguish rows — the label carries identity, the bar length the magnitude.
- */
+/** One breakdown row: label + value, then a single-hue magnitude bar (length ∝ the section's largest). */
 @Composable
 private fun StatBarRow(
     bar: StatBar,

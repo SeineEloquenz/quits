@@ -84,15 +84,9 @@ data class Money(
         fun zero(currency: Currency): Money = Money(0, currency)
 
         /**
-         * Parses a decimal amount (e.g. "19.99", "1,234.56", "1.234,56") into minor units of
-         * [currency], respecting [format]'s locale conventions for the decimal and grouping
-         * separators (defaulting to the current platform locale). Returns null if [input] isn't a
+         * Parses a decimal amount (e.g. "19.99", "1,234.56", "1.234,56") into minor units of [currency],
+         * respecting [format]'s locale separators (default: platform locale). Null if [input] isn't a
          * valid, correctly-scaled number for [currency].
-         *
-         * A separator is only treated as the decimal point if what follows it looks like a
-         * fraction for [currency] (all digits, no more than [Currency.decimalDigits]); otherwise
-         * any leftover punctuation must be the locale's own grouping separator, arranged in valid
-         * thousands groups.
          */
         fun parse(
             input: String,
@@ -111,8 +105,6 @@ data class Money(
             val allowed = decimalCandidates + setOfNotNull(groupingSep)
             if (body.any { !it.isDigit() && it !in allowed }) return null
 
-            // The last decimal-candidate character is the decimal point, provided what follows it
-            // is plausibly a fraction; otherwise there is no fractional part.
             val lastDecimalIndex = body.indexOfLast { it in decimalCandidates }
             var wholeRaw = body
             var fracStr = ""
@@ -126,8 +118,6 @@ data class Money(
                 }
             }
 
-            // Whatever punctuation remains in the whole part must be the locale's grouping
-            // separator, used consistently to mark groups of three digits.
             val wholeStr =
                 if (groupingSep != null && wholeRaw.contains(groupingSep)) {
                     val groups = wholeRaw.split(groupingSep)

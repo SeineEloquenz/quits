@@ -36,11 +36,7 @@ class Group(
     fun references(member: MemberId): Boolean = member in referencedMemberIds(entries, settlements)
 
     companion object {
-        /**
-         * Member ids referenced by any of [entries] or [settlements] (as a payment party, a
-         * share-holder, or a settlement party). Lets a reconstructed aggregate keep a tombstoned member
-         * that is still tied to live financial records, instead of failing its referential invariant.
-         */
+        /** Member ids referenced by any [entries] or [settlements], so a reconstructed aggregate can keep a tombstoned member still tied to live records. */
         fun referencedMemberIds(
             entries: List<Entry>,
             settlements: List<Settlement>,
@@ -58,11 +54,9 @@ class Group(
     }
 
     /**
-     * Net balance per member in [baseCurrency]. Each entry (and each settlement) is converted as a
-     * single unit, then its converted total is split across payers and across share-holders by the
-     * same largest-remainder method the split uses. Both sides therefore sum to exactly the converted
-     * total and cancel, so the group nets to zero even across currencies where per-amount rounding
-     * otherwise would not.
+     * Net balance per member in [baseCurrency]. Each entry/settlement is converted as a single unit, then
+     * split across payers and share-holders by the split's largest-remainder method, so both sides cancel
+     * and the group nets to zero even across currencies.
      */
     fun balances(): Balances {
         val net = members.associate { it.id to 0L }.toMutableMap()
@@ -76,9 +70,7 @@ class Group(
 
         for (entry in entries) {
             val baseTotal = ExchangeRate(entry.currency, baseCurrency, entry.rateToBase).convert(entry.total)
-            if (!baseTotal.isPositive) continue // nothing to allocate; both sides would be zero
-            // Income is the mirror of an expense: the receiver holds group money (debited) and the
-            // beneficiaries are each owed their share (credited), so both signs flip.
+            if (!baseTotal.isPositive) continue
             val sign = entry.kind.balanceSign
             val paymentsByMember = entry.payments.groupBy { it.member }.mapValues { (_, ps) -> ps.sumOf { it.amount.minorUnits } }
             val payers = paymentsByMember.keys.toList()

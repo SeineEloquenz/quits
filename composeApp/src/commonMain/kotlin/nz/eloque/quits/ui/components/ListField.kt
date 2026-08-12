@@ -42,11 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * Grouped-list card (Direction C): an [ElevatedCard] whose children are field rows. Callers place
- * [ListPickerRow] / [ListTextRow] and separate them with [ListRowDivider]. Bakes in the same outer
- * vertical spacing as `SectionCard` so the two can sit next to each other evenly.
- */
+/** Grouped-list card: an [ElevatedCard] of field rows ([ListPickerRow] / [ListTextRow]) separated by [ListRowDivider]. */
 @Composable
 fun ListFieldCard(
     modifier: Modifier = Modifier,
@@ -67,11 +63,7 @@ fun ListRowDivider() {
     )
 }
 
-/**
- * A tap-to-open row: leading icon, label, the current value (right-aligned), and a chevron. Used for
- * fields whose value is chosen in a picker/dialog (date, time, currency). [placeholder] renders the
- * value muted when nothing is chosen yet.
- */
+/** A tap-to-open row (icon, label, right-aligned value, chevron) for picker/dialog-chosen fields; [placeholder] renders muted when unset. */
 @Composable
 fun ListPickerRow(
     icon: ImageVector,
@@ -111,11 +103,7 @@ fun ListPickerRow(
     }
 }
 
-/**
- * An inline text-entry row: leading icon, label, and a borderless [BasicTextField] whose text is
- * right-aligned so it lines up with the values in [ListPickerRow]s. An optional [supporting] line
- * (tinted for [isError]) sits beneath, mirroring a Material field's supporting text.
- */
+/** An inline text-entry row (icon, label, right-aligned borderless field) with an optional [supporting] line tinted for [isError]. */
 @Composable
 fun ListTextRow(
     icon: ImageVector,
@@ -182,11 +170,7 @@ fun ListTextRow(
     }
 }
 
-/**
- * A compact borderless value field for member breakdown rows (percentage, exact amounts): a
- * right-aligned [BasicTextField] with an optional [suffix] and a thin underline, signalling an
- * editable field without the weight of a full outlined box.
- */
+/** A compact borderless value field (right-aligned, optional [suffix], thin underline) for member breakdown rows. */
 @Composable
 fun InlineEntryField(
     value: String,

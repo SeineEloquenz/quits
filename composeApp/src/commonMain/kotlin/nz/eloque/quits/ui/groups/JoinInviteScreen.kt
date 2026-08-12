@@ -33,9 +33,7 @@ import nz.eloque.quits.resources.label_share_code
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/**
- * Confirmation for an invite link
- */
+/** Confirmation for an invite link. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JoinInviteScreen(

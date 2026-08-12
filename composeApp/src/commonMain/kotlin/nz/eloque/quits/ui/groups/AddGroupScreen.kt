@@ -23,11 +23,7 @@ import nz.eloque.quits.resources.cd_back
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/**
- * Same join-or-create screen as [nz.eloque.quits.ui.onboarding.OnboardingScreen], reached from
- * the drawer's "add group" item once you already have at least one group — same fields, same
- * calls, just with a way back instead of being the only thing on screen.
- */
+/** The join-or-create form of [nz.eloque.quits.ui.onboarding.OnboardingScreen] as its own back-navigable screen, reached from the drawer. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddGroupScreen(

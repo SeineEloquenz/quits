@@ -144,7 +144,6 @@ fun MemberDetailScreen(
             }
         },
         actions = {
-            // Rename/remove live behind the overflow menu, matching the group screen's app-bar pattern.
             if (state.loaded && state.found) {
                 Box {
                     IconButton(onClick = { menuExpanded = true }) {
@@ -339,7 +338,7 @@ private fun RenameDialog(
     )
 }
 
-/** Consequence-aware confirmation: names what actually happens, using data the domain already exposes. */
+/** Confirmation dialog for removing a member. */
 @Composable
 private fun RemoveMemberDialog(
     state: MemberDetailUiState,

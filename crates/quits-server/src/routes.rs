@@ -242,7 +242,6 @@ pub async fn post_changes(
     let mut rejected = Vec::new();
     let mut tx = state.db.begin().await?;
 
-    // Per-group storage cap: current record count, tracked as we insert new ones this batch.
     let mut group_count: i64 = if state.config.max_records_per_group > 0 {
         let (c,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM records WHERE group_id = ?")
             .bind(&group_id)

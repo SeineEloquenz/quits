@@ -38,18 +38,9 @@ class Entry(
     val split: Split,
     /** Rate to convert this entry's currency into the group's base currency, captured at entry. */
     val rateToBase: Double = 1.0,
-    /**
-     * When the entry was incurred (epoch millis). 0 means unset — callers that care about
-     * chronological ordering (the activity feed) must supply a real value; the persistence
-     * layer already always does. Not part of [equals]/[hashCode] (identity is [id]-based, per
-     * [Entity]), so this can be filled in without affecting anything that compares entries.
-     */
+    /** When the entry was incurred (epoch millis); 0 = unset. Not part of [equals]/[hashCode] (identity is [id]-based). */
     val spentAt: Long = 0L,
-    /**
-     * UTC offset in minutes captured when [spentAt] was entered, so the day/time can be rendered as
-     * the enterer meant it regardless of the viewer's timezone. Like [spentAt], not part of
-     * [equals]/[hashCode].
-     */
+    /** UTC offset in minutes captured when [spentAt] was entered, so the day/time renders as the enterer meant it. Not part of [equals]/[hashCode]. */
     val tzOffsetMinutes: Int = 0,
     /** Preset id (app-defined) or custom [Category] id; null when uncategorized. */
     val categoryId: CategoryId? = null,

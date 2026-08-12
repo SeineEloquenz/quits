@@ -89,11 +89,7 @@ data class ActivityFilter(
     val isActive: Boolean get() = query.isNotBlank() || categoryId != null || members.isNotEmpty()
 }
 
-/**
- * One row in the merged activity feed. Entries and settlements are unrelated domain types with
- * different fields, but the feed shows them interleaved by time — this is the UI-layer join, not
- * a new domain concept.
- */
+/** One row in the merged activity feed: an entry or a settlement, interleaved by time (a UI-layer join). */
 sealed interface ActivityItem {
     val timestamp: Long
     val offsetMinutes: Int
@@ -170,7 +166,6 @@ class GroupDetailViewModel(
     fun clearFilters() = filter.update { ActivityFilter() }
 
     init {
-        // Pull the latest on open (no-op for a local-only group).
         viewModelScope.launch { trySync() }
     }
 
@@ -216,9 +211,7 @@ class GroupDetailViewModel(
         if (_syncStatus.value is SyncStatus.Failed) _syncStatus.value = SyncStatus.Idle
     }
 
-    /**
-     * Leaves the group, removing it from this device only
-     */
+    /** Leaves the group, removing it from this device only. */
     fun leave() {
         viewModelScope.launch { repo.leaveGroup(groupId) }
     }
@@ -245,11 +238,7 @@ class GroupDetailViewModel(
         }
     }
 
-    /**
-     * Records a settlement payment. Amount, date and note are all caller-supplied so the settle-up
-     * sheet can record a partial payment on a chosen date with an optional note; the defaults keep
-     * the common "record this in full, now" case a one-liner.
-     */
+    /** Records a settlement payment; amount, date and note are caller-supplied (defaults cover the "in full, now" case). */
     fun record(
         from: MemberId,
         to: MemberId,
@@ -374,7 +363,6 @@ private fun ActivityItem.matches(filter: ActivityFilter): Boolean {
         }
 
         is ActivityItem.SettlementItem -> {
-            // Settlements have no category, so any category filter excludes them.
             if (filter.categoryId != null) return false
             if (filter.members.isNotEmpty() && row.fromId !in filter.members && row.toId !in filter.members) return false
             query.isEmpty() || row.from.contains(query, ignoreCase = true) || row.to.contains(query, ignoreCase = true)

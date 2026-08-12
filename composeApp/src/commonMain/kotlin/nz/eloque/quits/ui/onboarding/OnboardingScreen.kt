@@ -36,8 +36,6 @@ fun OnboardingScreen(
     onJoinInput: () -> Unit,
 ) {
     Column(
-        // No extra horizontal inset here: AddGroupContent's fields self-pad to 16.dp, matching the
-        // margins of the standalone AddGroupScreen that shows the same form.
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),

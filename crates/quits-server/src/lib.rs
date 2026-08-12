@@ -43,7 +43,6 @@ pub async fn build_state(config: Config) -> Result<AppState, sqlx::Error> {
 pub fn router(state: AppState) -> Router {
     let config = state.config.clone();
 
-    // Group creation carries an extra strict per-IP limiter, so it lives on its own sub-router.
     let mut create = Router::new().route("/v1/groups", post(routes::create_group));
     if let Some(conf) = ratelimit::create_config(&config) {
         ratelimit::spawn_cleanup(conf.clone());
@@ -65,7 +64,6 @@ pub fn router(state: AppState) -> Router {
         .route("/join", get(wellknown::join_landing))
         .merge(create);
 
-    // Generous global limiter across every route.
     if let Some(conf) = ratelimit::global_config(&config) {
         ratelimit::spawn_cleanup(conf.clone());
         app = app.layer(GovernorLayer::new(conf));

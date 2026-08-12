@@ -3,19 +3,11 @@ package nz.eloque.quits.navigation
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
-/**
- * Front door: a sidebar drawer for switching groups, wrapping the last-selected group's detail
- * screen directly (no separate "groups list" screen). Shows onboarding in place when there are
- * no groups yet.
- */
+/** The drawer-based home: switches groups and shows the last-selected group's detail screen (or onboarding when there are none). */
 @Serializable
 data object GroupsHomeKey : NavKey
 
-/**
- * Join-or-create a group. Reused both as the first-run onboarding content (rendered inline by
- * [GroupsHomeKey] when there are no groups) and as its own destination reached from the drawer's
- * "add group" item once at least one group already exists.
- */
+/** Join-or-create a group; used both as inline onboarding (via [GroupsHomeKey]) and as its own drawer destination. */
 @Serializable
 data object AddGroupKey : NavKey
 

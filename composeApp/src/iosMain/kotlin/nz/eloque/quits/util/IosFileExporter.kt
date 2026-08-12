@@ -42,7 +42,7 @@ class IosFileExporter : FileExporter {
     }
 }
 
-/** The active window's root controller, via the foreground scene (the modern replacement for the deprecated UIApplication.keyWindow). */
+/** The active window's root controller, via the foreground scene. */
 private fun keyRootViewController(): UIViewController? {
     val scene =
         UIApplication.sharedApplication.connectedScenes

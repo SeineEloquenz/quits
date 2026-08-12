@@ -18,10 +18,8 @@ import org.koin.dsl.module
 
 actual val platformModule: Module =
     module {
-        // OPFS-backed file; the Web Worker driver (see :sqliteWebWorker) persists it across reloads.
         single<RoomDatabase.Builder<QuitsDatabase>> { Room.databaseBuilder<QuitsDatabase>(name = "quits.db") }
         single<SQLiteDriver> { createWebSqliteDriver() }
-        // multiplatform-settings backed by window.localStorage.
         single<Settings> { StorageSettings() }
         single<HttpClientEngine> { Js.create() }
         single<Sharer> { WebSharer() }

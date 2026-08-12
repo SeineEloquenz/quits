@@ -248,7 +248,6 @@ fun GroupDetailScreen(
 
     AppScaffold(
         title = {
-            // Archived groups read in a muted tone with a leading archive glyph; the name is still editable.
             val titleColor = if (state.archived) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (state.archived) {
@@ -256,7 +255,6 @@ fun GroupDetailScreen(
                         Icons.Default.Inventory2,
                         contentDescription = stringResource(Res.string.group_archived_label),
                         tint = titleColor,
-                        // Small, so it reads as a label prefix on the title rather than a second nav icon.
                         modifier = Modifier.padding(end = 6.dp).size(16.dp),
                     )
                 }
@@ -281,8 +279,6 @@ fun GroupDetailScreen(
             }) {
                 Icon(Icons.Default.Search, contentDescription = stringResource(Res.string.cd_search))
             }
-            // Only search and the overflow menu stay in the bar; sharing and sync live in the menu, and
-            // only an active sync's progress shows here — so the bar stays uncluttered.
             if (syncStatus == SyncStatus.Syncing) {
                 CircularProgressIndicator(Modifier.padding(12.dp).size(20.dp), strokeWidth = 2.dp)
             }
@@ -360,10 +356,6 @@ fun GroupDetailScreen(
         floatingActionButton = {
             if (state.loaded) {
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Speed dial: the main FAB toggles open to reveal contextual actions, primary (Add
-                    // expense) nearest the thumb. Settle-up only when there's something to settle;
-                    // expense/income only once there are members — Add member is always offered so a
-                    // brand-new group can still add its first person.
                     AnimatedVisibility(
                         visible = fabExpanded,
                         enter = fadeIn() + expandVertically(expandFrom = Alignment.Bottom),
@@ -514,8 +506,6 @@ fun GroupDetailScreen(
                 Spacer(Modifier.height(88.dp)) // room for the FAB
             }
 
-            // Tap-outside scrim: dims content and dismisses the open speed dial. Sits above the
-            // list but below the FAB slot, so the FAB and its expanded items stay bright.
             AnimatedVisibility(
                 visible = fabExpanded,
                 enter = fadeIn(),
@@ -796,7 +786,7 @@ private fun MemberBalanceRow(
     }
 }
 
-/** Names a new member. The FAB-menu counterpart to what used to be an inline field in the balances card. */
+/** Names a new member. */
 @Composable
 private fun AddMemberDialog(
     onDismiss: () -> Unit,
@@ -855,9 +845,7 @@ private fun RenameGroupDialog(
     )
 }
 
-/**
- * Confirms leaving the active group, which removes it from this device
- */
+/** Confirms leaving the active group, which removes it from this device. */
 @Composable
 private fun LeaveGroupDialog(
     groupName: String,

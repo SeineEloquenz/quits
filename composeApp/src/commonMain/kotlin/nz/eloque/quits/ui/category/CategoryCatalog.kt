@@ -53,10 +53,7 @@ import nz.eloque.quits.resources.category_travel
 import nz.eloque.quits.resources.category_utilities
 import org.jetbrains.compose.resources.StringResource
 
-/**
- * A built-in category. Preset ids are stable strings (never localized/renamed) shared across app
- * builds, so any version resolves them; [nameRes] localizes only the display.
- */
+/** A built-in category. Preset ids are stable strings shared across app builds; [nameRes] localizes only the display. */
 data class PresetCategory(
     val id: CategoryId,
     val nameRes: StringResource,

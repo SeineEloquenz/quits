@@ -63,12 +63,7 @@ class GroupsViewModel(
     private val _events = MutableSharedFlow<GroupsEvent>()
     val events = _events.asSharedFlow()
 
-    /**
-     * [state]'s groups, each paired with its live balance status. Rebuilds its inner `combine`
-     * whenever the *set* of groups changes; each row otherwise stays reactive to that one
-     * group's own updates. Purely a UI-layer read — [GroupSummary] itself stays the lightweight
-     * projection it always was; this never touches the domain model.
-     */
+    /** [state]'s groups, each paired with its live balance status; rebuilds the inner combine when the set of groups changes. */
     @OptIn(ExperimentalCoroutinesApi::class)
     val homeRows: StateFlow<List<GroupHomeRow>> =
         state

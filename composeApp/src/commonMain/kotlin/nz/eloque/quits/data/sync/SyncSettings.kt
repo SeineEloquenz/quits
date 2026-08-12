@@ -19,7 +19,6 @@ interface SyncSettings {
     val activeGroupIdFlow: StateFlow<String?>
 
     companion object {
-        // Android emulator -> dev host loopback. Override on a physical device.
         const val DEFAULT_RELAY_URL = "https://quits.eloque.nz"
     }
 }

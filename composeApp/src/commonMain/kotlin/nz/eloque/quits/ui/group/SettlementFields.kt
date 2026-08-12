@@ -26,11 +26,7 @@ import nz.eloque.quits.ui.components.SearchablePickerRow
 import nz.eloque.quits.ui.components.isValidAmountInput
 import org.jetbrains.compose.resources.stringResource
 
-/**
- * The shared settlement form (Direction C): a From / To / Amount card and a Date / Time / Note card.
- * Stateless, so both the standalone editor and the record sheet drive it from their own state — each
- * only needs a member's id + name, so both talk in domain [Member]s.
- */
+/** The shared, stateless settlement form: a From/To/Amount card and a Date/Time/Note card. */
 @Composable
 fun SettlementFields(
     members: List<Member>,

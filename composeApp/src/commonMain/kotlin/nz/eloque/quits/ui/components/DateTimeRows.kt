@@ -40,12 +40,7 @@ import nz.eloque.quits.util.withPickedDate
 import nz.eloque.quits.util.withPickedTime
 import org.jetbrains.compose.resources.stringResource
 
-/**
- * A Date [ListPickerRow] and a Time [ListPickerRow] (with a divider between) that own their own
- * date/time picker dialogs. Emits the two rows for placement inside a [ListFieldCard]; the caller
- * adds any divider + further rows after. Centralises the picker-dialog boilerplate that every entry
- * timestamp shares — [onChange] receives the new epoch-milli timestamp.
- */
+/** A Date and a Time [ListPickerRow] (with their own picker dialogs) for placement in a [ListFieldCard]; [onChange] receives the new epoch-milli timestamp. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateTimeRows(

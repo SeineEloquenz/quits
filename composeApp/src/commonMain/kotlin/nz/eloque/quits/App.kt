@@ -88,7 +88,6 @@ fun App() {
             val inviteResolver = koinInject<InviteResolver>()
             val settings = koinInject<SyncSettings>()
 
-            // React to invite decisions only; the resolver does the domain lookup once per code.
             LaunchedEffect(Unit) {
                 inviteResolver.resolution.collect { resolution ->
                     when (resolution) {
@@ -119,8 +118,6 @@ fun App() {
                     ),
                 entryProvider =
                     entryProvider {
-                        // Front door: sidebar drawer wrapping the last-selected group directly —
-                        // switching groups happens in place, it's never a back-stack push/pop.
                         entry<GroupsHomeKey> {
                             HomeScreen(
                                 onOpenSettings = { backStack.add(SettingsKey) },
@@ -140,8 +137,6 @@ fun App() {
                         entry<AddGroupKey> {
                             AddGroupScreen(
                                 onBack = { backStack.removeLastOrNull() },
-                                // createGroup()/join() already set the new group active; Home will
-                                // show it automatically once this pops back to it.
                                 onDone = { backStack.removeLastOrNull() },
                             )
                         }
@@ -199,7 +194,6 @@ fun App() {
                                     pendingInvite.consume()
                                     backStack.removeLastOrNull()
                                 },
-                                // join() sets the new group active; Home shows it once we pop back.
                                 onJoined = {
                                     pendingInvite.consume()
                                     backStack.removeLastOrNull()

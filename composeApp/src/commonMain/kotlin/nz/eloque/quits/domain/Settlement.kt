@@ -8,17 +8,9 @@ class Settlement(
     val amount: Money,
     /** Rate to convert into the group's base currency, captured at entry. */
     val rateToBase: Double = 1.0,
-    /**
-     * When the payment was made (epoch millis). 0 means unset — callers that care about
-     * chronological ordering (the activity feed) must supply a real value; the persistence
-     * layer already always does. Not part of [equals]/[hashCode] (identity is [id]-based, per
-     * [Entity]), so this can be filled in without affecting anything that compares settlements.
-     */
+    /** When the payment was made (epoch millis); 0 = unset. Not part of [equals]/[hashCode] (identity is [id]-based). */
     val paidAt: Long = 0L,
-    /**
-     * UTC offset in minutes captured when [paidAt] was entered, so the day/time renders as the
-     * enterer meant it regardless of the viewer's timezone. Like [paidAt], not part of identity.
-     */
+    /** UTC offset in minutes captured when [paidAt] was entered, so the day/time renders as the enterer meant it. Not part of identity. */
     val tzOffsetMinutes: Int = 0,
     /** Free-text note (optional). Like [paidAt], not part of identity/equality. */
     val note: String? = null,

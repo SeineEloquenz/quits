@@ -58,8 +58,7 @@ class RelayClient(
                     contentType(ContentType.Application.Json)
                     setBody(GroupLookupRequest(lookupId))
                 }
-            // No such invite code is an expected outcome, not a failure, so it stays a null return
-            // rather than a GroupGone error.
+            // A missing invite code is expected here, not an error.
             if (response.status == HttpStatusCode.NotFound) return@relayCall null
             val body: JoinGroupResponse = response.decode()
             GroupHandle(body.groupId, body.token)
@@ -96,9 +95,7 @@ class RelayClient(
             PullResult(body.records.map { it.toRecord() }, body.seq)
         }
 
-    /**
-     * Runs [block] and re-expresses every failure as a [SyncError]
-     */
+    /** Runs [block] and re-expresses every failure as a [SyncError]. */
     private inline fun <T> relayCall(block: () -> T): T =
         try {
             block()
@@ -110,9 +107,7 @@ class RelayClient(
             throw SyncError.Unreachable(e)
         }
 
-    /**
-     * Deserializes a 2xx body as [T]. A non-2xx status becomes the matching [SyncError]
-     */
+    /** Deserializes a 2xx body as [T]; a non-2xx status becomes the matching [SyncError]. */
     private suspend inline fun <reified T> HttpResponse.decode(): T {
         if (status.isSuccess()) {
             return try {

@@ -30,11 +30,7 @@ import nz.eloque.quits.resources.add_group_or
 import nz.eloque.quits.resources.groups_new_group
 import org.jetbrains.compose.resources.stringResource
 
-/**
- * Join-first: the share-code field is the only thing above the fold. Creating a group is a
- * single low-emphasis link below a divider that expands [CreateGroupForm] inline — it stays
- * reachable in one tap without competing with the primary path.
- */
+/** Join-first: the share-code field, with a low-emphasis link below that expands [CreateGroupForm] inline. */
 @Composable
 fun AddGroupContent(
     onCreate: (name: String, currency: Currency) -> Unit,

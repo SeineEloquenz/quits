@@ -50,10 +50,7 @@ class SyncEngine(
         return id
     }
 
-    /**
-     * The local group already joined/shared under this share [code], or null if the user isn't a
-     * member yet
-     */
+    /** The local group already joined/shared under this share [code], or null if the user isn't a member yet. */
     suspend fun localGroupFor(code: String): GroupId? {
         val canonical = SecretCode.decode(code)?.let { SecretCode.encode(it) } ?: return null
         return db
@@ -75,9 +72,7 @@ class SyncEngine(
             SyncInfo(code = it?.code, lastSyncedAt = it?.lastSyncedAt?.takeIf { ts -> ts > 0 })
         }
 
-    /**
-     * Syncs every shared group
-     */
+    /** Syncs every shared group. */
     suspend fun syncAll(): SyncRunResult {
         var sawRetriable = false
         var sawPermanent = false
@@ -90,7 +85,6 @@ class SyncEngine(
                 if (e.retriable) sawRetriable = true else sawPermanent = true
                 Logger.w(e) { "sync of ${handle.groupId} failed: ${e.message}" }
             } catch (e: Exception) {
-                // An unforeseen (non-SyncError) failure is most likely transient; let it retry.
                 sawRetriable = true
                 Logger.w(e) { "sync of ${handle.groupId} failed unexpectedly" }
             }

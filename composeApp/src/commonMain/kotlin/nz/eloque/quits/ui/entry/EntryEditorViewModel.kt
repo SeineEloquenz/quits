@@ -56,12 +56,7 @@ import nz.eloque.quits.util.newId
 import nz.eloque.quits.util.nowMillis
 import org.jetbrains.compose.resources.getString
 
-/**
- * EQUAL: the common case — tap avatars to pick who paid, and [EntryEditorUiState.amount] is
- * split evenly between them (same avatar-chip pattern as the split section's Equal mode). CUSTOM:
- * a per-member amount table, only needed when the payment wasn't actually split evenly between
- * the selected payers.
- */
+/** EQUAL: tap avatars to pick payers, splitting the amount evenly between them. CUSTOM: a per-member amount table for uneven payments. */
 enum class PayerMode { EQUAL, CUSTOM }
 
 data class MemberInput(
@@ -148,8 +143,6 @@ class EntryEditorViewModel(
         val members = group.members.map { MemberInput(it.id, it.name) }
         val allIds = members.map { it.id }.toSet()
         if (existing == null) {
-            // No default payer — the user taps who paid (there's no "me" to assume). The split, by
-            // contrast, defaults to everyone, since an even split across the whole group is the norm.
             return EntryEditorUiState(
                 loaded = true,
                 editing = false,
@@ -172,9 +165,6 @@ class EntryEditorViewModel(
                 .mapValues { (_, payments) -> payments.fold(Money.zero(existing.currency)) { a, p -> a + p.amount } }
         val paid = paidMoney.entries.associate { (member, money) -> member to money.toDecimalString() }
         val distinctPayers = paidMoney.keys.toList()
-        // Was this actually an even split between the payers, or a deliberately uneven one?
-        // Compare against what Split.Equal would produce for the same payers/total — the same
-        // exact largest-remainder distribution used everywhere else, not an approximation.
         val isEvenSplit =
             distinctPayers.isNotEmpty() &&
                 try {
@@ -197,8 +187,6 @@ class EntryEditorViewModel(
             amount = existing.total.toDecimalString(),
             currency = existing.currency,
             rate = existing.rateToBase.toString(),
-            // Don't collapse a deliberately uneven multi-payer entry into the equal-split chips
-            // on open — that would silently hide the real amounts until re-expanded.
             payerMode = if (isEvenSplit) PayerMode.EQUAL else PayerMode.CUSTOM,
             payerSelected = distinctPayers.toSet(),
             paid = paid,
@@ -275,8 +263,6 @@ class EntryEditorViewModel(
 
     fun setAmount(value: String) =
         _state.update { s ->
-            // In equal mode, `paid` IS the even split of the field — keep it in lockstep so
-            // save() never has to special-case "equal" separately from "custom".
             val paid = if (s.payerMode == PayerMode.EQUAL) equalDistribution(value, s.currency, s.payerSelected, s.members) else s.paid
             s.copy(amount = value, paid = paid)
         }
@@ -289,7 +275,6 @@ class EntryEditorViewModel(
                 } else {
                     s.paid
                 }
-            // Re-derive the itemized total in the new currency (a no-op for other split kinds).
             s.copy(currency = value, paid = paid).withItemizedTotal()
         }
         val base = _state.value.baseCurrency
@@ -323,7 +308,6 @@ class EntryEditorViewModel(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: Exception) {
-                    // No live or cached rate; fall back to manual entry.
                     _state.update {
                         it.copy(fetchingRate = false, rateNotice = getString(Res.string.rate_fetch_failed))
                     }
@@ -333,11 +317,7 @@ class EntryEditorViewModel(
 
     fun setRate(value: String) = _state.update { it.copy(rate = value) }
 
-    /**
-     * Equal mode: toggling an avatar adds/removes them from the payer set, and the amount is
-     * re-split evenly across whoever's left selected — same avatar-chip pattern as the split
-     * section's Equal mode, just applied to "who paid" instead of "who owes".
-     */
+    /** Toggles a payer in equal mode, re-splitting the amount evenly across those left selected. */
     fun togglePayer(memberId: MemberId) =
         _state.update { s ->
             val selected = if (memberId in s.payerSelected) s.payerSelected - memberId else s.payerSelected + memberId
@@ -348,15 +328,11 @@ class EntryEditorViewModel(
         _state.update { s ->
             when (mode) {
                 PayerMode.CUSTOM -> {
-                    // Seed the table with the current even split — only needed at all when the
-                    // payment wasn't actually even, so this is always a sensible starting point.
                     val seeded = equalDistribution(s.amount, s.currency, s.payerSelected, s.members).ifEmpty { s.paid }
                     s.copy(payerMode = PayerMode.CUSTOM, paid = seeded)
                 }
 
                 PayerMode.EQUAL -> {
-                    // Collapse back to the chips: keep whoever currently has a positive amount in
-                    // the table selected, and re-split evenly between them.
                     val selected =
                         s.members
                             .filter { m -> Money.parse(s.paid[m.id].orEmpty(), s.currency)?.isPositive == true }
@@ -382,7 +358,6 @@ class EntryEditorViewModel(
         _state.update { s ->
             if (kind == s.splitKind) return@update s
             val next = s.copy(splitKind = kind, splitInput = emptyMap())
-            // The itemized total is the sum of its lines, not a separately typed figure.
             if (kind == SplitKind.ITEMIZED) next.withItemizedTotal() else next
         }
 
@@ -411,7 +386,6 @@ class EntryEditorViewModel(
             if (!s.isDraftValid()) {
                 s
             } else {
-                // A negative amount (typed directly) makes this a discount line.
                 s.copy(
                     items = s.items + ItemInput(newId(), s.draftLabel.trim(), s.draftAmount.trim(), s.draftParticipants),
                     draftLabel = "",
@@ -434,7 +408,6 @@ class EntryEditorViewModel(
 
     fun save() {
         viewModelScope.launch {
-            // Fold a filled-but-unsubmitted itemized line into the list so it isn't silently lost.
             if (_state.value.splitKind == SplitKind.ITEMIZED && _state.value.isDraftValid()) submitDraft()
             val s = _state.value
             val validated =
@@ -469,7 +442,6 @@ class EntryEditorViewModel(
                 }
 
             repo.upsertEntry(groupId, entry)
-            // The entry is saved locally; a sync failure shouldn't block leaving the screen.
             engine.syncQuietly(groupId)
             _state.update { it.copy(error = null) }
             _saved.send(Unit)
@@ -631,11 +603,7 @@ fun EntryEditorUiState.isDraftValid(): Boolean = draftItem() != null
 /** The committed line items an itemized split is built from. */
 private fun EntryEditorUiState.itemizedItems(): List<Split.Itemized.Item> = items.mapNotNull { it.toItem(currency) }
 
-/**
- * Re-derives the entry total ([amount]) from the sum of the committed items — for an itemized
- * split the lines *are* the total, so it's never typed separately — and refreshes the equal-payer
- * split to match. A no-op unless the split is itemized.
- */
+/** For an itemized split, re-derives [amount] from the item sum and refreshes the equal-payer split; a no-op otherwise. */
 private fun EntryEditorUiState.withItemizedTotal(): EntryEditorUiState {
     if (splitKind != SplitKind.ITEMIZED) return this
     val totalMinor = itemizedItems().sumOf { it.amount.minorUnits }
@@ -727,8 +695,6 @@ private fun buildSplit(
         }
 
         SplitKind.ITEMIZED -> {
-            // Committed lines are already valid (submit enforces it) and [amount] is their sum, so
-            // this only fails when there are no lines at all.
             val built = s.itemizedItems()
             if (built.isEmpty()) {
                 SplitOutcome.Invalid(EntryValidationError.NoItems)
@@ -745,11 +711,7 @@ private fun buildSplit(
         }
     }
 
-/**
- * The even split of [amount] across [selected], via the real [Split.Equal.divide] — the same
- * exact largest-remainder distribution the domain uses when the entry is actually saved, not
- * an approximation. Empty if the amount or selection isn't valid yet (still typing).
- */
+/** Even split of [amount] across [selected] via [Split.Equal.divide]; empty if not yet valid. */
 private fun equalDistribution(
     amount: String,
     currency: Currency,

@@ -1,8 +1,6 @@
 package nz.eloque.quits.domain
 
 actual object CurrencyCatalog {
-    // Browser Intl APIs: supportedValuesOf('currency') for the ISO-4217 list, DisplayNames for
-    // names, and a currency-style NumberFormat's resolved options for the minor-unit digit count.
     actual fun codes(): List<String> = supportedCurrencyCodes().split(",").filter { it.isNotBlank() }
 
     actual fun nameOf(code: String): String = currencyDisplayName(code).ifBlank { code }

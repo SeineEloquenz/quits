@@ -113,7 +113,7 @@ class MemberDetailViewModel(
         }
     }
 
-    /** Same referential guard as the old overflow menu: refuses if still tied to an entry/settlement. */
+    /** Refuses if the member is still tied to an entry/settlement. */
     fun remove() {
         viewModelScope.launch {
             if (repo.removeMember(groupId, memberId)) {

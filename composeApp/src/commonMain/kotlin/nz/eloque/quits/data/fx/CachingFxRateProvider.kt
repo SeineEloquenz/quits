@@ -7,11 +7,7 @@ import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.ExchangeRate
 import nz.eloque.quits.domain.FxRateProvider
 
-/**
- * Cache-aware FX over a live [delegate]. Network-first so the rate captured at entry is current;
- * each success is cached, and when the fetch fails we serve the last cached rate ([RateResult.Cached]
- * with its timestamp). Throws if offline with no cached rate for the pair. Cache is local-only.
- */
+/** Cache-aware FX over a live [delegate]: network-first, caching each success and serving the last cached rate on failure ([RateResult.Cached]); throws if neither exists. */
 class CachingFxRateProvider(
     private val delegate: FxRateProvider,
     private val dao: FxRateDao,

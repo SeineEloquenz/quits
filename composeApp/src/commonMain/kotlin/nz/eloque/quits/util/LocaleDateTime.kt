@@ -1,11 +1,9 @@
 package nz.eloque.quits.util
 
 /**
- * Device-locale date/time formatting. Each platform delegates to its own locale machinery
- * (java.text, NSDateFormatter, Intl) and formats the instant as a **UTC** wall-clock — the common
- * [formatLocalDate]/[formatLocalTime] wrappers shift the instant into the desired offset first, so
- * locale (month names, 12/24h) follows the reader while the calendar day/time follows the offset the
- * value was captured in.
+ * Device-locale date/time formatting, delegating to each platform's locale machinery and rendering the
+ * instant as a UTC wall-clock. The [formatLocalDate]/[formatLocalTime] wrappers shift into the target
+ * offset first, so locale follows the reader while the day/time follows the captured offset.
  */
 expect fun formatUtcDate(epochMillis: Long): String
 

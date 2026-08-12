@@ -204,7 +204,6 @@ fun EntryEditorScreen(
                     fieldModifier = Modifier.focusRequester(titleFocus),
                 )
                 ListRowDivider()
-                // Itemized (receipt line-items) doesn't apply to money coming in.
                 val splitOptions =
                     if (state.kind.isIncome) SplitKind.entries.filter { it != SplitKind.ITEMIZED } else SplitKind.entries
                 val splitLabels = splitOptions.associateWith { it.label() }
@@ -219,8 +218,6 @@ fun EntryEditorScreen(
                 }
                 ListRowDivider()
 
-                // The total lives with the split for every method that needs one. Items has no
-                // total to type — it's the sum of the lines entered below.
                 if (state.splitKind != SplitKind.ITEMIZED) {
                     val amountValid = isValidAmountInput(state.amount, state.currency)
                     ListTextRow(
@@ -235,8 +232,6 @@ fun EntryEditorScreen(
                     ListRowDivider()
                 }
 
-                // Currency, and the rate to base for a foreign currency, sit with the amount they
-                // measure — the money fields live together here rather than split across cards.
                 CurrencyPickerRow(
                     icon = Icons.Default.Payments,
                     fieldLabel = stringResource(Res.string.editor_label_currency),
@@ -474,12 +469,7 @@ fun EntryEditorScreen(
     }
 }
 
-/**
- * Category picker, chip-first: built-in presets then the group's custom categories, each a
- * single-select icon chip — tap to choose, tap the chosen one again to clear. "New" opens a dialog
- * to create a custom category (name, icon, color); long-pressing a custom chip edits or deletes it.
- * Presets aren't editable.
- */
+/** Chip-first category picker: presets then custom categories as single-select icon chips; "New" creates one, long-press edits/deletes a custom chip. */
 @Composable
 private fun CategoryField(
     selectedId: CategoryId?,
@@ -847,11 +837,7 @@ private fun SplitInputRow(
     }
 }
 
-/**
- * The itemized-split editor. The running total sits at the top; committed lines show as read-only
- * rows (each removable); and a framed draft card at the bottom builds the next line — a label, an
- * amount, who shares it, then "Add item" (or Enter on the amount) commits it and resets for another.
- */
+/** The itemized-split editor: a running total, the committed line rows, and a draft card to add the next line. */
 @Composable
 private fun ItemizedEditor(
     committed: List<ItemInput>,
@@ -872,7 +858,6 @@ private fun ItemizedEditor(
         CommittedItemRow(item = item, members = members, currency = currency, onRemove = { onRemove(item.id) })
     }
 
-    // Total sits under the lines, receipt-style.
     if (committed.isNotEmpty()) {
         val totalMinor = committed.sumOf { Money.parse(it.amount.trim(), currency)?.minorUnits ?: 0L }
         HorizontalDivider(Modifier.padding(top = 4.dp, bottom = 8.dp))
@@ -887,7 +872,6 @@ private fun ItemizedEditor(
     }
 
     val labelFocus = remember { FocusRequester() }
-    // Commit, then jump back to the label field so the next line can be typed without reaching up.
     val submit = {
         if (draftValid) {
             onSubmit()
@@ -991,10 +975,7 @@ private fun CommittedItemRow(
     }
 }
 
-/**
- * −/+ stepper for the Shares split field. Replaces free-text entry: shares are always a small
- * non-negative whole number, so tapping is faster and less error-prone than opening a keyboard.
- */
+/** −/+ stepper for the Shares split field (small non-negative whole numbers). */
 @Composable
 private fun SharesStepper(
     value: String,
@@ -1023,10 +1004,7 @@ private fun SharesStepper(
     }
 }
 
-/**
- * A compact circular −/+ button for [SharesStepper]. Unlike [IconButton] it doesn't reserve the
- * 48dp minimum touch target, so the shares row lines up with the other splits' compact fields.
- */
+/** Compact circular −/+ button for [SharesStepper]; skips [IconButton]'s 48dp min touch target to align with the compact split fields. */
 @Composable
 private fun StepperButton(
     icon: ImageVector,
@@ -1068,12 +1046,7 @@ private fun equalSplitHint(state: EntryEditorUiState): String {
     }
 }
 
-/**
- * Live € equivalent next to a percentage input. Once every entered percentage sums to 100, this
- * calls the real [Split.Percentage.divide] — the exact same largest-remainder allocation that
- * save() will use — so the preview never disagrees with what actually gets saved. Before that
- * (still typing), falls back to simple per-row division for immediate feedback.
- */
+/** Live € equivalent for a percentage input; uses the real [Split.Percentage.divide] once the percentages sum to 100, else per-row division. */
 @Composable
 private fun percentagePreview(
     state: EntryEditorUiState,
@@ -1096,11 +1069,7 @@ private fun percentagePreview(
     return Money(total.minorUnits * percent / 100, currency)
 }
 
-/**
- * Live € equivalent next to a shares input. Unlike percentage, shares don't need to sum to
- * anything specific, so this can always call the real [Split.Shares.divide] once at least one
- * weight is entered — no "still typing" fallback needed.
- */
+/** Live € equivalent for a shares input, via the real [Split.Shares.divide]. */
 @Composable
 private fun sharesPreview(
     state: EntryEditorUiState,

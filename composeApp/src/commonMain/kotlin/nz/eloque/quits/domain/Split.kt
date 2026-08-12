@@ -69,10 +69,9 @@ sealed interface Split {
     }
 
     /**
-     * Itemized: a receipt's line [items], each shared equally among its own participants. The items'
-     * amounts must sum to the total (like [Exact]); each item is divided among its participants by
-     * the same largest-remainder method, then the per-item shares are summed per member. Two devices
-     * therefore compute identical shares.
+     * Itemized: a receipt's line [items], each shared equally among its participants; item amounts must
+     * sum to the total (like [Exact]). Per-item largest-remainder shares are summed per member, so every
+     * device computes identical shares.
      */
     data class Itemized(
         val items: List<Item>,

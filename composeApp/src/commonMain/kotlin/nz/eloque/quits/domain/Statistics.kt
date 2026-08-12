@@ -42,7 +42,6 @@ data class Spending(
  * largest-remainder method [balances] uses — so both breakdowns reconcile exactly to the total.
  */
 fun Group.spending(): Spending {
-    // Income is money in, not spending — it's excluded from every breakdown here.
     val spendingEntries = entries.filter { it.kind.isExpense }
 
     fun baseTotal(entry: Entry): Money = ExchangeRate(entry.currency, baseCurrency, entry.rateToBase).convert(entry.total)
@@ -96,11 +95,9 @@ private fun SpendPeriod.next(start: LocalDate): LocalDate =
     }
 
 /**
- * Expense spend over time in [baseCurrency], bucketed by [period]. Each expense is converted as a unit
- * (income and settlements excluded) and summed into the bucket its local date falls in — using the
- * offset it was entered in, so a night-out counts on the day the enterer meant. Gaps between the first
- * and last active bucket are filled with zero so the timeline stays continuous; capped to the most
- * recent [MAX_PERIODS] buckets.
+ * Expense spend over time in [baseCurrency], bucketed by [period] (income and settlements excluded), each
+ * expense counted in its entered offset. Gaps are zero-filled for a continuous timeline; capped to the
+ * most recent [MAX_PERIODS] buckets.
  */
 fun Group.spendOverTime(period: SpendPeriod): List<PeriodTotal> {
     val totals = HashMap<LocalDate, Long>()
