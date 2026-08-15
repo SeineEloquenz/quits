@@ -25,10 +25,10 @@ Features (non-exhaustive):
 [<img src="https://raw.githubusercontent.com/SeineEloquenz/quits/refs/heads/main/.github/badges/github.png"
 alt="Get it on GitHub"
 height="80">](https://github.com/SeineEloquenz/quits/releases)
-<!--
 [<img src="https://raw.githubusercontent.com/SeineEloquenz/quits/refs/heads/main/.github/badges/fdroid.png"
 alt="Get it on F-Droid"
 height="80">](https://f-droid.org/packages/nz.eloque.quits/)
+<!--
 [<img src="https://raw.githubusercontent.com/SeineEloquenz/quits/refs/heads/main/.github/badges/play.png"
 alt="Get it on Google Play"
 height="80">](https://play.google.com/store/apps/details?id=nz.eloque.quits)
