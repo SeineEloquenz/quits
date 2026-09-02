@@ -6,6 +6,12 @@
 
 let
   cfg = config.services.quits-web;
+
+  crossOriginHeaders = ''
+    add_header Cross-Origin-Opener-Policy "same-origin" always;
+    add_header Cross-Origin-Embedder-Policy "require-corp" always;
+    add_header Cross-Origin-Resource-Policy "same-origin" always;
+  '';
 in
 {
   options.services.quits-web = {
@@ -46,25 +52,23 @@ in
         locations."/" = {
           tryFiles = "$uri $uri/ /index.html";
 
-          extraConfig = ''
-            add_header Cross-Origin-Opener-Policy "same-origin" always;
-            add_header Cross-Origin-Embedder-Policy "require-corp" always;
-            add_header Cross-Origin-Resource-Policy "same-origin" always;
-          '';
+          extraConfig = crossOriginHeaders;
+        };
+
+        locations."/composeResources/" = {
+          tryFiles = "$uri =404";
+
+          extraConfig = crossOriginHeaders;
         };
 
         locations."= /index.html".extraConfig = ''
           add_header Cache-Control "no-cache";
-            add_header Cross-Origin-Opener-Policy "same-origin" always;
-            add_header Cross-Origin-Embedder-Policy "require-corp" always;
-            add_header Cross-Origin-Resource-Policy "same-origin" always;
+          ${crossOriginHeaders}
         '';
 
         locations."~* \\.(js|wasm|mjs)$".extraConfig = ''
           add_header Cache-Control "no-cache";
-            add_header Cross-Origin-Opener-Policy "same-origin" always;
-            add_header Cross-Origin-Embedder-Policy "require-corp" always;
-            add_header Cross-Origin-Resource-Policy "same-origin" always;
+          ${crossOriginHeaders}
         '';
       };
     };

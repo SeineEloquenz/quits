@@ -63,6 +63,10 @@ jobs:
       - name: Build browser distribution
         run: ./gradlew :composeApp:wasmJsBrowserDistribution
 
+      # Compose resolves library resources leniently
+      - name: Check library resources are bundled
+        run: test -d composeApp/build/dist/wasmJs/productionExecutable/composeResources/nz.eloque.compose_kit.resources
+
       - name: Publish artifacts into web-repo
         run: |
           rm -r $GITHUB_WORKSPACE/web-repo/*

@@ -57,6 +57,30 @@ compose.resources {
     generateResClass = always
 }
 
+// JitPack serves compose-kit's klib but not the multiplatform resources artifact
+val composeKitWebResources =
+    if (providers.environmentVariable("LOCAL_COMPOSE_KIT").orNull.isNullOrBlank()) {
+        val klibDependency = configurations.dependencyScope("composeKitWasmKlib")
+        val klib =
+            configurations.resolvable("composeKitWasmKlibFiles") {
+                extendsFrom(klibDependency.get())
+                isTransitive = false
+            }
+        val module = libs.compose.kit.get().module
+        dependencies.add(
+            klibDependency.name,
+            "${module.group}:${module.name}-wasm-js:${libs.versions.composeKit.get()}@klib",
+        )
+        tasks.register<Sync>("unpackComposeKitWebResources") {
+            from(zipTree(klib.flatMap { it.elements }.map { it.first().asFile })) {
+                include("composeResources/**")
+            }
+            into(layout.buildDirectory.dir("composeKitWebResources"))
+        }
+    } else {
+        null
+    }
+
 kotlin {
     compilerOptions {
         // Disable expect actual warnings
@@ -135,6 +159,9 @@ kotlin {
             implementation(libs.koin.android)
             implementation(libs.androidx.work.runtime)
             implementation(libs.androidx.sqlite.bundled)
+        }
+        wasmJsMain {
+            composeKitWebResources?.let { resources.srcDir(it) }
         }
         wasmJsMain.dependencies {
             implementation(libs.ktor.client.js)
