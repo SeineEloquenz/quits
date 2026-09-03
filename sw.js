@@ -9,7 +9,7 @@
 //
 // Bump CACHE_VERSION whenever this file's caching logic changes, so old caches are dropped.
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE = `quits-${CACHE_VERSION}`;
 
 // Enough to render and boot; everything else (wasm, skiko, fonts, resources) is picked up at
