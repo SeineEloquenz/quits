@@ -98,6 +98,13 @@ pub struct ChangesQuery {
     pub since: i64,
 }
 
+#[derive(Debug, Serialize)]
+pub struct LimitsResponse {
+    pub max_body_bytes: u64,
+    pub max_record_bytes: u64,
+    pub max_records_per_group: u64,
+}
+
 #[derive(sqlx::FromRow)]
 struct RecordRow {
     id: String,
@@ -123,6 +130,15 @@ impl RecordRow {
 
 pub async fn health() -> &'static str {
     "ok"
+}
+
+/// The instance's request and storage limits, so a client can size its pushes to fit.
+pub async fn limits(State(state): State<AppState>) -> Json<LimitsResponse> {
+    Json(LimitsResponse {
+        max_body_bytes: state.config.max_body_bytes as u64,
+        max_record_bytes: state.config.max_record_bytes as u64,
+        max_records_per_group: state.config.max_records_per_group,
+    })
 }
 
 /// Creates a group under a client-supplied lookup id. Gated by the optional instance secret.

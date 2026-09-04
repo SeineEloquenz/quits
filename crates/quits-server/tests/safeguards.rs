@@ -358,3 +358,19 @@ async fn reaper_removes_empty_and_inactive_groups_only() {
     let ids: Vec<&str> = survivors.iter().map(|(s,)| s.as_str()).collect();
     assert_eq!(ids, vec!["active", "empty_new"]);
 }
+
+#[tokio::test]
+async fn limits_are_public_and_reflect_config() {
+    let mut config = test_config();
+    config.max_body_bytes = 4096;
+    config.max_record_bytes = 128;
+    config.max_records_per_group = 7;
+    let app = router(state_with(config).await);
+
+    let (status, resp) = send(&app, "GET", "/v1/limits", None, None, None).await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(resp["max_body_bytes"], json!(4096));
+    assert_eq!(resp["max_record_bytes"], json!(128));
+    assert_eq!(resp["max_records_per_group"], json!(7));
+}
