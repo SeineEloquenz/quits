@@ -47,6 +47,9 @@ class RelayClient(
                     settings.instanceSecret?.let { header("X-Quits-Instance", it) }
                     setBody(GroupLookupRequest(lookupId))
                 }
+            // 507 here means the instance holds all the groups it will; the same status from a
+            // push means one group is full. Only the caller knows which endpoint it hit.
+            if (response.status == HttpStatusCode.InsufficientStorage) throw SyncError.RelayFull
             val body: CreateGroupResponse = response.decode()
             GroupHandle(body.groupId, body.token)
         }

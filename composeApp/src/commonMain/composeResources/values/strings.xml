@@ -244,6 +244,8 @@
     <string name="error_sync_unauthorized">This device isn't authorized to sync this group. You may need to rejoin it.</string>
     <string name="error_sync_group_gone">This shared group no longer exists on the server.</string>
     <string name="error_sync_group_full">This group has reached the sync server's limit, so new entries cannot be shared. Changes to existing entries still sync.</string>
+    <string name="error_sync_relay_full">The sync server has reached its limit and cannot take new shared groups. This group stays on this device; you can point the app at a different sync server in settings.</string>
+    <string name="error_sync_batch_too_large">There is too much unsynced data to send in one request.</string>
     <string name="error_sync_record_too_large">One of your entries is too large to sync. Try shortening its description or splitting it up.</string>
     <string name="error_sync_rejected">The sync server rejected the request. Updating the app may help.</string>
     <string name="error_sync_incompatible">Couldn't read the server's response. The app may need updating.</string>

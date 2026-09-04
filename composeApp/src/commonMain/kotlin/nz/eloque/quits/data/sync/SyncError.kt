@@ -76,6 +76,18 @@ sealed class SyncError(
         override val retriable = false
     }
 
+    /**
+     * The relay is already holding as many groups as it will store (HTTP 507 from group creation).
+     */
+    data object RelayFull : SyncError("relay full") {
+        override val retriable = false
+    }
+
+    /** The push body as a whole exceeded the relay's request limit (HTTP 413 with no record ids). */
+    data object BatchTooLarge : SyncError("batch too large") {
+        override val retriable = false
+    }
+
     /** The group has reached the relay's per-group record limit (HTTP 507). */
     data object GroupFull : SyncError("group full") {
         override val retriable = false
@@ -100,7 +112,8 @@ internal fun syncErrorForStatus(
         400 -> SyncError.BadRequest(serverMessage)
         401, 403 -> SyncError.Unauthorized
         404 -> SyncError.GroupGone
-        413 -> SyncError.RecordTooLarge(recordIds)
+        // A batch-level 413 (body limit) carries no ids; a record-level one names the offenders.
+        413 -> if (recordIds.isEmpty()) SyncError.BatchTooLarge else SyncError.RecordTooLarge(recordIds)
         429 -> SyncError.RateLimited(retryAfter)
         503 -> SyncError.ServerUnavailable(retryAfter)
         507 -> SyncError.GroupFull

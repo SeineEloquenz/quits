@@ -150,7 +150,7 @@ pub async fn create_group(
                 "group creation rejected: at global group cap"
             );
             state.metrics.group_created(GroupCreate::Capacity);
-            return Err(AppError::Capacity);
+            return Err(AppError::InstanceFull);
         }
     }
 

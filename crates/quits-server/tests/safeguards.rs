@@ -75,7 +75,7 @@ fn record(id: &str, updated_at: i64, device: &str, payload: &str) -> Value {
 }
 
 #[tokio::test]
-async fn global_group_cap_returns_503_when_full() {
+async fn global_group_cap_returns_507_when_full() {
     let mut config = test_config();
     config.max_groups = 1;
     let app = router(state_with(config).await);
@@ -84,7 +84,7 @@ async fn global_group_cap_returns_503_when_full() {
     assert_eq!(status, StatusCode::OK);
 
     let (status, _) = create(&app, None).await;
-    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(status, StatusCode::INSUFFICIENT_STORAGE);
 }
 
 #[tokio::test]
