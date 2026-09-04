@@ -64,6 +64,16 @@
         }
       );
 
+      checks = forAllSystems (
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        {
+          otel = pkgs.callPackage ./nix/tests/otel.nix { module = ./nix/module.nix; };
+        }
+      );
+
       formatter = forAllSystems (system: (import nixpkgs { inherit system; }).nixfmt-rfc-style);
     };
 }

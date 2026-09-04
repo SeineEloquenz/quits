@@ -11,6 +11,7 @@ pub mod ratelimit;
 pub mod reaper;
 mod routes;
 pub mod state;
+pub mod telemetry;
 mod wellknown;
 
 use std::net::SocketAddr;
@@ -62,7 +63,8 @@ pub fn router(state: AppState) -> Router {
             get(wellknown::apple_app_site_association),
         )
         .route("/join", get(wellknown::join_landing))
-        .merge(create);
+        .merge(create)
+        .route_layer(axum::middleware::from_fn(telemetry::tag_route));
 
     if let Some(conf) = ratelimit::global_config(&config) {
         ratelimit::spawn_cleanup(conf.clone());
@@ -70,6 +72,10 @@ pub fn router(state: AppState) -> Router {
     }
 
     app.layer(DefaultBodyLimit::max(config.max_body_bytes))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            telemetry::track_requests,
+        ))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(state)
@@ -85,7 +91,22 @@ pub async fn run() {
         .await
         .expect("failed to initialize database");
 
-    reaper::spawn(state.db.clone(), state.config.clone());
+    reaper::spawn(
+        state.db.clone(),
+        state.config.clone(),
+        state.metrics.clone(),
+    );
+
+    telemetry::spawn_sampler(
+        state.db.clone(),
+        state.metrics.clone(),
+        state.config.stats_interval_secs,
+    );
+
+    if let Some(metrics_addr) = state.config.metrics_addr.clone() {
+        let metrics = state.metrics.clone();
+        tokio::spawn(async move { telemetry::serve(metrics, &metrics_addr).await });
+    }
 
     let app = router(state);
 
@@ -105,15 +126,21 @@ pub async fn run() {
 }
 
 fn init_tracing() {
-    use tracing_subscriber::EnvFilter;
-    // `try_init` so repeated calls (e.g. in tests) don't panic.
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                "quits_server=info,tower_http=info,tower_governor=info".into()
-            }),
-        )
-        .init();
+    use tracing_subscriber::layer::SubscriberExt as _;
+    use tracing_subscriber::util::SubscriberInitExt as _;
+    use tracing_subscriber::{EnvFilter, fmt};
+
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| "quits_server=info,tower_http=info,tower_governor=info".into());
+
+    let journald = std::env::var_os("JOURNAL_STREAM").and_then(|_| tracing_journald::layer().ok());
+
+    let registry = tracing_subscriber::registry().with(filter);
+    // `try_init` so repeated calls (e.g. in tests) do not panic.
+    let _ = match journald {
+        Some(layer) => registry.with(layer).try_init(),
+        None => registry.with(fmt::layer()).try_init(),
+    };
 }
 
 /// Resolves on Ctrl-C or SIGTERM so the relay can drain in-flight requests.

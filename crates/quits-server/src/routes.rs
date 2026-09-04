@@ -133,6 +133,7 @@ pub async fn create_group(
     if let Some(secret) = &state.config.instance_secret
         && ctx.instance_header.as_deref() != Some(secret.as_str())
     {
+        state.metrics.group_created("forbidden");
         return Err(AppError::Forbidden);
     }
 
@@ -147,6 +148,7 @@ pub async fn create_group(
                 limit = state.config.max_groups,
                 "group creation rejected: at global group cap"
             );
+            state.metrics.group_created("capacity");
             return Err(AppError::Capacity);
         }
     }
@@ -163,6 +165,7 @@ pub async fn create_group(
     {
         Ok(_) => {}
         Err(sqlx::Error::Database(e)) if e.is_unique_violation() => {
+            state.metrics.group_created("duplicate");
             return Err(AppError::BadRequest("group already exists".into()));
         }
         Err(e) => return Err(e.into()),
@@ -174,7 +177,11 @@ pub async fn create_group(
         now_secs(),
         state.config.token_ttl_secs,
     );
-    Ok(Json(CreateGroupResponse { group_id: id, token }))
+    state.metrics.group_created("ok");
+    Ok(Json(CreateGroupResponse {
+        group_id: id,
+        token,
+    }))
 }
 
 /// Joins an existing group by its lookup id.
@@ -186,7 +193,10 @@ pub async fn join_group(
         .bind(&req.lookup_id)
         .fetch_optional(&state.db)
         .await?;
-    let group_id = row.ok_or(AppError::NotFound)?.0;
+    let Some((group_id,)) = row else {
+        state.metrics.group_joined("not_found");
+        return Err(AppError::NotFound);
+    };
 
     let token = issue_token(
         &state.config.jwt_secret,
@@ -194,6 +204,7 @@ pub async fn join_group(
         now_secs(),
         state.config.token_ttl_secs,
     );
+    state.metrics.group_joined("ok");
     Ok(Json(JoinGroupResponse { group_id, token }))
 }
 
@@ -226,6 +237,7 @@ pub async fn get_changes(
         })
         .collect();
 
+    state.metrics.pull_records.record(records.len() as u64, &[]);
     Ok(Json(PullResponse { records, seq }))
 }
 
@@ -237,6 +249,11 @@ pub async fn post_changes(
     Json(req): Json<PushRequest>,
 ) -> AppResult<Json<PushResponse>> {
     authorize(&claims, &group_id)?;
+
+    state
+        .metrics
+        .push_batch_records
+        .record(req.records.len() as u64, &[]);
 
     let mut applied = Vec::new();
     let mut rejected = Vec::new();
@@ -257,6 +274,11 @@ pub async fn post_changes(
             .decode(rec.payload.as_bytes())
             .map_err(|_| AppError::BadRequest("payload is not valid base64".into()))?;
 
+        state
+            .metrics
+            .record_payload_bytes
+            .record(payload.len() as u64, &[]);
+
         // Reject oversized payloads without failing the whole batch (like an LWW loser).
         if state.config.max_record_bytes > 0 && payload.len() > state.config.max_record_bytes {
             tracing::warn!(
@@ -265,6 +287,7 @@ pub async fn post_changes(
                 limit = state.config.max_record_bytes,
                 "record rejected: payload exceeds max size"
             );
+            state.metrics.record_rejected("oversize");
             rejected.push(rec.id.clone());
             continue;
         }
@@ -287,6 +310,7 @@ pub async fn post_changes(
             }
         };
         if !wins {
+            state.metrics.record_rejected("stale");
             rejected.push(rec.id.clone());
             continue;
         }
@@ -301,6 +325,7 @@ pub async fn post_changes(
                 limit = state.config.max_records_per_group,
                 "record rejected: group at record cap"
             );
+            state.metrics.record_rejected("group_full");
             rejected.push(rec.id.clone());
             continue;
         }
@@ -343,6 +368,8 @@ pub async fn post_changes(
             .await?;
 
     tx.commit().await?;
+
+    state.metrics.records_applied.add(applied.len() as u64, &[]);
 
     Ok(Json(PushResponse {
         seq,

@@ -47,6 +47,10 @@ pub struct Config {
     pub inactive_group_ttl_secs: u64,
     /// How often the background reaper runs.
     pub reap_interval_secs: u64,
+    /// How often the storage gauges are refreshed.
+    pub stats_interval_secs: u64,
+    /// Prometheus metrics endpoint address. `None` disables the endpoint entirely.
+    pub metrics_addr: Option<String>,
 
     /// Android release signing SHA-256 fingerprint(s) advertised in `/.well-known/assetlinks.json`
     pub android_cert_sha256: Vec<String>,
@@ -82,11 +86,12 @@ impl Config {
             max_record_bytes: env_parse("QUITS_MAX_RECORD_BYTES", 8 * 1024),
             max_records_per_group: env_parse("QUITS_MAX_RECORDS_PER_GROUP", 5_000),
             empty_group_ttl_secs: env_parse("QUITS_EMPTY_GROUP_TTL_SECS", 60 * 60 * 48),
-            inactive_group_ttl_secs: env_parse(
-                "QUITS_INACTIVE_GROUP_TTL_SECS",
-                60 * 60 * 24 * 180,
-            ),
+            inactive_group_ttl_secs: env_parse("QUITS_INACTIVE_GROUP_TTL_SECS", 60 * 60 * 24 * 180),
             reap_interval_secs: env_parse("QUITS_REAP_INTERVAL_SECS", 3600),
+            stats_interval_secs: env_parse("QUITS_STATS_INTERVAL_SECS", 300),
+            metrics_addr: std::env::var("QUITS_METRICS_ADDR")
+                .ok()
+                .filter(|s| !s.is_empty()),
             android_cert_sha256: env_list("QUITS_ANDROID_CERT_SHA256", DEFAULT_ANDROID_CERT_SHA256),
             ios_app_id: env_or("QUITS_IOS_APP_ID", DEFAULT_IOS_APP_ID),
         }
@@ -115,6 +120,8 @@ impl Config {
             empty_group_ttl_secs: 0,
             inactive_group_ttl_secs: 0,
             reap_interval_secs: 3600,
+            stats_interval_secs: 300,
+            metrics_addr: None,
             android_cert_sha256: vec![DEFAULT_ANDROID_CERT_SHA256.to_string()],
             ios_app_id: DEFAULT_IOS_APP_ID.to_string(),
         }
@@ -150,7 +157,10 @@ fn env_list(key: &str, default: &str) -> Vec<String> {
 /// Parses a boolean env var; accepts `1`/`true`/`yes`/`on` (case-insensitive) as true.
 fn env_bool(key: &str, default: bool) -> bool {
     match std::env::var(key) {
-        Ok(v) => matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"),
+        Ok(v) => matches!(
+            v.trim().to_ascii_lowercase().as_str(),
+            "1" | "true" | "yes" | "on"
+        ),
         Err(_) => default,
     }
 }
