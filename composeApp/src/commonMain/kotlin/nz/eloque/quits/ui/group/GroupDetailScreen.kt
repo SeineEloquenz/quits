@@ -106,6 +106,7 @@ import nz.eloque.quits.resources.action_add
 import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_copy
 import nz.eloque.quits.resources.action_copy_link
+import nz.eloque.quits.resources.action_dismiss
 import nz.eloque.quits.resources.action_save
 import nz.eloque.quits.resources.action_share_link
 import nz.eloque.quits.resources.cd_clear_search
@@ -130,6 +131,8 @@ import nz.eloque.quits.resources.detail_local_only
 import nz.eloque.quits.resources.detail_no_matches
 import nz.eloque.quits.resources.detail_not_synced
 import nz.eloque.quits.resources.detail_note
+import nz.eloque.quits.resources.detail_quota_warning_body
+import nz.eloque.quits.resources.detail_quota_warning_title
 import nz.eloque.quits.resources.detail_search_hint
 import nz.eloque.quits.resources.detail_settle_up
 import nz.eloque.quits.resources.detail_settlement_row
@@ -192,6 +195,8 @@ fun GroupDetailScreen(
     val usage by viewModel.usage.collectAsState()
 
     var balancesExpanded by remember(groupId) { mutableStateOf(false) }
+    // Session-scoped: the group only gets fuller, so it is right to raise this again next visit.
+    var quotaWarningDismissed by remember(groupId) { mutableStateOf(false) }
     var showShare by remember(groupId) { mutableStateOf(false) }
     var menuExpanded by remember(groupId) { mutableStateOf(false) }
     var showLeave by remember(groupId) { mutableStateOf(false) }
@@ -435,6 +440,10 @@ fun GroupDetailScreen(
                     .verticalScroll(rememberScrollState()),
             ) {
                 Spacer(Modifier.height(8.dp))
+
+                usage?.takeIf { it.nearlyFull && !quotaWarningDismissed }?.let {
+                    GroupNearlyFullBanner(usage = it, onDismiss = { quotaWarningDismissed = true })
+                }
 
                 BalanceSummary(
                     state = state,
@@ -878,6 +887,39 @@ private fun LeaveGroupDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
         },
     )
+}
+
+/**
+ * Warns while there is still room to act on it.
+ *
+ * Deliberately says nothing about deleting: the relay counts tombstones, so removing entries frees
+ * no space. Starting a fresh group is the only thing that actually helps.
+ */
+@Composable
+private fun GroupNearlyFullBanner(
+    usage: GroupUsage,
+    onDismiss: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        Row(Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(Res.string.detail_quota_warning_title), style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(Res.string.detail_quota_warning_body, usage.remainingEntries),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.action_dismiss))
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

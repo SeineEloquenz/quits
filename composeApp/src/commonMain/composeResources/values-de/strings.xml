@@ -101,6 +101,8 @@
     <string name="detail_items">Positionen</string>
     <string name="detail_split_unsupported">Dieser Eintrag wurde mit einer neueren App-Version erstellt. Aktualisiere die App, um ihre Aufteilung zu sehen und zu bearbeiten.</string>
     <string name="detail_note">Notiz</string>
+    <string name="detail_quota_warning_title">Diese Gruppe ist fast voll</string>
+    <string name="detail_quota_warning_body">Etwa %1$d weitere Einträge passen noch, bevor der Sync-Server keine neuen mehr annimmt. Bestehende Einträge werden weiterhin synchronisiert. Für die nächste Reise lohnt sich eine neue Gruppe.</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d Personen</string>
     <string name="detail_edit_expense">Ausgabe bearbeiten</string>
     <string name="detail_delete_expense">Ausgabe löschen</string>

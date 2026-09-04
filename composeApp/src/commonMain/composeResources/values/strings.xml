@@ -103,6 +103,8 @@
     <string name="detail_items">Items</string>
     <string name="detail_split_unsupported">This entry was created with a newer version of the app. Update to view and edit how it's split.</string>
     <string name="detail_note">Note</string>
+    <string name="detail_quota_warning_title">This group is nearly full</string>
+    <string name="detail_quota_warning_body">About %1$d more entries fit before the sync server stops accepting new ones. Existing entries will keep syncing. Consider starting a fresh group for your next trip.</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d people</string>
     <string name="detail_edit_expense">Edit expense</string>
     <string name="detail_delete_expense">Delete expense</string>

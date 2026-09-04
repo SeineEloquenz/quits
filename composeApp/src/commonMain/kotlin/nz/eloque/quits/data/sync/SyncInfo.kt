@@ -22,6 +22,14 @@ data class GroupUsage(
     val filling: Boolean get() = fraction >= 0.5f
 
     /**
+     * Close enough that the user should plan around the ceiling.
+     *
+     * Warning here rather than on arrival is the whole point: the limit counts tombstones, so
+     * deleting frees nothing and there is no recovery once it is reached.
+     */
+    val nearlyFull: Boolean get() = fraction >= 0.8f
+
+    /**
      * Roughly how many more entries fit.
      *
      * An entry is exactly one record, so this is exact until members, categories or settlements are
