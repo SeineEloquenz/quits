@@ -71,6 +71,29 @@ class SyncEngine(
     /** Whether [localGroupId] has a relay handle (i.e. is shared/joined). */
     suspend fun isSynced(localGroupId: GroupId): Boolean = db.groupSyncDao().byGroup(localGroupId.value) != null
 
+    /**
+     * How close [localGroupId] is to the relay's per-group record limit, or null when the question
+     * does not apply: a local-only group, a relay that does not cap records, or one that could not
+     * be reached to ask.
+     *
+     * Deliberately not part of [syncInfoFlow]: that flow is driven by the database, and asking the
+     * relay from it would put a network call behind every emission.
+     */
+    suspend fun usage(localGroupId: GroupId): GroupUsage? {
+        db.groupSyncDao().byGroup(localGroupId.value) ?: return null
+        val limit =
+            try {
+                relay.limits().maxRecordsPerGroup
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w(e) { "could not read relay limits for ${localGroupId.value}" }
+                return null
+            }
+        if (limit <= 0) return null
+        return GroupUsage(stored = db.groupDao().countSyncedRecords(localGroupId.value), limit = limit)
+    }
+
     /** Reactive sync info (share code + last-synced time) for [localGroupId]; null fields until shared. */
     fun syncInfoFlow(localGroupId: GroupId): Flow<SyncInfo> =
         db.groupSyncDao().byGroupFlow(localGroupId.value).map {
