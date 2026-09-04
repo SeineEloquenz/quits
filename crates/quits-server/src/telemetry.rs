@@ -2,7 +2,7 @@
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use axum::Router;
 use axum::extract::{MatchedPath, Request, State};
@@ -33,6 +33,95 @@ const PAYLOAD_BUCKETS: &[f64] = &[256.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0, 
 
 /// Wider than request latency: a pass over a large database can take seconds.
 const REAP_BUCKETS: &[f64] = &[0.01, 0.05, 0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0];
+
+/// Defines a label type whose string values are the ones actually exported.
+macro_rules! labels {
+    ($(
+        $(#[$meta:meta])*
+        $name:ident { $($variant:ident = $label:literal),+ $(,)? }
+    )+) => {
+        $(
+            $(#[$meta])*
+            #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+            pub enum $name {
+                $($variant),+
+            }
+
+            impl $name {
+                const fn as_str(self) -> &'static str {
+                    match self {
+                        $(Self::$variant => $label),+
+                    }
+                }
+            }
+        )+
+    };
+}
+
+labels! {
+    /// How a group creation attempt ended.
+    GroupCreate {
+        Created = "ok",
+        Forbidden = "forbidden",
+        Capacity = "capacity",
+        Duplicate = "duplicate",
+    }
+
+    /// How a group join attempt ended.
+    GroupJoin {
+        Joined = "ok",
+        NotFound = "not_found",
+    }
+
+    /// Why a pushed record was not stored.
+    ///
+    /// `Stale` is an ordinary last-write-wins loser; the other two mean the client believes it
+    /// synced data the relay discarded, and are what `quits-records-dropped` alerts on.
+    RejectReason {
+        Oversize = "oversize",
+        Stale = "stale",
+        GroupFull = "group_full",
+    }
+
+    /// Which reaper rule removed a group.
+    ReapRule {
+        Empty = "empty",
+        Inactive = "inactive",
+    }
+
+    /// How a reaper pass ended.
+    ReapOutcome {
+        Succeeded = "ok",
+        Failed = "error",
+    }
+
+    /// Request method, narrowed from the HTTP grammar's arbitrary tokens.
+    Verb {
+        Get = "GET",
+        Post = "POST",
+        Put = "PUT",
+        Patch = "PATCH",
+        Delete = "DELETE",
+        Head = "HEAD",
+        Options = "OPTIONS",
+        Other = "other",
+    }
+}
+
+impl From<&Method> for Verb {
+    fn from(method: &Method) -> Self {
+        match *method {
+            Method::GET => Self::Get,
+            Method::POST => Self::Post,
+            Method::PUT => Self::Put,
+            Method::PATCH => Self::Patch,
+            Method::DELETE => Self::Delete,
+            Method::HEAD => Self::Head,
+            Method::OPTIONS => Self::Options,
+            _ => Self::Other,
+        }
+    }
+}
 
 /// Aggregate storage figures, refreshed off the request path by [`spawn_sampler`].
 #[derive(Clone, Copy, Default)]
@@ -76,20 +165,20 @@ pub struct Metrics {
     /// Dropping the last clone shuts the provider down, so this is held despite being unread.
     _provider: SdkMeterProvider,
     registry: Option<Registry>,
-    pub http_requests: Counter<u64>,
-    pub http_duration: Histogram<f64>,
-    pub http_in_flight: UpDownCounter<i64>,
+    http_requests: Counter<u64>,
+    http_duration: Histogram<f64>,
+    http_in_flight: UpDownCounter<i64>,
     group_creates: Counter<u64>,
     group_joins: Counter<u64>,
-    pub records_applied: Counter<u64>,
+    records_applied: Counter<u64>,
     records_rejected: Counter<u64>,
-    pub push_batch_records: Histogram<u64>,
-    pub pull_records: Histogram<u64>,
-    pub record_payload_bytes: Histogram<u64>,
+    push_batch_records: Histogram<u64>,
+    pull_records: Histogram<u64>,
+    record_payload_bytes: Histogram<u64>,
     storage: StorageStats,
-    pub reaper_runs: Counter<u64>,
+    reaper_runs: Counter<u64>,
     reaper_groups_removed: Counter<u64>,
-    pub reaper_duration: Histogram<f64>,
+    reaper_duration: Histogram<f64>,
     reaper_last_success: Arc<AtomicU64>,
 }
 
@@ -301,38 +390,54 @@ impl Metrics {
         }
     }
 
-    /// Taking `&'static str` keeps the label domain closed at the type level
-    pub fn group_created(&self, outcome: &'static str) {
+    pub fn group_created(&self, outcome: GroupCreate) {
         self.group_creates
-            .add(1, &[KeyValue::new("outcome", outcome)]);
+            .add(1, &[KeyValue::new("outcome", outcome.as_str())]);
     }
 
-    pub fn group_joined(&self, outcome: &'static str) {
+    pub fn group_joined(&self, outcome: GroupJoin) {
         self.group_joins
-            .add(1, &[KeyValue::new("outcome", outcome)]);
+            .add(1, &[KeyValue::new("outcome", outcome.as_str())]);
     }
 
-    pub fn reaper_removed(&self, rule: &'static str, groups: u64) {
+    pub fn record_rejected(&self, reason: RejectReason) {
+        self.records_rejected
+            .add(1, &[KeyValue::new("reason", reason.as_str())]);
+    }
+
+    pub fn records_applied(&self, count: usize) {
+        self.records_applied.add(count as u64, &[]);
+    }
+
+    pub fn push_offered(&self, records: usize) {
+        self.push_batch_records.record(records as u64, &[]);
+    }
+
+    pub fn pull_returned(&self, records: usize) {
+        self.pull_records.record(records as u64, &[]);
+    }
+
+    pub fn record_payload(&self, bytes: usize) {
+        self.record_payload_bytes.record(bytes as u64, &[]);
+    }
+
+    pub fn reaper_removed(&self, rule: ReapRule, groups: u64) {
         if groups > 0 {
             self.reaper_groups_removed
-                .add(groups, &[KeyValue::new("rule", rule)]);
+                .add(groups, &[KeyValue::new("rule", rule.as_str())]);
         }
     }
 
-    pub fn reaper_finished(&self, outcome: &'static str, elapsed: f64, at_epoch_secs: u64) {
+    pub fn reaper_finished(&self, outcome: ReapOutcome, elapsed: Duration) {
         self.reaper_runs
-            .add(1, &[KeyValue::new("outcome", outcome)]);
-        self.reaper_duration.record(elapsed, &[]);
-        if outcome == "ok" {
+            .add(1, &[KeyValue::new("outcome", outcome.as_str())]);
+        self.reaper_duration.record(elapsed.as_secs_f64(), &[]);
+        if outcome == ReapOutcome::Succeeded {
             self.reaper_last_success
-                .store(at_epoch_secs, Ordering::Relaxed);
+                .store(now_secs(), Ordering::Relaxed);
         }
     }
 
-    pub fn record_rejected(&self, reason: &'static str) {
-        self.records_rejected
-            .add(1, &[KeyValue::new("reason", reason)]);
-    }
     fn render(&self) -> String {
         let Some(registry) = &self.registry else {
             return String::new();
@@ -392,7 +497,7 @@ pub async fn tag_route(req: Request, next: Next) -> Response {
 
 /// Counts and times every request.
 pub async fn track_requests(State(state): State<AppState>, req: Request, next: Next) -> Response {
-    let method = method_label(req.method());
+    let method = Verb::from(req.method());
     let metrics = state.metrics;
 
     metrics.http_in_flight.add(1, &[]);
@@ -409,7 +514,7 @@ pub async fn track_requests(State(state): State<AppState>, req: Request, next: N
         .to_owned();
 
     let attributes = [
-        KeyValue::new("method", method),
+        KeyValue::new("method", method.as_str()),
         KeyValue::new("route", route),
         KeyValue::new("status", res.status().as_u16().to_string()),
     ];
@@ -417,20 +522,6 @@ pub async fn track_requests(State(state): State<AppState>, req: Request, next: N
     metrics.http_duration.record(elapsed, &attributes[..2]);
 
     res
-}
-
-/// Bounds the `method` label to a fixed set; the HTTP grammar allows arbitrary tokens.
-fn method_label(method: &Method) -> &'static str {
-    match *method {
-        Method::GET => "GET",
-        Method::POST => "POST",
-        Method::PUT => "PUT",
-        Method::PATCH => "PATCH",
-        Method::DELETE => "DELETE",
-        Method::HEAD => "HEAD",
-        Method::OPTIONS => "OPTIONS",
-        _ => "other",
-    }
 }
 
 async fn metrics_handler(State(metrics): State<Metrics>) -> impl IntoResponse {
@@ -504,4 +595,11 @@ pub fn spawn_sampler(db: SqlitePool, metrics: Metrics, interval_secs: u64) {
             }
         }
     });
+}
+
+fn now_secs() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
 }

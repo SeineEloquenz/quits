@@ -10,7 +10,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use sqlx::SqlitePool;
 
 use crate::config::Config;
-use crate::telemetry::Metrics;
+use crate::telemetry::{Metrics, ReapOutcome, ReapRule};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ReapStats {
@@ -89,13 +89,13 @@ pub fn spawn(db: SqlitePool, config: Arc<Config>, metrics: Metrics) {
             ticker.tick().await;
             let started = std::time::Instant::now();
             let outcome = reap_once(&db, &config).await;
-            let elapsed = started.elapsed().as_secs_f64();
+            let elapsed = started.elapsed();
 
             match outcome {
                 Ok(stats) => {
-                    metrics.reaper_removed("empty", stats.empty);
-                    metrics.reaper_removed("inactive", stats.inactive);
-                    metrics.reaper_finished("ok", elapsed, now_secs());
+                    metrics.reaper_removed(ReapRule::Empty, stats.empty);
+                    metrics.reaper_removed(ReapRule::Inactive, stats.inactive);
+                    metrics.reaper_finished(ReapOutcome::Succeeded, elapsed);
                     if stats.total() > 0 {
                         tracing::info!(
                             "reaper removed {} empty and {} inactive groups",
@@ -105,19 +105,12 @@ pub fn spawn(db: SqlitePool, config: Arc<Config>, metrics: Metrics) {
                     }
                 }
                 Err(e) => {
-                    metrics.reaper_finished("error", elapsed, 0);
+                    metrics.reaper_finished(ReapOutcome::Failed, elapsed);
                     tracing::error!("reaper pass failed: {e}");
                 }
             }
         }
     });
-}
-
-fn now_secs() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
 }
 
 fn now_ms() -> i64 {
