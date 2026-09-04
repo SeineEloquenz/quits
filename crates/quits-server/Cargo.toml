@@ -26,6 +26,11 @@ uuid = { version = "1.23.3", features = ["v4"] }
 base64 = "0.23.0"
 tower_governor = { version = "0.8.0", features = ["axum", "tracing"] }
 governor = "0.10"
+opentelemetry = { version = "0.32", default-features = false, features = ["metrics"] }
+opentelemetry_sdk = { version = "0.32", default-features = false, features = ["metrics"] }
+opentelemetry-prometheus = { version = "0.32", default-features = false }
+prometheus = { version = "0.14", default-features = false }
+tracing-journald = "0.3"
 
 [dev-dependencies]
 http-body-util = "0.1.3"

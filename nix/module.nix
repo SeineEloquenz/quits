@@ -20,6 +20,9 @@ let
       QUITS_BEHIND_PROXY = if cfg.behindProxy then "true" else "false";
       RUST_LOG = cfg.logLevel;
     }
+    // lib.optionalAttrs cfg.metrics.enable {
+      QUITS_METRICS_ADDR = "${cfg.metrics.host}:${toString cfg.metrics.port}";
+    }
     // lib.optionalAttrs (cfg.behindProxy && cfg.trustedIpHeader != null) {
       QUITS_TRUSTED_IP_HEADER = cfg.trustedIpHeader;
     }
@@ -90,6 +93,24 @@ in
       default = "info";
       example = "quits_server=debug,tower_http=debug";
       description = "Value for `RUST_LOG` (tracing env-filter).";
+    };
+
+    metrics = {
+      enable = lib.mkEnableOption "the Prometheus metrics endpoint";
+
+      host = lib.mkOption {
+        type = lib.types.str;
+        default = "127.0.0.1";
+        description = ''
+          Address the metrics endpoint binds to.
+        '';
+      };
+
+      port = lib.mkOption {
+        type = lib.types.port;
+        default = 9109;
+        description = "TCP port the metrics endpoint listens on, serving `/metrics`.";
+      };
     };
 
     androidCertSha256 = lib.mkOption {

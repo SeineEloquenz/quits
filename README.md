@@ -50,6 +50,11 @@ To verify the authenticity of a Quits APK, use the following SHA-256 fingerprint
 The quits relay is a Rust server that you can either self-host directly by building a binary via cargo, or install via the provided nix module.
 The web frontend is continuously built by CI onto the `web` branch.
 
+### Metrics
+The relay can expose Prometheus metrics for scraping. Set `QUITS_METRICS_ADDR` (or
+`services.quits-server.metrics.enable` in the nix module) to serve `/metrics` on a second
+listener, defaulting to `127.0.0.1:9109`. It is disabled unless configured.
+
 ## License
 
 This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).

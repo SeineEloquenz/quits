@@ -5,11 +5,13 @@
 //!   - *inactive* groups (newest record older than a long TTL) are removed along with their records.
 
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 use sqlx::SqlitePool;
 
+use crate::clock::now_ms;
 use crate::config::Config;
+use crate::telemetry::{Metrics, ReapOutcome, ReapRule};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ReapStats {
@@ -76,7 +78,7 @@ pub async fn reap_once(db: &SqlitePool, config: &Config) -> Result<ReapStats, sq
 }
 
 /// Spawns the periodic reaper. No-op when both TTLs are disabled.
-pub fn spawn(db: SqlitePool, config: Arc<Config>) {
+pub fn spawn(db: SqlitePool, config: Arc<Config>, metrics: Metrics) {
     if config.reap_interval_secs == 0
         || (config.empty_group_ttl_secs == 0 && config.inactive_group_ttl_secs == 0)
     {
@@ -86,24 +88,29 @@ pub fn spawn(db: SqlitePool, config: Arc<Config>) {
         let mut ticker = tokio::time::interval(Duration::from_secs(config.reap_interval_secs));
         loop {
             ticker.tick().await;
-            match reap_once(&db, &config).await {
-                Ok(stats) if stats.total() > 0 => {
-                    tracing::info!(
-                        "reaper removed {} empty and {} inactive groups",
-                        stats.empty,
-                        stats.inactive
-                    );
+            let started = std::time::Instant::now();
+            let outcome = reap_once(&db, &config).await;
+            let elapsed = started.elapsed();
+
+            match outcome {
+                Ok(stats) => {
+                    metrics.reaper_removed(ReapRule::Empty, stats.empty);
+                    metrics.reaper_removed(ReapRule::Inactive, stats.inactive);
+                    metrics.reaper_finished(ReapOutcome::Succeeded, elapsed);
+                    if stats.total() > 0 {
+                        tracing::info!(
+                            "reaper removed {} empty and {} inactive groups",
+                            stats.empty,
+                            stats.inactive
+                        );
+                    }
                 }
-                Ok(_) => {}
-                Err(e) => tracing::error!("reaper pass failed: {e}"),
+                Err(e) => {
+                    metrics.reaper_finished(ReapOutcome::Failed, elapsed);
+                    tracing::error!("reaper pass failed: {e}");
+                }
             }
         }
     });
 }
 
-fn now_ms() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as i64
-}

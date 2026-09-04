@@ -2,7 +2,6 @@
 //! record payloads, and reconciles them with last-write-wins. It never parses a payload.
 
 use std::convert::Infallible;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use axum::Json;
 use axum::extract::{FromRequestParts, Path, Query, State};
@@ -13,8 +12,10 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::auth::{Claims, GroupToken, issue_token};
+use crate::clock::{now_ms, now_secs};
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
+use crate::telemetry::{GroupCreate, GroupJoin, RejectReason};
 
 pub struct ClientContext {
     pub instance_header: Option<String>,
@@ -133,6 +134,7 @@ pub async fn create_group(
     if let Some(secret) = &state.config.instance_secret
         && ctx.instance_header.as_deref() != Some(secret.as_str())
     {
+        state.metrics.group_created(GroupCreate::Forbidden);
         return Err(AppError::Forbidden);
     }
 
@@ -147,12 +149,13 @@ pub async fn create_group(
                 limit = state.config.max_groups,
                 "group creation rejected: at global group cap"
             );
+            state.metrics.group_created(GroupCreate::Capacity);
             return Err(AppError::Capacity);
         }
     }
 
     let id = Uuid::new_v4().to_string();
-    let created_at = now_ms() as i64;
+    let created_at = now_ms();
 
     match sqlx::query("INSERT INTO groups (id, lookup_id, created_at) VALUES (?, ?, ?)")
         .bind(&id)
@@ -163,6 +166,7 @@ pub async fn create_group(
     {
         Ok(_) => {}
         Err(sqlx::Error::Database(e)) if e.is_unique_violation() => {
+            state.metrics.group_created(GroupCreate::Duplicate);
             return Err(AppError::BadRequest("group already exists".into()));
         }
         Err(e) => return Err(e.into()),
@@ -174,7 +178,11 @@ pub async fn create_group(
         now_secs(),
         state.config.token_ttl_secs,
     );
-    Ok(Json(CreateGroupResponse { group_id: id, token }))
+    state.metrics.group_created(GroupCreate::Created);
+    Ok(Json(CreateGroupResponse {
+        group_id: id,
+        token,
+    }))
 }
 
 /// Joins an existing group by its lookup id.
@@ -186,7 +194,10 @@ pub async fn join_group(
         .bind(&req.lookup_id)
         .fetch_optional(&state.db)
         .await?;
-    let group_id = row.ok_or(AppError::NotFound)?.0;
+    let Some((group_id,)) = row else {
+        state.metrics.group_joined(GroupJoin::NotFound);
+        return Err(AppError::NotFound);
+    };
 
     let token = issue_token(
         &state.config.jwt_secret,
@@ -194,6 +205,7 @@ pub async fn join_group(
         now_secs(),
         state.config.token_ttl_secs,
     );
+    state.metrics.group_joined(GroupJoin::Joined);
     Ok(Json(JoinGroupResponse { group_id, token }))
 }
 
@@ -226,6 +238,7 @@ pub async fn get_changes(
         })
         .collect();
 
+    state.metrics.pull_returned(records.len());
     Ok(Json(PullResponse { records, seq }))
 }
 
@@ -237,6 +250,8 @@ pub async fn post_changes(
     Json(req): Json<PushRequest>,
 ) -> AppResult<Json<PushResponse>> {
     authorize(&claims, &group_id)?;
+
+    state.metrics.push_offered(req.records.len());
 
     let mut applied = Vec::new();
     let mut rejected = Vec::new();
@@ -257,6 +272,8 @@ pub async fn post_changes(
             .decode(rec.payload.as_bytes())
             .map_err(|_| AppError::BadRequest("payload is not valid base64".into()))?;
 
+        state.metrics.record_payload(payload.len());
+
         // Reject oversized payloads without failing the whole batch (like an LWW loser).
         if state.config.max_record_bytes > 0 && payload.len() > state.config.max_record_bytes {
             tracing::warn!(
@@ -265,6 +282,7 @@ pub async fn post_changes(
                 limit = state.config.max_record_bytes,
                 "record rejected: payload exceeds max size"
             );
+            state.metrics.record_rejected(RejectReason::Oversize);
             rejected.push(rec.id.clone());
             continue;
         }
@@ -287,6 +305,7 @@ pub async fn post_changes(
             }
         };
         if !wins {
+            state.metrics.record_rejected(RejectReason::Stale);
             rejected.push(rec.id.clone());
             continue;
         }
@@ -301,6 +320,7 @@ pub async fn post_changes(
                 limit = state.config.max_records_per_group,
                 "record rejected: group at record cap"
             );
+            state.metrics.record_rejected(RejectReason::GroupFull);
             rejected.push(rec.id.clone());
             continue;
         }
@@ -344,6 +364,8 @@ pub async fn post_changes(
 
     tx.commit().await?;
 
+    state.metrics.records_applied(applied.len());
+
     Ok(Json(PushResponse {
         seq,
         applied,
@@ -359,16 +381,4 @@ fn authorize(claims: &Claims, group_id: &str) -> AppResult<()> {
     }
 }
 
-fn now_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
-}
 
-fn now_secs() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-}
