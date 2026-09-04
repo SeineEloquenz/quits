@@ -5,10 +5,11 @@
 //!   - *inactive* groups (newest record older than a long TTL) are removed along with their records.
 
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 use sqlx::SqlitePool;
 
+use crate::clock::now_ms;
 use crate::config::Config;
 use crate::telemetry::{Metrics, ReapOutcome, ReapRule};
 
@@ -113,9 +114,3 @@ pub fn spawn(db: SqlitePool, config: Arc<Config>, metrics: Metrics) {
     });
 }
 
-fn now_ms() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as i64
-}

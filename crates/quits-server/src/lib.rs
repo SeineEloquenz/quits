@@ -5,6 +5,7 @@
 //! money/split/balance/FX logic lives in the client. See [`routes`] for the protocol.
 
 pub mod auth;
+pub mod clock;
 pub mod config;
 pub mod error;
 pub mod ratelimit;
@@ -73,7 +74,7 @@ pub fn router(state: AppState) -> Router {
 
     app.layer(DefaultBodyLimit::max(config.max_body_bytes))
         .layer(axum::middleware::from_fn_with_state(
-            state.clone(),
+            state.metrics.clone(),
             telemetry::track_requests,
         ))
         .layer(TraceLayer::new_for_http())
@@ -97,15 +98,13 @@ pub async fn run() {
         state.metrics.clone(),
     );
 
-    telemetry::spawn_sampler(
-        state.db.clone(),
-        state.metrics.clone(),
-        state.config.stats_interval_secs,
-    );
+    state
+        .metrics
+        .spawn_sampler(state.db.clone(), state.config.stats_interval_secs);
 
     if let Some(metrics_addr) = state.config.metrics_addr.clone() {
         let metrics = state.metrics.clone();
-        tokio::spawn(async move { telemetry::serve(metrics, &metrics_addr).await });
+        tokio::spawn(async move { metrics.serve(&metrics_addr).await });
     }
 
     let app = router(state);

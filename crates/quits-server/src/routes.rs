@@ -2,7 +2,6 @@
 //! record payloads, and reconciles them with last-write-wins. It never parses a payload.
 
 use std::convert::Infallible;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use axum::Json;
 use axum::extract::{FromRequestParts, Path, Query, State};
@@ -13,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::auth::{Claims, GroupToken, issue_token};
+use crate::clock::{now_ms, now_secs};
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 use crate::telemetry::{GroupCreate, GroupJoin, RejectReason};
@@ -155,7 +155,7 @@ pub async fn create_group(
     }
 
     let id = Uuid::new_v4().to_string();
-    let created_at = now_ms() as i64;
+    let created_at = now_ms();
 
     match sqlx::query("INSERT INTO groups (id, lookup_id, created_at) VALUES (?, ?, ?)")
         .bind(&id)
@@ -381,16 +381,4 @@ fn authorize(claims: &Claims, group_id: &str) -> AppResult<()> {
     }
 }
 
-fn now_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
-}
 
-fn now_secs() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-}

@@ -2,6 +2,7 @@
 
 let
   metricsPort = 9109;
+  syncPort = 8080;
 in
 pkgs.testers.runNixOSTest {
   name = "quits-otel";
@@ -13,6 +14,7 @@ pkgs.testers.runNixOSTest {
 
       services.quits-server = {
         enable = true;
+        port = syncPort;
         metrics.enable = true;
       };
 
@@ -52,11 +54,11 @@ pkgs.testers.runNixOSTest {
     assert "quits_build_info" in metrics, metrics
 
     # The sync port is the one published through a reverse proxy, so it must not serve metrics.
-    machine.succeed("test 404 = \"$(curl -s -o /dev/null -w %{http_code} localhost:8080/metrics)\"")
+    machine.succeed("test 404 = \"$(curl -s -o /dev/null -w %{http_code} localhost:${toString syncPort}/metrics)\"")
 
     machine.wait_for_unit("opentelemetry-collector.service")
     machine.wait_until_succeeds(
-        "journalctl -u opentelemetry-collector.service | grep -q quits_build_info", timeout=90
+        "journalctl -u opentelemetry-collector.service | grep -q quits_build_info"
     )
 
     # Without the journald layer every line would arrive as PRIORITY 6, and the gateway's
