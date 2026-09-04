@@ -88,7 +88,7 @@ async fn global_group_cap_returns_503_when_full() {
 }
 
 #[tokio::test]
-async fn oversized_record_is_rejected_but_batch_succeeds() {
+async fn oversized_record_fails_the_whole_push() {
     let mut config = test_config();
     config.max_record_bytes = 16;
     let app = router(state_with(config).await);
@@ -110,13 +110,25 @@ async fn oversized_record_is_rejected_but_batch_succeeds() {
     )
     .await;
 
+    assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE);
+    assert_eq!(resp["records"], json!(["big"]));
+
+    // The acceptable record in the same batch must not have been stored either
+    let (status, resp) = send(
+        &app,
+        "GET",
+        &format!("/v1/groups/{gid}/changes?since=0"),
+        Some(token),
+        None,
+        None,
+    )
+    .await;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(resp["applied"], json!(["small"]));
-    assert_eq!(resp["rejected"], json!(["big"]));
+    assert_eq!(resp["records"], json!([]));
 }
 
 #[tokio::test]
-async fn per_group_record_cap_blocks_new_inserts_but_allows_updates() {
+async fn new_records_past_the_group_cap_fail_the_push() {
     let mut config = test_config();
     config.max_records_per_group = 2;
     let app = router(state_with(config).await);
@@ -125,7 +137,6 @@ async fn per_group_record_cap_blocks_new_inserts_but_allows_updates() {
     let gid = created["group_id"].as_str().unwrap().to_string();
     let token = created["token"].as_str().unwrap().to_string();
 
-    // Fill to the cap.
     let (_s, resp) = send(
         &app,
         "POST",
@@ -140,21 +151,101 @@ async fn per_group_record_cap_blocks_new_inserts_but_allows_updates() {
     .await;
     assert_eq!(resp["applied"], json!(["r1", "r2"]));
 
-    // A new record is rejected; an update to an existing one still applies.
+    let (status, _resp) = send(
+        &app,
+        "POST",
+        &format!("/v1/groups/{gid}/changes"),
+        Some(&token),
+        None,
+        Some(json!({ "records": [ record("r3", 200, "A", "c") ]})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::INSUFFICIENT_STORAGE);
+
     let (_s, resp) = send(
+        &app,
+        "GET",
+        &format!("/v1/groups/{gid}/changes?since=0"),
+        Some(&token),
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(resp["records"].as_array().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn updates_still_apply_to_a_full_group() {
+    let mut config = test_config();
+    config.max_records_per_group = 2;
+    let app = router(state_with(config).await);
+
+    let (_status, created) = create(&app, None).await;
+    let gid = created["group_id"].as_str().unwrap().to_string();
+    let token = created["token"].as_str().unwrap().to_string();
+
+    send(
         &app,
         "POST",
         &format!("/v1/groups/{gid}/changes"),
         Some(&token),
         None,
         Some(json!({ "records": [
-            record("r3", 200, "A", "c"),
-            record("r1", 200, "A", "a2"),
+            record("r1", 100, "A", "a"),
+            record("r2", 100, "A", "b"),
         ]})),
     )
     .await;
-    assert_eq!(resp["applied"], json!(["r1"]));
-    assert_eq!(resp["rejected"], json!(["r3"]));
+
+    let (status, resp) = send(
+        &app,
+        "POST",
+        &format!("/v1/groups/{gid}/changes"),
+        Some(&token),
+        None,
+        Some(json!({ "records": [
+            record("r1", 200, "A", "a2"),
+            record("r2", 200, "A", "b2"),
+        ]})),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(resp["applied"], json!(["r1", "r2"]));
+    assert_eq!(resp["rejected"], json!([]));
+}
+
+#[tokio::test]
+async fn last_write_wins_loser_stays_a_success() {
+    let app = router(state_with(test_config()).await);
+
+    let (_status, created) = create(&app, None).await;
+    let gid = created["group_id"].as_str().unwrap().to_string();
+    let token = created["token"].as_str().unwrap().to_string();
+
+    send(
+        &app,
+        "POST",
+        &format!("/v1/groups/{gid}/changes"),
+        Some(&token),
+        None,
+        Some(json!({ "records": [ record("r1", 200, "A", "new") ]})),
+    )
+    .await;
+
+    let (status, resp) = send(
+        &app,
+        "POST",
+        &format!("/v1/groups/{gid}/changes"),
+        Some(&token),
+        None,
+        Some(json!({ "records": [ record("r1", 100, "A", "old") ]})),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(resp["applied"], json!([]));
+    assert_eq!(resp["rejected"], json!(["r1"]));
 }
 
 #[tokio::test]

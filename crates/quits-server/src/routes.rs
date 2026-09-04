@@ -253,50 +253,20 @@ pub async fn post_changes(
 
     state.metrics.push_offered(req.records.len());
 
-    let mut applied = Vec::new();
-    let mut rejected = Vec::new();
     let mut tx = state.db.begin().await?;
 
-    let mut group_count: i64 = if state.config.max_records_per_group > 0 {
-        let (c,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM records WHERE group_id = ?")
-            .bind(&group_id)
-            .fetch_one(&mut *tx)
-            .await?;
-        c
-    } else {
-        0
-    };
+    // Everything that can refuse the push is checked before the first write, so a non-2xx always
+    // means nothing was stored. Returning here drops the transaction, rolling it back.
+    let payloads = decode_payloads(&state, &group_id, &req)?;
+    let existing = current_rows(&mut tx, &group_id, &req).await?;
+    enforce_record_cap(&state, &group_id, &mut tx, &existing).await?;
 
-    for rec in &req.records {
-        let payload = B64
-            .decode(rec.payload.as_bytes())
-            .map_err(|_| AppError::BadRequest("payload is not valid base64".into()))?;
+    let mut applied = Vec::new();
+    let mut rejected = Vec::new();
 
-        state.metrics.record_payload(payload.len());
-
-        // Reject oversized payloads without failing the whole batch (like an LWW loser).
-        if state.config.max_record_bytes > 0 && payload.len() > state.config.max_record_bytes {
-            tracing::warn!(
-                %group_id,
-                bytes = payload.len(),
-                limit = state.config.max_record_bytes,
-                "record rejected: payload exceeds max size"
-            );
-            state.metrics.record_rejected(RejectReason::Oversize);
-            rejected.push(rec.id.clone());
-            continue;
-        }
-
-        let existing: Option<(i64, String)> = sqlx::query_as(
-            "SELECT updated_at, device_id FROM records WHERE group_id = ? AND id = ?",
-        )
-        .bind(&group_id)
-        .bind(&rec.id)
-        .fetch_optional(&mut *tx)
-        .await?;
-
+    for ((rec, payload), existing) in req.records.iter().zip(&payloads).zip(&existing) {
         // Last-write-wins: newer `updated_at` wins; ties broken by the larger `device_id`.
-        let wins = match &existing {
+        let wins = match existing {
             None => true,
             Some((cur_updated, cur_device)) => {
                 rec.updated_at > *cur_updated
@@ -305,22 +275,7 @@ pub async fn post_changes(
             }
         };
         if !wins {
-            state.metrics.record_rejected(RejectReason::Stale);
-            rejected.push(rec.id.clone());
-            continue;
-        }
-
-        // New records count against the per-group cap; updates to existing records don't.
-        if existing.is_none()
-            && state.config.max_records_per_group > 0
-            && group_count as u64 >= state.config.max_records_per_group
-        {
-            tracing::warn!(
-                %group_id,
-                limit = state.config.max_records_per_group,
-                "record rejected: group at record cap"
-            );
-            state.metrics.record_rejected(RejectReason::GroupFull);
+            state.metrics.records_rejected(RejectReason::Stale, 1);
             rejected.push(rec.id.clone());
             continue;
         }
@@ -345,14 +300,11 @@ pub async fn post_changes(
         .bind(rec.updated_at)
         .bind(rec.deleted as i64)
         .bind(&rec.device_id)
-        .bind(&payload)
+        .bind(payload.as_slice())
         .bind(server_seq)
         .execute(&mut *tx)
         .await?;
 
-        if existing.is_none() {
-            group_count += 1;
-        }
         applied.push(rec.id.clone());
     }
 
@@ -373,6 +325,97 @@ pub async fn post_changes(
     }))
 }
 
+/// Decodes every payload once, so the apply loop can reuse them instead of decoding again.
+///
+/// A single oversized record fails the whole push
+fn decode_payloads(state: &AppState, group_id: &str, req: &PushRequest) -> AppResult<Vec<Vec<u8>>> {
+    let limit = state.config.max_record_bytes;
+    let mut payloads = Vec::with_capacity(req.records.len());
+    let mut oversized = Vec::new();
+
+    for rec in &req.records {
+        let payload = B64
+            .decode(rec.payload.as_bytes())
+            .map_err(|_| AppError::BadRequest("payload is not valid base64".into()))?;
+
+        state.metrics.record_payload(payload.len());
+        if limit > 0 && payload.len() > limit {
+            oversized.push(rec.id.clone());
+        }
+        payloads.push(payload);
+    }
+
+    if !oversized.is_empty() {
+        tracing::warn!(
+            %group_id,
+            records = oversized.len(),
+            limit,
+            "push refused: record payload exceeds max size"
+        );
+        state
+            .metrics
+            .records_rejected(RejectReason::Oversize, oversized.len());
+        return Err(AppError::RecordTooLarge(oversized));
+    }
+
+    Ok(payloads)
+}
+
+/// The stored row for each pushed id, in request order.
+///
+/// Feeds both the cap arithmetic and the last-write-wins comparison, so it is read once.
+async fn current_rows(
+    tx: &mut sqlx::SqliteConnection,
+    group_id: &str,
+    req: &PushRequest,
+) -> Result<Vec<Option<(i64, String)>>, sqlx::Error> {
+    let mut rows = Vec::with_capacity(req.records.len());
+    for rec in &req.records {
+        rows.push(
+            sqlx::query_as(
+                "SELECT updated_at, device_id FROM records WHERE group_id = ? AND id = ?",
+            )
+            .bind(group_id)
+            .bind(&rec.id)
+            .fetch_optional(&mut *tx)
+            .await?,
+        );
+    }
+    Ok(rows)
+}
+
+/// Refuses a push that would take the group past its record ceiling.
+///
+/// Only ids the group does not already hold count against the cap, so a batch of pure updates
+/// still applies to a full group — editing an existing expense must not require deleting one.
+async fn enforce_record_cap(
+    state: &AppState,
+    group_id: &str,
+    tx: &mut sqlx::SqliteConnection,
+    existing: &[Option<(i64, String)>],
+) -> AppResult<()> {
+    let limit = state.config.max_records_per_group;
+    if limit == 0 {
+        return Ok(());
+    }
+
+    let (stored,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM records WHERE group_id = ?")
+        .bind(group_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+    let incoming = existing.iter().filter(|row| row.is_none()).count();
+    if stored as u64 + incoming as u64 <= limit {
+        return Ok(());
+    }
+
+    tracing::warn!(%group_id, stored, incoming, limit, "push refused: group at record cap");
+    state
+        .metrics
+        .records_rejected(RejectReason::GroupFull, incoming);
+    Err(AppError::GroupFull)
+}
+
 fn authorize(claims: &Claims, group_id: &str) -> AppResult<()> {
     if claims.gid == group_id {
         Ok(())
@@ -380,5 +423,3 @@ fn authorize(claims: &Claims, group_id: &str) -> AppResult<()> {
         Err(AppError::Forbidden)
     }
 }
-
-

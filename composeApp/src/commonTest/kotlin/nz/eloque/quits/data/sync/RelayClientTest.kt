@@ -16,6 +16,7 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
@@ -114,6 +115,32 @@ class RelayClientTest {
             val relay = client { respond("""{"error":"not found"}""", HttpStatusCode.NotFound) }
             val record = EncryptedRecord("m1", updatedAt = 1, deviceId = "dev", deleted = false, ciphertext = byteArrayOf(1))
             assertFailsWith<SyncError.GroupGone> { relay.push("rid", "tok", listOf(record)) }
+        }
+
+    @Test
+    fun push_maps_413_to_record_too_large_with_ids() =
+        runTest {
+            val relay =
+                client {
+                    respond(
+                        """{"error":"record payload exceeds the size limit","records":["big"]}""",
+                        HttpStatusCode.PayloadTooLarge,
+                        headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+            val record = EncryptedRecord("big", updatedAt = 1, deviceId = "dev", deleted = false, ciphertext = byteArrayOf(1))
+            val error = assertFailsWith<SyncError.RecordTooLarge> { relay.push("rid", "tok", listOf(record)) }
+            assertEquals(listOf("big"), error.recordIds)
+            assertFalse(error.retriable)
+        }
+
+    @Test
+    fun push_maps_507_to_group_full() =
+        runTest {
+            val relay = client { respond("""{"error":"group has reached its record limit"}""", HttpStatusCode.InsufficientStorage) }
+            val record = EncryptedRecord("m1", updatedAt = 1, deviceId = "dev", deleted = false, ciphertext = byteArrayOf(1))
+            val error = assertFailsWith<SyncError.GroupFull> { relay.push("rid", "tok", listOf(record)) }
+            assertFalse(error.retriable)
         }
 
     @Test
