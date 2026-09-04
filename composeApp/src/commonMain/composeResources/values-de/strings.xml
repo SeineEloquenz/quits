@@ -241,6 +241,8 @@
     <string name="error_sync_server_error">Auf dem Sync-Server ist ein Problem aufgetreten. Versuche es gleich erneut.</string>
     <string name="error_sync_unauthorized">Dieses Gerät ist nicht berechtigt, diese Gruppe zu synchronisieren. Eventuell musst du erneut beitreten.</string>
     <string name="error_sync_group_gone">Diese geteilte Gruppe existiert auf dem Server nicht mehr.</string>
+    <string name="error_sync_group_full">Diese Gruppe hat das Limit des Sync-Servers erreicht. Neue Einträge können nicht mehr geteilt werden. Änderungen an bestehenden Einträgen werden weiterhin synchronisiert.</string>
+    <string name="error_sync_record_too_large">Einer deiner Einträge ist zu groß zum Synchronisieren. Kürze die Beschreibung oder teile ihn auf.</string>
     <string name="error_sync_rejected">Der Sync-Server hat die Anfrage abgelehnt. Ein App-Update kann helfen.</string>
     <string name="error_sync_incompatible">Die Antwort des Servers konnte nicht gelesen werden. Die App muss möglicherweise aktualisiert werden.</string>
     <string name="error_sync_unexpected">Synchronisierung fehlgeschlagen. Bitte versuche es erneut.</string>

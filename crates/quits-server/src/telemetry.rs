@@ -421,10 +421,10 @@ impl Metrics {
             .add(1, &[KeyValue::new("outcome", outcome.as_str())]);
     }
 
-    pub fn record_rejected(&self, reason: RejectReason) {
+    pub fn records_rejected(&self, reason: RejectReason, count: usize) {
         self.relay
             .records_rejected
-            .add(1, &[KeyValue::new("reason", reason.as_str())]);
+            .add(count as u64, &[KeyValue::new("reason", reason.as_str())]);
     }
 
     pub fn records_applied(&self, count: usize) {

@@ -118,10 +118,16 @@ class RelayClient(
                 throw SyncError.Protocol(e)
             }
         }
+        val error = runCatching { body<RelayErrorResponse>() }.getOrNull()
         val message =
-            runCatching { body<RelayErrorResponse>().error }.getOrNull()
+            error?.error
                 ?: runCatching { bodyAsText() }.getOrNull()?.take(200)
-        throw syncErrorForStatus(status.value, retryAfterHint(), message?.takeIf { it.isNotBlank() })
+        throw syncErrorForStatus(
+            status.value,
+            retryAfterHint(),
+            message?.takeIf { it.isNotBlank() },
+            error?.records.orEmpty(),
+        )
     }
 
     /** Parses the `Retry-After` header (delta-seconds form, as the relay emits) into a [Duration]. */
@@ -151,6 +157,7 @@ class RelayClient(
     @Serializable
     private data class RelayErrorResponse(
         val error: String? = null,
+        val records: List<String> = emptyList(),
     )
 
     @Serializable

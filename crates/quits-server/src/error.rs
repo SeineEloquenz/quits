@@ -22,6 +22,12 @@ pub enum AppError {
     #[error("server at capacity")]
     Capacity,
 
+    #[error("record payload exceeds the size limit")]
+    RecordTooLarge(Vec<String>),
+
+    #[error("group has reached its record limit")]
+    GroupFull,
+
     #[error("internal error: {0}")]
     Internal(String),
 
@@ -37,6 +43,8 @@ impl IntoResponse for AppError {
             AppError::Forbidden => StatusCode::FORBIDDEN,
             AppError::NotFound => StatusCode::NOT_FOUND,
             AppError::Capacity => StatusCode::SERVICE_UNAVAILABLE,
+            AppError::RecordTooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
+            AppError::GroupFull => StatusCode::INSUFFICIENT_STORAGE,
             AppError::Internal(e) => {
                 // Internal details are logged, never returned to the client.
                 tracing::error!("internal error: {e}");
@@ -54,7 +62,12 @@ impl IntoResponse for AppError {
             other => other.to_string(),
         };
 
-        (status, Json(json!({ "error": message }))).into_response()
+        let mut body = json!({ "error": message });
+        if let AppError::RecordTooLarge(ids) = &self {
+            body["records"] = json!(ids);
+        }
+
+        (status, Json(body)).into_response()
     }
 }
 

@@ -64,6 +64,23 @@ sealed class SyncError(
         override val retriable = false
     }
 
+    /**
+     * The relay refused records whose payload exceeds its per-record limit (HTTP 413).
+     *
+     * The whole push was refused, so nothing was stored. Retrying is pointless until the offending
+     * entries shrink.
+     */
+    class RecordTooLarge(
+        val recordIds: List<String>,
+    ) : SyncError("record too large" + recordIds.takeIf { it.isNotEmpty() }?.let { ": $it" }.orEmpty()) {
+        override val retriable = false
+    }
+
+    /** The group has reached the relay's per-group record limit (HTTP 507). */
+    data object GroupFull : SyncError("group full") {
+        override val retriable = false
+    }
+
     /** Any other status we have no specific meaning for. */
     class Unexpected(
         val status: Int,
@@ -77,13 +94,16 @@ internal fun syncErrorForStatus(
     status: Int,
     retryAfter: Duration?,
     serverMessage: String?,
+    recordIds: List<String> = emptyList(),
 ): SyncError =
     when (status) {
         400 -> SyncError.BadRequest(serverMessage)
         401, 403 -> SyncError.Unauthorized
         404 -> SyncError.GroupGone
+        413 -> SyncError.RecordTooLarge(recordIds)
         429 -> SyncError.RateLimited(retryAfter)
         503 -> SyncError.ServerUnavailable(retryAfter)
+        507 -> SyncError.GroupFull
         in 500..599 -> SyncError.ServerError(status)
         else -> SyncError.Unexpected(status)
     }
