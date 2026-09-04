@@ -65,6 +65,7 @@
     <string name="detail_share_group">Share group</string>
     <string name="detail_share_hint">Others join with this code to sync.</string>
     <string name="detail_last_synced">Last synced %1$s</string>
+    <string name="detail_sync_storage">Room for about %1$d more entries on the sync server.</string>
     <string name="detail_not_synced">Not synced yet</string>
     <string name="detail_balances">Balances</string>
     <string name="detail_balances_summary">%1$d members</string>

@@ -93,6 +93,7 @@ import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.data.invite.InviteLink
+import nz.eloque.quits.data.sync.GroupUsage
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.EntryId
@@ -137,6 +138,7 @@ import nz.eloque.quits.resources.detail_share_group
 import nz.eloque.quits.resources.detail_share_hint
 import nz.eloque.quits.resources.detail_sharing
 import nz.eloque.quits.resources.detail_split_unsupported
+import nz.eloque.quits.resources.detail_sync_storage
 import nz.eloque.quits.resources.export_csv_menu
 import nz.eloque.quits.resources.group_archive_menu
 import nz.eloque.quits.resources.group_archived_label
@@ -187,6 +189,7 @@ fun GroupDetailScreen(
     val viewModel = koinViewModel<GroupDetailViewModel>(key = groupId.value) { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
     val syncStatus by viewModel.syncStatus.collectAsState()
+    val usage by viewModel.usage.collectAsState()
 
     var balancesExpanded by remember(groupId) { mutableStateOf(false) }
     var showShare by remember(groupId) { mutableStateOf(false) }
@@ -210,7 +213,7 @@ fun GroupDetailScreen(
     }
 
     if (showShare) {
-        ShareSheet(state = state, onShare = viewModel::share, onDismiss = { showShare = false })
+        ShareSheet(state = state, usage = usage, onShare = viewModel::share, onDismiss = { showShare = false })
     }
 
     if (showLeave) {
@@ -881,6 +884,7 @@ private fun LeaveGroupDialog(
 @Composable
 private fun ShareSheet(
     state: GroupDetailUiState,
+    usage: GroupUsage?,
     onShare: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -930,6 +934,14 @@ private fun ShareSheet(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
+                // Below halfway the number is noise; the ceiling is far enough away to be irrelevant.
+                if (usage != null && usage.filling) {
+                    Text(
+                        stringResource(Res.string.detail_sync_storage, usage.remainingEntries),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
             }
             Spacer(Modifier.height(24.dp))
         }

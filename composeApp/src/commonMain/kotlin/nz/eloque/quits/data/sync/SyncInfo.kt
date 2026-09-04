@@ -18,6 +18,9 @@ data class GroupUsage(
     /** 0..1, saturating — the relay refuses new records at 1. */
     val fraction: Float get() = (stored.toFloat() / limit.toFloat()).coerceIn(0f, 1f)
 
+    /** Past halfway, so the remaining headroom is worth reporting rather than noise. */
+    val filling: Boolean get() = fraction >= 0.5f
+
     /**
      * Roughly how many more entries fit.
      *

@@ -63,6 +63,7 @@
     <string name="detail_share_group">Gruppe freigeben</string>
     <string name="detail_share_hint">Andere treten mit diesem Code der Gruppe bei.</string>
     <string name="detail_last_synced">Zuletzt synchronisiert %1$s</string>
+    <string name="detail_sync_storage">Platz für etwa %1$d weitere Einträge auf dem Sync-Server.</string>
     <string name="detail_not_synced">Noch nicht synchronisiert</string>
     <string name="detail_balances">Salden</string>
     <string name="detail_balances_summary">%1$d Mitglieder</string>

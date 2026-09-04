@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import nz.eloque.quits.data.repository.GroupRepository
+import nz.eloque.quits.data.sync.GroupUsage
 import nz.eloque.quits.data.sync.SyncEngine
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
@@ -150,6 +151,11 @@ class GroupDetailViewModel(
     private val _syncStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
     val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
 
+    private val _usage = MutableStateFlow<GroupUsage?>(null)
+
+    /** Headroom left on the relay for this group; null when the limit does not apply. */
+    val usage: StateFlow<GroupUsage?> = _usage.asStateFlow()
+
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 1)
 
     /** One-shot user-facing messages (e.g. "nothing to export") for a snackbar. */
@@ -181,6 +187,7 @@ class GroupDetailViewModel(
             } catch (e: Exception) {
                 _syncStatus.value = SyncStatus.Failed(e.toSyncMessage())
             }
+            _usage.value = engine.usage(groupId)
         }
     }
 
@@ -275,6 +282,8 @@ class GroupDetailViewModel(
         } catch (e: Exception) {
             _syncStatus.value = SyncStatus.Failed(e.toSyncMessage())
         }
+        // Also after a failure: the records that did land still changed how full the group is.
+        _usage.value = engine.usage(groupId)
     }
 }
 
