@@ -9,8 +9,8 @@ import nz.eloque.quits.resources.error_sync_incompatible
 import nz.eloque.quits.resources.error_sync_rate_limited
 import nz.eloque.quits.resources.error_sync_rate_limited_wait
 import nz.eloque.quits.resources.error_sync_record_too_large
-import nz.eloque.quits.resources.error_sync_relay_full
 import nz.eloque.quits.resources.error_sync_rejected
+import nz.eloque.quits.resources.error_sync_relay_full
 import nz.eloque.quits.resources.error_sync_server_busy
 import nz.eloque.quits.resources.error_sync_server_error
 import nz.eloque.quits.resources.error_sync_unauthorized

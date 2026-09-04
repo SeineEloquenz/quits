@@ -32,6 +32,28 @@ class RelayClientTest {
         respond(body, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
 
     @Test
+    fun limits_are_parsed_and_cached_per_relay() =
+        runTest {
+            var calls = 0
+            val relay =
+                client {
+                    calls += 1
+                    json("""{"max_body_bytes":4096,"max_record_bytes":128,"max_records_per_group":7}""")
+                }
+
+            assertEquals(RelayLimits(maxBodyBytes = 4096, maxRecordBytes = 128, maxRecordsPerGroup = 7), relay.limits())
+            assertEquals(RelayLimits(maxBodyBytes = 4096, maxRecordBytes = 128, maxRecordsPerGroup = 7), relay.limits())
+            assertEquals(1, calls, "limits should be fetched once per relay, not once per push")
+        }
+
+    @Test
+    fun limits_fall_back_conservatively_when_the_relay_has_no_endpoint() =
+        runTest {
+            val relay = client { respond("", HttpStatusCode.NotFound) }
+            assertEquals(RelayLimits.CONSERVATIVE, relay.limits())
+        }
+
+    @Test
     fun create_group_posts_and_parses_handle() =
         runTest {
             var path = ""
