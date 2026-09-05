@@ -192,6 +192,7 @@ fun GroupDetailScreen(
     onOpenSettlement: (SettlementId) -> Unit,
     onSettleUp: () -> Unit,
     onOpenStats: () -> Unit,
+    onGroupCreated: (GroupId) -> Unit,
 ) {
     val viewModel = koinViewModel<GroupDetailViewModel>(key = groupId.value) { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
@@ -220,6 +221,10 @@ fun GroupDetailScreen(
 
     LaunchedEffect(Unit) {
         viewModel.messages.collect { snackbarHostState.showSnackbar(it) }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.createdGroups.collect(onGroupCreated)
     }
 
     if (showShare) {

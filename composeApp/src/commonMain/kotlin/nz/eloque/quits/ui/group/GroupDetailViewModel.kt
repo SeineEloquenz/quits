@@ -162,6 +162,11 @@ class GroupDetailViewModel(
     /** One-shot user-facing messages (e.g. "nothing to export") for a snackbar. */
     val messages: SharedFlow<String> = _messages.asSharedFlow()
 
+    private val _createdGroups = MutableSharedFlow<GroupId>(extraBufferCapacity = 1)
+
+    /** Groups this screen created, for the host to switch to. */
+    val createdGroups: SharedFlow<GroupId> = _createdGroups.asSharedFlow()
+
     fun setQuery(value: String) = filter.update { it.copy(query = value) }
 
     fun toggleCategoryFilter(id: CategoryId) =
@@ -226,8 +231,9 @@ class GroupDetailViewModel(
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
-            repo.createGroupFrom(groupId, trimmed) ?: return@launch
+            val created = repo.createGroupFrom(groupId, trimmed) ?: return@launch
             _messages.emit(getString(Res.string.detail_quota_new_group_created, trimmed))
+            _createdGroups.emit(created)
         }
     }
 
