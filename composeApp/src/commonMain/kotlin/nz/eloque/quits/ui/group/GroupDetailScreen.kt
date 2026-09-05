@@ -93,6 +93,7 @@ import androidx.compose.ui.unit.dp
 import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.data.invite.InviteLink
+import nz.eloque.quits.data.sync.GroupUsage
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.EntryId
@@ -105,6 +106,8 @@ import nz.eloque.quits.resources.action_add
 import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_copy
 import nz.eloque.quits.resources.action_copy_link
+import nz.eloque.quits.resources.action_create
+import nz.eloque.quits.resources.action_dismiss
 import nz.eloque.quits.resources.action_save
 import nz.eloque.quits.resources.action_share_link
 import nz.eloque.quits.resources.cd_clear_search
@@ -129,6 +132,9 @@ import nz.eloque.quits.resources.detail_local_only
 import nz.eloque.quits.resources.detail_no_matches
 import nz.eloque.quits.resources.detail_not_synced
 import nz.eloque.quits.resources.detail_note
+import nz.eloque.quits.resources.detail_quota_new_group
+import nz.eloque.quits.resources.detail_quota_warning_body
+import nz.eloque.quits.resources.detail_quota_warning_title
 import nz.eloque.quits.resources.detail_search_hint
 import nz.eloque.quits.resources.detail_settle_up
 import nz.eloque.quits.resources.detail_settlement_row
@@ -137,6 +143,7 @@ import nz.eloque.quits.resources.detail_share_group
 import nz.eloque.quits.resources.detail_share_hint
 import nz.eloque.quits.resources.detail_sharing
 import nz.eloque.quits.resources.detail_split_unsupported
+import nz.eloque.quits.resources.detail_sync_storage
 import nz.eloque.quits.resources.export_csv_menu
 import nz.eloque.quits.resources.group_archive_menu
 import nz.eloque.quits.resources.group_archived_label
@@ -146,6 +153,8 @@ import nz.eloque.quits.resources.group_leave_body_shared
 import nz.eloque.quits.resources.group_leave_confirm
 import nz.eloque.quits.resources.group_leave_menu
 import nz.eloque.quits.resources.group_leave_title
+import nz.eloque.quits.resources.group_new_from_name
+import nz.eloque.quits.resources.group_new_from_title
 import nz.eloque.quits.resources.group_rename_menu
 import nz.eloque.quits.resources.group_rename_title
 import nz.eloque.quits.resources.group_unarchive_menu
@@ -183,12 +192,17 @@ fun GroupDetailScreen(
     onOpenSettlement: (SettlementId) -> Unit,
     onSettleUp: () -> Unit,
     onOpenStats: () -> Unit,
+    onGroupCreated: (GroupId) -> Unit,
 ) {
     val viewModel = koinViewModel<GroupDetailViewModel>(key = groupId.value) { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
     val syncStatus by viewModel.syncStatus.collectAsState()
+    val usage by viewModel.usage.collectAsState()
 
     var balancesExpanded by remember(groupId) { mutableStateOf(false) }
+    // Session-scoped: the group only gets fuller, so it is right to raise this again next visit.
+    var quotaWarningDismissed by remember(groupId) { mutableStateOf(false) }
+    var startingSuccessor by remember(groupId) { mutableStateOf(false) }
     var showShare by remember(groupId) { mutableStateOf(false) }
     var menuExpanded by remember(groupId) { mutableStateOf(false) }
     var showLeave by remember(groupId) { mutableStateOf(false) }
@@ -209,8 +223,12 @@ fun GroupDetailScreen(
         viewModel.messages.collect { snackbarHostState.showSnackbar(it) }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.createdGroups.collect(onGroupCreated)
+    }
+
     if (showShare) {
-        ShareSheet(state = state, onShare = viewModel::share, onDismiss = { showShare = false })
+        ShareSheet(state = state, usage = usage, onShare = viewModel::share, onDismiss = { showShare = false })
     }
 
     if (showLeave) {
@@ -236,12 +254,27 @@ fun GroupDetailScreen(
     }
 
     if (showRename) {
-        RenameGroupDialog(
+        GroupNameDialog(
+            title = stringResource(Res.string.group_rename_title),
+            confirmLabel = stringResource(Res.string.action_save),
             initial = state.name,
             onDismiss = { showRename = false },
             onConfirm = { name ->
                 showRename = false
                 viewModel.rename(name)
+            },
+        )
+    }
+
+    if (startingSuccessor) {
+        GroupNameDialog(
+            title = stringResource(Res.string.group_new_from_title),
+            confirmLabel = stringResource(Res.string.action_create),
+            initial = stringResource(Res.string.group_new_from_name, state.name),
+            onDismiss = { startingSuccessor = false },
+            onConfirm = { name ->
+                startingSuccessor = false
+                viewModel.startGroupWithSameMembers(name)
             },
         )
     }
@@ -432,6 +465,14 @@ fun GroupDetailScreen(
                     .verticalScroll(rememberScrollState()),
             ) {
                 Spacer(Modifier.height(8.dp))
+
+                usage?.takeIf { it.nearlyFull && !quotaWarningDismissed }?.let {
+                    GroupNearlyFullBanner(
+                        usage = it,
+                        onStartNewGroup = { startingSuccessor = true },
+                        onDismiss = { quotaWarningDismissed = true },
+                    )
+                }
 
                 BalanceSummary(
                     state = state,
@@ -817,7 +858,9 @@ private fun AddMemberDialog(
 
 /** Renames the group. Prefilled with the current name; syncs like any other edit. */
 @Composable
-private fun RenameGroupDialog(
+private fun GroupNameDialog(
+    title: String,
+    confirmLabel: String,
     initial: String,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
@@ -825,7 +868,7 @@ private fun RenameGroupDialog(
     var name by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.group_rename_title)) },
+        title = { Text(title) },
         text = {
             OutlinedTextField(
                 value = name,
@@ -836,7 +879,7 @@ private fun RenameGroupDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) {
-                Text(stringResource(Res.string.action_save))
+                Text(confirmLabel)
             }
         },
         dismissButton = {
@@ -877,10 +920,48 @@ private fun LeaveGroupDialog(
     )
 }
 
+/**
+ * Warns while there is still room to act on it.
+ *
+ * Deliberately says nothing about deleting: the relay counts tombstones, so removing entries frees
+ * no space. Starting a fresh group is the only thing that actually helps.
+ */
+@Composable
+private fun GroupNearlyFullBanner(
+    usage: GroupUsage,
+    onStartNewGroup: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        Row(Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(Res.string.detail_quota_warning_title), style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(Res.string.detail_quota_warning_body, usage.remainingEntries),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                TextButton(onClick = onStartNewGroup, modifier = Modifier.padding(top = 4.dp)) {
+                    Text(stringResource(Res.string.detail_quota_new_group))
+                }
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.action_dismiss))
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ShareSheet(
     state: GroupDetailUiState,
+    usage: GroupUsage?,
     onShare: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -930,6 +1011,14 @@ private fun ShareSheet(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
+                // Below halfway the number is noise; the ceiling is far enough away to be irrelevant.
+                if (usage != null && usage.filling) {
+                    Text(
+                        stringResource(Res.string.detail_sync_storage, usage.remainingEntries),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
             }
             Spacer(Modifier.height(24.dp))
         }

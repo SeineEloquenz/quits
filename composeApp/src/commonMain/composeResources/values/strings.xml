@@ -65,6 +65,7 @@
     <string name="detail_share_group">Share group</string>
     <string name="detail_share_hint">Others join with this code to sync.</string>
     <string name="detail_last_synced">Last synced %1$s</string>
+    <string name="detail_sync_storage">Room for about %1$d more entries on the sync server.</string>
     <string name="detail_not_synced">Not synced yet</string>
     <string name="detail_balances">Balances</string>
     <string name="detail_balances_summary">%1$d members</string>
@@ -102,6 +103,10 @@
     <string name="detail_items">Items</string>
     <string name="detail_split_unsupported">This entry was created with a newer version of the app. Update to view and edit how it's split.</string>
     <string name="detail_note">Note</string>
+    <string name="detail_quota_warning_title">This group is nearly full</string>
+    <string name="detail_quota_warning_body">About %1$d more entries fit before the sync server stops accepting new ones. Existing entries will keep syncing. Consider starting a fresh group for your next trip.</string>
+    <string name="detail_quota_new_group">Start a new group</string>
+    <string name="detail_quota_new_group_created">Created %1$s with the same members and categories.</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d people</string>
     <string name="detail_edit_expense">Edit expense</string>
     <string name="detail_delete_expense">Delete expense</string>
@@ -119,6 +124,8 @@
     <string name="group_archived_label">Archived</string>
     <string name="drawer_archived">Archived (%1$d)</string>
     <string name="group_leave_title">Leave group?</string>
+    <string name="group_new_from_title">New group, same people</string>
+    <string name="group_new_from_name">%1$s 2</string>
     <string name="group_leave_body_local">This removes "%1$s" and everything in it from this device. It isn't shared with anyone, so this can't be undone.</string>
     <string name="group_leave_body_shared">This removes "%1$s" from this device only. Other members keep their copy, and you can re-join later with the share code.</string>
     <string name="group_leave_confirm">Leave</string>
@@ -244,6 +251,8 @@
     <string name="error_sync_unauthorized">This device isn't authorized to sync this group. You may need to rejoin it.</string>
     <string name="error_sync_group_gone">This shared group no longer exists on the server.</string>
     <string name="error_sync_group_full">This group has reached the sync server's limit, so new entries cannot be shared. Changes to existing entries still sync.</string>
+    <string name="error_sync_relay_full">The sync server has reached its limit and cannot take new shared groups. This group stays on this device; you can point the app at a different sync server in settings.</string>
+    <string name="error_sync_batch_too_large">There is too much unsynced data to send in one request.</string>
     <string name="error_sync_record_too_large">One of your entries is too large to sync. Try shortening its description or splitting it up.</string>
     <string name="error_sync_rejected">The sync server rejected the request. Updating the app may help.</string>
     <string name="error_sync_incompatible">Couldn't read the server's response. The app may need updating.</string>

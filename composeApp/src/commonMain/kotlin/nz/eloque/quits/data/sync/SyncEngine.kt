@@ -7,8 +7,13 @@ import kotlinx.coroutines.flow.map
 import nz.eloque.quits.data.crypto.GroupCrypto
 import nz.eloque.quits.data.crypto.GroupKey
 import nz.eloque.quits.data.crypto.SecretCode
+import nz.eloque.quits.data.db.CategoryEntity
+import nz.eloque.quits.data.db.EntryWithLines
+import nz.eloque.quits.data.db.GroupEntity
 import nz.eloque.quits.data.db.GroupSyncEntity
+import nz.eloque.quits.data.db.MemberEntity
 import nz.eloque.quits.data.db.QuitsDatabase
+import nz.eloque.quits.data.db.SettlementEntity
 import nz.eloque.quits.data.db.SyncMeta
 import nz.eloque.quits.domain.GroupId
 import kotlin.io.encoding.Base64
@@ -65,6 +70,29 @@ class SyncEngine(
 
     /** Whether [localGroupId] has a relay handle (i.e. is shared/joined). */
     suspend fun isSynced(localGroupId: GroupId): Boolean = db.groupSyncDao().byGroup(localGroupId.value) != null
+
+    /**
+     * How close [localGroupId] is to the relay's per-group record limit, or null when the question
+     * does not apply: a local-only group, a relay that does not cap records, or one that could not
+     * be reached to ask.
+     *
+     * Deliberately not part of [syncInfoFlow]: that flow is driven by the database, and asking the
+     * relay from it would put a network call behind every emission.
+     */
+    suspend fun usage(localGroupId: GroupId): GroupUsage? {
+        db.groupSyncDao().byGroup(localGroupId.value) ?: return null
+        val limit =
+            try {
+                relay.limits().maxRecordsPerGroup
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w(e) { "could not read relay limits for ${localGroupId.value}" }
+                return null
+            }
+        if (limit <= 0) return null
+        return GroupUsage(stored = db.groupDao().countSyncedRecords(localGroupId.value), limit = limit)
+    }
 
     /** Reactive sync info (share code + last-synced time) for [localGroupId]; null fields until shared. */
     fun syncInfoFlow(localGroupId: GroupId): Flow<SyncInfo> =
@@ -123,18 +151,58 @@ class SyncEngine(
         val settlements = if (full) db.settlementDao().forGroup(gid) else db.settlementDao().dirty(gid)
         val categories = if (full) db.categoryDao().forGroup(gid) else db.categoryDao().dirty(gid)
 
+        // Ordering is important
+        // The relay assigns server_seq as records arrive and replays them in
+        // that order, so a peer pulling between chunks sees a prefix of this list. Referents must come first
         val records = mutableListOf<SyncRecord>()
         if (group != null && (full || group.sync.dirty)) records += RecordMapper.record(group)
         records += members.map { RecordMapper.record(it) }
+        records += categories.map { RecordMapper.record(it) }
         records += entries.map { RecordMapper.record(it) }
         records += settlements.map { RecordMapper.record(it) }
-        records += categories.map { RecordMapper.record(it) }
         if (records.isEmpty()) return
 
         val key = keyFor(handle)
-        val applied = relay.push(handle.remoteId, handle.token, records.map { seal(key, it) }).applied.toSet()
-        // Clear dirty keyed on the pushed (updatedAt, deviceId): if the row was edited again during
-        // the round-trip its clock moved, the guarded update no-ops, and the edit stays pending.
+        val limits = relay.limits()
+        val sealed = records.map { seal(key, it) }
+        rejectOversized(sealed, limits)
+
+        val applied = mutableSetOf<String>()
+        try {
+            for (chunk in sealed.chunkedToFit(limits.maxBodyBytes)) {
+                applied += relay.push(handle.remoteId, handle.token, chunk).applied
+            }
+        } finally {
+            // Whatever landed stays landed
+            clearDirty(gid, applied, group, members, entries, settlements, categories)
+        }
+    }
+
+    /**
+     * Fails the push locally when a record cannot fit the relay's per-record limit.
+     */
+    private fun rejectOversized(
+        sealed: List<EncryptedRecord>,
+        limits: RelayLimits,
+    ) {
+        if (limits.maxRecordBytes <= 0) return
+        val oversized = sealed.filter { it.ciphertext.size > limits.maxRecordBytes }.map { it.id }
+        if (oversized.isNotEmpty()) throw SyncError.RecordTooLarge(oversized)
+    }
+
+    /**
+     * Clears the dirty flag keyed on the pushed (updatedAt, deviceId): if the row was edited again
+     * during the round-trip its clock moved, the guarded update no-ops, and the edit stays pending.
+     */
+    private suspend fun clearDirty(
+        gid: String,
+        applied: Set<String>,
+        group: GroupEntity?,
+        members: List<MemberEntity>,
+        entries: List<EntryWithLines>,
+        settlements: List<SettlementEntity>,
+        categories: List<CategoryEntity>,
+    ) {
         if (group != null && RecordMapper.GROUP_RECORD_ID in applied) {
             db.groupDao().clearDirty(gid, group.sync.updatedAt, group.sync.deviceId)
         }
@@ -262,6 +330,38 @@ class SyncEngine(
             record.updatedAt > local.updatedAt ||
             (record.updatedAt == local.updatedAt && record.deviceId > local.deviceId)
 }
+
+/** `{"records":[…]}` and the separators between entries. */
+private const val ENVELOPE_BYTES = 256L
+
+/** JSON keys, quoting, the updatedAt digits and the deleted flag, for one record. */
+private const val RECORD_OVERHEAD_BYTES = 128L
+
+/**
+ * Splits into batches whose encoded size stays under [maxBodyBytes].
+ */
+private fun List<EncryptedRecord>.chunkedToFit(maxBodyBytes: Long): List<List<EncryptedRecord>> {
+    val budget = (maxBodyBytes - ENVELOPE_BYTES).coerceAtLeast(1)
+    val chunks = mutableListOf<List<EncryptedRecord>>()
+    var current = mutableListOf<EncryptedRecord>()
+    var size = 0L
+
+    for (record in this) {
+        val wire = record.wireSize()
+        if (current.isNotEmpty() && size + wire > budget) {
+            chunks += current
+            current = mutableListOf()
+            size = 0
+        }
+        current += record
+        size += wire
+    }
+    if (current.isNotEmpty()) chunks += current
+    return chunks
+}
+
+/** Over-approximates a record's JSON size; the payload travels base64-encoded. */
+private fun EncryptedRecord.wireSize(): Long = 4L * ((ciphertext.size + 2) / 3) + id.length + deviceId.length + RECORD_OVERHEAD_BYTES
 
 /**
  * The aggregate outcome of syncing every shared group

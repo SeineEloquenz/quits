@@ -39,6 +39,25 @@ class RelayClient(
 
     private val baseUrl: String get() = settings.relayUrl.trimEnd('/')
 
+    /** Cached [limits] together with the relay they came from, so changing the URL drops them. */
+    private var cachedLimits: Pair<String, RelayLimits>? = null
+
+    override suspend fun limits(): RelayLimits {
+        val url = baseUrl
+        cachedLimits?.let { (cachedUrl, limits) -> if (cachedUrl == url) return limits }
+
+        val limits =
+            relayCall {
+                val response: HttpResponse = client.get("$url/v1/limits")
+                // A relay that predates the endpoint 404s it; that is not a missing group.
+                if (response.status == HttpStatusCode.NotFound) return@relayCall RelayLimits.CONSERVATIVE
+                val body: LimitsResponseDto = response.decode()
+                RelayLimits(body.maxBodyBytes, body.maxRecordBytes, body.maxRecordsPerGroup)
+            }
+        cachedLimits = url to limits
+        return limits
+    }
+
     override suspend fun createGroup(lookupId: String): GroupHandle =
         relayCall {
             val response =
@@ -47,6 +66,9 @@ class RelayClient(
                     settings.instanceSecret?.let { header("X-Quits-Instance", it) }
                     setBody(GroupLookupRequest(lookupId))
                 }
+            // 507 here means the instance holds all the groups it will; the same status from a
+            // push means one group is full. Only the caller knows which endpoint it hit.
+            if (response.status == HttpStatusCode.InsufficientStorage) throw SyncError.RelayFull
             val body: CreateGroupResponse = response.decode()
             GroupHandle(body.groupId, body.token)
         }
@@ -76,6 +98,12 @@ class RelayClient(
                     contentType(ContentType.Application.Json)
                     setBody(PushRequestDto(records.map { it.toWire() }))
                 }
+            if (response.status == HttpStatusCode.PayloadTooLarge) {
+                // The batch was sized from cached limits, so an operator lowering max_body_bytes
+                // under a running client would otherwise dead-end every future push at the same
+                // size. Dropping the cache lets the next sync refetch and re-chunk.
+                cachedLimits = null
+            }
             val body: PushResponseDto = response.decode()
             PushResult(body.seq, body.applied, body.rejected)
         }
@@ -158,6 +186,13 @@ class RelayClient(
     private data class RelayErrorResponse(
         val error: String? = null,
         val records: List<String> = emptyList(),
+    )
+
+    @Serializable
+    private data class LimitsResponseDto(
+        @SerialName("max_body_bytes") val maxBodyBytes: Long,
+        @SerialName("max_record_bytes") val maxRecordBytes: Long,
+        @SerialName("max_records_per_group") val maxRecordsPerGroup: Long,
     )
 
     @Serializable

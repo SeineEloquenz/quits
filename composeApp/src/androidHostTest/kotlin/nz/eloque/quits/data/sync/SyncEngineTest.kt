@@ -20,9 +20,15 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-private class FakeRelay : Relay {
+private class FakeRelay(
+    private val limits: RelayLimits = RelayLimits(maxBodyBytes = Long.MAX_VALUE, maxRecordBytes = 0, maxRecordsPerGroup = 0),
+    /** Batch index (0-based) to reject with [failWith], to exercise a part-way failure. */
+    private val failOnPush: Int = -1,
+    private val failWith: SyncError = SyncError.Unreachable(null),
+) : Relay {
     private data class Stored(
         val record: EncryptedRecord,
         val seq: Long,
@@ -31,6 +37,11 @@ private class FakeRelay : Relay {
     private val containers = mutableMapOf<String, MutableMap<String, Stored>>()
     private val lookups = mutableMapOf<String, String>()
     private var seq = 0L
+
+    /** Records offered per push call, in order, so tests can assert how a batch was split. */
+    val pushes = mutableListOf<List<EncryptedRecord>>()
+
+    override suspend fun limits(): RelayLimits = limits
 
     override suspend fun createGroup(lookupId: String): GroupHandle {
         val remoteId = newId()
@@ -49,6 +60,11 @@ private class FakeRelay : Relay {
         token: String,
         records: List<EncryptedRecord>,
     ): PushResult {
+        if (pushes.size == failOnPush) {
+            pushes += records
+            throw failWith
+        }
+        pushes += records
         val store = containers.getOrPut(remoteId) { mutableMapOf() }
         val applied = mutableListOf<String>()
         val rejected = mutableListOf<String>()
@@ -268,6 +284,94 @@ class SyncEngineTest {
             } finally {
                 db1.close()
                 db2.close()
+            }
+        }
+
+    @Test
+    fun a_group_larger_than_the_body_limit_is_pushed_in_several_requests() =
+        runTest {
+            // Small enough that a handful of records cannot share one batch.
+            val relay = FakeRelay(limits = RelayLimits(maxBodyBytes = 600, maxRecordBytes = 0, maxRecordsPerGroup = 0))
+            val db = inMemoryDatabase()
+            val repo = GroupRepository(db, deviceId = "dev1", now = { 1000L })
+            val engine = SyncEngine(db, relay, GroupCrypto(), deviceId = "dev1")
+
+            try {
+                val g = GroupId("g-big")
+                repo.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
+                repeat(8) { i ->
+                    repo.upsertEntry(
+                        g,
+                        Entry(EntryId("e$i"), "Entry number $i", listOf(Payment(a, Money(1000, usd))), Split.Equal(listOf(a, b))),
+                        spentAt = i.toLong(),
+                    )
+                }
+
+                engine.share(g)
+
+                assertTrue(relay.pushes.size > 1, "expected several batches, got ${relay.pushes.size}")
+                assertTrue(relay.pushes.all { it.isNotEmpty() })
+                // Nothing may be dropped or duplicated by the split.
+                val pushedIds = relay.pushes.flatten().map { it.id }
+                assertEquals(pushedIds.size, pushedIds.toSet().size, "a record was sent twice")
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun a_failed_batch_keeps_the_progress_of_earlier_ones() =
+        runTest {
+            val relay =
+                FakeRelay(
+                    limits = RelayLimits(maxBodyBytes = 600, maxRecordBytes = 0, maxRecordsPerGroup = 0),
+                    failOnPush = 1,
+                )
+            val db = inMemoryDatabase()
+            val repo = GroupRepository(db, deviceId = "dev1", now = { 1000L })
+            val engine = SyncEngine(db, relay, GroupCrypto(), deviceId = "dev1")
+
+            try {
+                val g = GroupId("g-partial")
+                repo.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
+                repeat(8) { i ->
+                    repo.upsertEntry(
+                        g,
+                        Entry(EntryId("e$i"), "Entry number $i", listOf(Payment(a, Money(1000, usd))), Split.Equal(listOf(a, b))),
+                        spentAt = i.toLong(),
+                    )
+                }
+
+                assertFailsWith<SyncError.Unreachable> { engine.share(g) }
+
+                // The first batch applied, so its records must not still be queued as dirty.
+                val stillDirty = db.memberDao().dirty(g.value).map { it.id } + db.entryDao().dirty(g.value).map { it.entry.id }
+                val firstBatch = relay.pushes.first().map { it.id }
+                assertTrue(
+                    stillDirty.none { it in firstBatch },
+                    "records from the applied batch are still dirty: $stillDirty",
+                )
+            } finally {
+                db.close()
+            }
+        }
+
+    @Test
+    fun a_record_over_the_relays_record_limit_is_rejected_without_a_request() =
+        runTest {
+            val relay = FakeRelay(limits = RelayLimits(maxBodyBytes = Long.MAX_VALUE, maxRecordBytes = 1, maxRecordsPerGroup = 0))
+            val db = inMemoryDatabase()
+            val repo = GroupRepository(db, deviceId = "dev1", now = { 1000L })
+            val engine = SyncEngine(db, relay, GroupCrypto(), deviceId = "dev1")
+
+            try {
+                val g = GroupId("g-oversize")
+                repo.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"))))
+
+                assertFailsWith<SyncError.RecordTooLarge> { engine.share(g) }
+                assertTrue(relay.pushes.isEmpty(), "the relay should not have been asked")
+            } finally {
+                db.close()
             }
         }
 }

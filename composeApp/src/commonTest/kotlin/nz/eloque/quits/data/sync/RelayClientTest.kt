@@ -32,6 +32,28 @@ class RelayClientTest {
         respond(body, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
 
     @Test
+    fun limits_are_parsed_and_cached_per_relay() =
+        runTest {
+            var calls = 0
+            val relay =
+                client {
+                    calls += 1
+                    json("""{"max_body_bytes":4096,"max_record_bytes":128,"max_records_per_group":7}""")
+                }
+
+            assertEquals(RelayLimits(maxBodyBytes = 4096, maxRecordBytes = 128, maxRecordsPerGroup = 7), relay.limits())
+            assertEquals(RelayLimits(maxBodyBytes = 4096, maxRecordBytes = 128, maxRecordsPerGroup = 7), relay.limits())
+            assertEquals(1, calls, "limits should be fetched once per relay, not once per push")
+        }
+
+    @Test
+    fun limits_fall_back_conservatively_when_the_relay_has_no_endpoint() =
+        runTest {
+            val relay = client { respond("", HttpStatusCode.NotFound) }
+            assertEquals(RelayLimits.CONSERVATIVE, relay.limits())
+        }
+
+    @Test
     fun create_group_posts_and_parses_handle() =
         runTest {
             var path = ""
@@ -96,7 +118,7 @@ class RelayClientTest {
         }
 
     @Test
-    fun capacity_maps_to_server_unavailable() =
+    fun service_unavailable_maps_to_server_unavailable() =
         runTest {
             val relay = client { respond("""{"error":"server at capacity"}""", HttpStatusCode.ServiceUnavailable) }
             assertFailsWith<SyncError.ServerUnavailable> { relay.createGroup("look-1") }
@@ -115,6 +137,23 @@ class RelayClientTest {
             val relay = client { respond("""{"error":"not found"}""", HttpStatusCode.NotFound) }
             val record = EncryptedRecord("m1", updatedAt = 1, deviceId = "dev", deleted = false, ciphertext = byteArrayOf(1))
             assertFailsWith<SyncError.GroupGone> { relay.push("rid", "tok", listOf(record)) }
+        }
+
+    @Test
+    fun create_group_maps_507_to_relay_full() =
+        runTest {
+            val relay = client { respond("""{"error":"server has no room for more groups"}""", HttpStatusCode.InsufficientStorage) }
+            val error = assertFailsWith<SyncError.RelayFull> { relay.createGroup("look-1") }
+            assertFalse(error.retriable)
+        }
+
+    @Test
+    fun push_maps_413_without_ids_to_batch_too_large() =
+        runTest {
+            val relay = client { respond("", HttpStatusCode.PayloadTooLarge) }
+            val record = EncryptedRecord("m1", updatedAt = 1, deviceId = "dev", deleted = false, ciphertext = byteArrayOf(1))
+            val error = assertFailsWith<SyncError.BatchTooLarge> { relay.push("rid", "tok", listOf(record)) }
+            assertFalse(error.retriable)
         }
 
     @Test

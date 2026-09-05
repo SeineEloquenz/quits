@@ -75,7 +75,7 @@ fn record(id: &str, updated_at: i64, device: &str, payload: &str) -> Value {
 }
 
 #[tokio::test]
-async fn global_group_cap_returns_503_when_full() {
+async fn global_group_cap_returns_507_when_full() {
     let mut config = test_config();
     config.max_groups = 1;
     let app = router(state_with(config).await);
@@ -84,7 +84,7 @@ async fn global_group_cap_returns_503_when_full() {
     assert_eq!(status, StatusCode::OK);
 
     let (status, _) = create(&app, None).await;
-    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(status, StatusCode::INSUFFICIENT_STORAGE);
 }
 
 #[tokio::test]
@@ -357,4 +357,20 @@ async fn reaper_removes_empty_and_inactive_groups_only() {
         .unwrap();
     let ids: Vec<&str> = survivors.iter().map(|(s,)| s.as_str()).collect();
     assert_eq!(ids, vec!["active", "empty_new"]);
+}
+
+#[tokio::test]
+async fn limits_are_public_and_reflect_config() {
+    let mut config = test_config();
+    config.max_body_bytes = 4096;
+    config.max_record_bytes = 128;
+    config.max_records_per_group = 7;
+    let app = router(state_with(config).await);
+
+    let (status, resp) = send(&app, "GET", "/v1/limits", None, None, None).await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(resp["max_body_bytes"], json!(4096));
+    assert_eq!(resp["max_record_bytes"], json!(128));
+    assert_eq!(resp["max_records_per_group"], json!(7));
 }
