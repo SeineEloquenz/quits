@@ -31,6 +31,7 @@ import nz.eloque.quits.domain.Settlement
 import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.domain.Transfer
 import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.detail_quota_new_group_created
 import nz.eloque.quits.resources.export_empty
 import nz.eloque.quits.ui.category.INCOME_PRESET_CATEGORIES
 import nz.eloque.quits.ui.category.PRESET_CATEGORIES
@@ -216,6 +217,18 @@ class GroupDetailViewModel(
 
     fun dismissError() {
         if (_syncStatus.value is SyncStatus.Failed) _syncStatus.value = SyncStatus.Idle
+    }
+
+    /**
+     * Creates a fresh group carrying this one's members and categories over.
+     */
+    fun startGroupWithSameMembers(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            repo.createGroupFrom(groupId, trimmed) ?: return@launch
+            _messages.emit(getString(Res.string.detail_quota_new_group_created, trimmed))
+        }
     }
 
     /** Leaves the group, removing it from this device only. */

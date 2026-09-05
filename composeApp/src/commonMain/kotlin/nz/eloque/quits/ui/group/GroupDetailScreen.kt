@@ -106,6 +106,7 @@ import nz.eloque.quits.resources.action_add
 import nz.eloque.quits.resources.action_cancel
 import nz.eloque.quits.resources.action_copy
 import nz.eloque.quits.resources.action_copy_link
+import nz.eloque.quits.resources.action_create
 import nz.eloque.quits.resources.action_dismiss
 import nz.eloque.quits.resources.action_save
 import nz.eloque.quits.resources.action_share_link
@@ -131,6 +132,7 @@ import nz.eloque.quits.resources.detail_local_only
 import nz.eloque.quits.resources.detail_no_matches
 import nz.eloque.quits.resources.detail_not_synced
 import nz.eloque.quits.resources.detail_note
+import nz.eloque.quits.resources.detail_quota_new_group
 import nz.eloque.quits.resources.detail_quota_warning_body
 import nz.eloque.quits.resources.detail_quota_warning_title
 import nz.eloque.quits.resources.detail_search_hint
@@ -151,6 +153,8 @@ import nz.eloque.quits.resources.group_leave_body_shared
 import nz.eloque.quits.resources.group_leave_confirm
 import nz.eloque.quits.resources.group_leave_menu
 import nz.eloque.quits.resources.group_leave_title
+import nz.eloque.quits.resources.group_new_from_name
+import nz.eloque.quits.resources.group_new_from_title
 import nz.eloque.quits.resources.group_rename_menu
 import nz.eloque.quits.resources.group_rename_title
 import nz.eloque.quits.resources.group_unarchive_menu
@@ -197,6 +201,7 @@ fun GroupDetailScreen(
     var balancesExpanded by remember(groupId) { mutableStateOf(false) }
     // Session-scoped: the group only gets fuller, so it is right to raise this again next visit.
     var quotaWarningDismissed by remember(groupId) { mutableStateOf(false) }
+    var startingSuccessor by remember(groupId) { mutableStateOf(false) }
     var showShare by remember(groupId) { mutableStateOf(false) }
     var menuExpanded by remember(groupId) { mutableStateOf(false) }
     var showLeave by remember(groupId) { mutableStateOf(false) }
@@ -244,12 +249,27 @@ fun GroupDetailScreen(
     }
 
     if (showRename) {
-        RenameGroupDialog(
+        GroupNameDialog(
+            title = stringResource(Res.string.group_rename_title),
+            confirmLabel = stringResource(Res.string.action_save),
             initial = state.name,
             onDismiss = { showRename = false },
             onConfirm = { name ->
                 showRename = false
                 viewModel.rename(name)
+            },
+        )
+    }
+
+    if (startingSuccessor) {
+        GroupNameDialog(
+            title = stringResource(Res.string.group_new_from_title),
+            confirmLabel = stringResource(Res.string.action_create),
+            initial = stringResource(Res.string.group_new_from_name, state.name),
+            onDismiss = { startingSuccessor = false },
+            onConfirm = { name ->
+                startingSuccessor = false
+                viewModel.startGroupWithSameMembers(name)
             },
         )
     }
@@ -442,7 +462,11 @@ fun GroupDetailScreen(
                 Spacer(Modifier.height(8.dp))
 
                 usage?.takeIf { it.nearlyFull && !quotaWarningDismissed }?.let {
-                    GroupNearlyFullBanner(usage = it, onDismiss = { quotaWarningDismissed = true })
+                    GroupNearlyFullBanner(
+                        usage = it,
+                        onStartNewGroup = { startingSuccessor = true },
+                        onDismiss = { quotaWarningDismissed = true },
+                    )
                 }
 
                 BalanceSummary(
@@ -829,7 +853,9 @@ private fun AddMemberDialog(
 
 /** Renames the group. Prefilled with the current name; syncs like any other edit. */
 @Composable
-private fun RenameGroupDialog(
+private fun GroupNameDialog(
+    title: String,
+    confirmLabel: String,
     initial: String,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
@@ -837,7 +863,7 @@ private fun RenameGroupDialog(
     var name by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.group_rename_title)) },
+        title = { Text(title) },
         text = {
             OutlinedTextField(
                 value = name,
@@ -848,7 +874,7 @@ private fun RenameGroupDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) {
-                Text(stringResource(Res.string.action_save))
+                Text(confirmLabel)
             }
         },
         dismissButton = {
@@ -898,6 +924,7 @@ private fun LeaveGroupDialog(
 @Composable
 private fun GroupNearlyFullBanner(
     usage: GroupUsage,
+    onStartNewGroup: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     Surface(
@@ -914,6 +941,9 @@ private fun GroupNearlyFullBanner(
                     stringResource(Res.string.detail_quota_warning_body, usage.remainingEntries),
                     style = MaterialTheme.typography.bodySmall,
                 )
+                TextButton(onClick = onStartNewGroup, modifier = Modifier.padding(top = 4.dp)) {
+                    Text(stringResource(Res.string.detail_quota_new_group))
+                }
             }
             IconButton(onClick = onDismiss) {
                 Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.action_dismiss))

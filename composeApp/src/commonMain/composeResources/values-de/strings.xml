@@ -103,6 +103,8 @@
     <string name="detail_note">Notiz</string>
     <string name="detail_quota_warning_title">Diese Gruppe ist fast voll</string>
     <string name="detail_quota_warning_body">Etwa %1$d weitere Einträge passen noch, bevor der Sync-Server keine neuen mehr annimmt. Bestehende Einträge werden weiterhin synchronisiert. Für die nächste Reise lohnt sich eine neue Gruppe.</string>
+    <string name="detail_quota_new_group">Neue Gruppe starten</string>
+    <string name="detail_quota_new_group_created">%1$s mit denselben Mitgliedern und Kategorien erstellt.</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d Personen</string>
     <string name="detail_edit_expense">Ausgabe bearbeiten</string>
     <string name="detail_delete_expense">Ausgabe löschen</string>
@@ -120,6 +122,8 @@
     <string name="group_archived_label">Archiviert</string>
     <string name="drawer_archived">Archiviert (%1$d)</string>
     <string name="group_leave_title">Gruppe verlassen?</string>
+    <string name="group_new_from_title">Neue Gruppe, gleiche Leute</string>
+    <string name="group_new_from_name">%1$s 2</string>
     <string name="group_leave_body_local">Dies entfernt "%1$s" und alles darin von diesem Gerät. Sie wird mit niemandem geteilt, daher kann dies nicht rückgängig gemacht werden.</string>
     <string name="group_leave_body_shared">Dies entfernt "%1$s" nur von diesem Gerät. Andere Mitglieder behalten ihre Kopie, und du kannst später mit dem Freigabecode wieder beitreten.</string>
     <string name="group_leave_confirm">Verlassen</string>

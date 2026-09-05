@@ -105,6 +105,8 @@
     <string name="detail_note">Note</string>
     <string name="detail_quota_warning_title">This group is nearly full</string>
     <string name="detail_quota_warning_body">About %1$d more entries fit before the sync server stops accepting new ones. Existing entries will keep syncing. Consider starting a fresh group for your next trip.</string>
+    <string name="detail_quota_new_group">Start a new group</string>
+    <string name="detail_quota_new_group_created">Created %1$s with the same members and categories.</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d people</string>
     <string name="detail_edit_expense">Edit expense</string>
     <string name="detail_delete_expense">Delete expense</string>
@@ -122,6 +124,8 @@
     <string name="group_archived_label">Archived</string>
     <string name="drawer_archived">Archived (%1$d)</string>
     <string name="group_leave_title">Leave group?</string>
+    <string name="group_new_from_title">New group, same people</string>
+    <string name="group_new_from_name">%1$s 2</string>
     <string name="group_leave_body_local">This removes "%1$s" and everything in it from this device. It isn't shared with anyone, so this can't be undone.</string>
     <string name="group_leave_body_shared">This removes "%1$s" from this device only. Other members keep their copy, and you can re-join later with the share code.</string>
     <string name="group_leave_confirm">Leave</string>
