@@ -104,7 +104,6 @@
     <string name="detail_quota_warning_title">Diese Gruppe ist fast voll</string>
     <string name="detail_quota_warning_body">Etwa %1$d weitere Einträge passen noch, bevor der Sync-Server keine neuen mehr annimmt. Bestehende Einträge werden weiterhin synchronisiert. Für die nächste Reise lohnt sich eine neue Gruppe.</string>
     <string name="detail_quota_new_group">Neue Gruppe starten</string>
-    <string name="detail_quota_new_group_created">%1$s mit denselben Mitgliedern und Kategorien erstellt.</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d Personen</string>
     <string name="detail_edit_expense">Ausgabe bearbeiten</string>
     <string name="detail_delete_expense">Ausgabe löschen</string>
@@ -124,6 +123,7 @@
     <string name="group_leave_title">Gruppe verlassen?</string>
     <string name="group_new_from_title">Neue Gruppe, gleiche Leute</string>
     <string name="group_new_from_name">%1$s 2</string>
+    <string name="group_new_from_unshared">Die neue Gruppe liegt zunächst nur auf diesem Gerät. Gib sie frei, um alle anderen mitzunehmen.</string>
     <string name="group_leave_body_local">Dies entfernt "%1$s" und alles darin von diesem Gerät. Sie wird mit niemandem geteilt, daher kann dies nicht rückgängig gemacht werden.</string>
     <string name="group_leave_body_shared">Dies entfernt "%1$s" nur von diesem Gerät. Andere Mitglieder behalten ihre Kopie, und du kannst später mit dem Freigabecode wieder beitreten.</string>
     <string name="group_leave_confirm">Verlassen</string>
@@ -249,7 +249,7 @@
     <string name="error_sync_unauthorized">Dieses Gerät ist nicht berechtigt, diese Gruppe zu synchronisieren. Eventuell musst du erneut beitreten.</string>
     <string name="error_sync_group_gone">Diese geteilte Gruppe existiert auf dem Server nicht mehr.</string>
     <string name="error_sync_group_full">Diese Gruppe hat das Limit des Sync-Servers erreicht. Neue Einträge können nicht mehr geteilt werden. Änderungen an bestehenden Einträgen werden weiterhin synchronisiert.</string>
-    <string name="error_sync_relay_full">Der Sync-Server hat sein Limit erreicht und kann keine neuen geteilten Gruppen aufnehmen. Diese Gruppe bleibt auf diesem Gerät; in den Einstellungen kannst du einen anderen Sync-Server angeben.</string>
+    <string name="error_sync_relay_full">Der Sync-Server hat derzeit keinen Platz für neue geteilte Gruppen. Diese Gruppe bleibt auf diesem Gerät. Versuche es später erneut, oder gib in den Einstellungen einen anderen Sync-Server an.</string>
     <string name="error_sync_batch_too_large">Es gibt zu viele nicht synchronisierte Daten für eine einzelne Anfrage.</string>
     <string name="error_sync_record_too_large">Einer deiner Einträge ist zu groß zum Synchronisieren. Kürze die Beschreibung oder teile ihn auf.</string>
     <string name="error_sync_rejected">Der Sync-Server hat die Anfrage abgelehnt. Ein App-Update kann helfen.</string>
@@ -292,4 +292,5 @@
     <string name="export_csv_menu">CSV exportieren</string>
     <string name="sync_now_menu">Jetzt synchronisieren</string>
     <string name="export_empty">Nichts zum Exportieren.</string>
+    <string name="detail_quota_new_group_failed">Diese Gruppe ist nicht mehr verfügbar, es wurde nichts kopiert.</string>
 </resources>

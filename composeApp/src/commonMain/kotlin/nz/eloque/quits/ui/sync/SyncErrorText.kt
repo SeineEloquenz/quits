@@ -31,7 +31,7 @@ suspend fun SyncError.toUserMessage(): String =
         SyncError.GroupGone -> getString(Res.string.error_sync_group_gone)
         SyncError.GroupFull -> getString(Res.string.error_sync_group_full)
         SyncError.RelayFull -> getString(Res.string.error_sync_relay_full)
-        SyncError.BatchTooLarge -> getString(Res.string.error_sync_batch_too_large)
+        is SyncError.BatchTooLarge -> getString(Res.string.error_sync_batch_too_large)
         is SyncError.RecordTooLarge -> getString(Res.string.error_sync_record_too_large)
         is SyncError.BadRequest -> getString(Res.string.error_sync_rejected)
         is SyncError.Protocol -> getString(Res.string.error_sync_incompatible)

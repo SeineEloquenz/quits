@@ -18,19 +18,34 @@ data class PullResult(
 )
 
 /**
- * The relay's request and storage limits. `0` means unlimited, as it does in the relay's own
- * configuration.
+ * The relay's request and storage limits.
+ *
+ * `0` means unlimited for the two record limits, matching the relay's configuration.
  */
 data class RelayLimits(
     val maxBodyBytes: Long,
     val maxRecordBytes: Long,
     val maxRecordsPerGroup: Long,
+    val fromRelay: Boolean = false,
 ) {
     companion object {
-        /**
-         * Assumed for a relay that does not publish `/v1/limits` yet.
-         */
+        /** Assumed for a relay that does not publish `/v1/limits` yet. */
         val CONSERVATIVE = RelayLimits(maxBodyBytes = 256L * 1024, maxRecordBytes = 0, maxRecordsPerGroup = 0)
+
+        /**
+         * Limits as reported by a relay.
+         */
+        fun published(
+            maxBodyBytes: Long,
+            maxRecordBytes: Long,
+            maxRecordsPerGroup: Long,
+        ): RelayLimits =
+            RelayLimits(
+                maxBodyBytes = maxBodyBytes.takeIf { it > 0 } ?: CONSERVATIVE.maxBodyBytes,
+                maxRecordBytes = maxRecordBytes,
+                maxRecordsPerGroup = maxRecordsPerGroup,
+                fromRelay = maxBodyBytes > 0,
+            )
     }
 }
 

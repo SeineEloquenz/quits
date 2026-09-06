@@ -1,9 +1,12 @@
 package nz.eloque.quits.data.sync
 
+import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -19,43 +22,102 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
+
+/** Hard ceiling on one relay call, wide enough for a push carrying the relay's whole body limit. */
+private val REQUEST_TIMEOUT = 120.seconds
+
+/** Per-request bound on the limits probe, which [RelayClient.limits] holds its lock across. */
+internal val LIMITS_TIMEOUT = 10.seconds
+
+/** How long an unreachable relay is assumed unreachable before asking again. */
+internal val ASSUMED_LIMITS_TTL = 30.seconds
+
+/** How long a relay's published limits are trusted, so an operator changing them is picked up. */
+internal val PUBLISHED_LIMITS_TTL = 30.minutes
 
 /** Talks to the relay over HTTP. Payloads are JSON, base64-encoded on the wire. */
 class RelayClient(
     engine: HttpClientEngine,
     private val settings: SyncSettings,
+    private val timeSource: TimeSource = TimeSource.Monotonic,
 ) : Relay {
     private val client =
         HttpClient(engine) {
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+            install(HttpTimeout) { requestTimeoutMillis = REQUEST_TIMEOUT.inWholeMilliseconds }
         }
 
     private val baseUrl: String get() = settings.relayUrl.trimEnd('/')
 
-    /** Cached [limits] together with the relay they came from, so changing the URL drops them. */
-    private var cachedLimits: Pair<String, RelayLimits>? = null
+    /** What is known about one relay, discarded wholesale when [baseUrl] changes. */
+    private class RelayState(
+        val url: String,
+    ) {
+        var fetched: RelayLimits? = null
+        var fetchedAt: TimeMark? = null
+        var askedAt: TimeMark? = null
+    }
 
-    override suspend fun limits(): RelayLimits {
-        val url = baseUrl
-        cachedLimits?.let { (cachedUrl, limits) -> if (cachedUrl == url) return limits }
+    private var relayState: RelayState? = null
+
+    // Background sync and the screen that shows headroom both ask, on different threads. Every
+    // read-modify-write of relayState happens under this.
+    private val limitsLock = Mutex()
+
+    private fun currentState(): RelayState = relayState?.takeIf { it.url == baseUrl } ?: RelayState(baseUrl).also { relayState = it }
+
+    override suspend fun limits(): RelayLimits = limitsLock.withLock { readLimits() }
+
+    private suspend fun readLimits(): RelayLimits {
+        val state = currentState()
+        state.fetched?.let { cached ->
+            if (state.fetchedAt?.elapsedNow()?.let { it < PUBLISHED_LIMITS_TTL } == true) return cached
+        }
+
+        state.askedAt?.let { asked ->
+            if (asked.elapsedNow() < ASSUMED_LIMITS_TTL) return state.fetched ?: RelayLimits.CONSERVATIVE
+        }
 
         val limits =
-            relayCall {
-                val response: HttpResponse = client.get("$url/v1/limits")
-                // A relay that predates the endpoint 404s it; that is not a missing group.
-                if (response.status == HttpStatusCode.NotFound) return@relayCall RelayLimits.CONSERVATIVE
-                val body: LimitsResponseDto = response.decode()
-                RelayLimits(body.maxBodyBytes, body.maxRecordBytes, body.maxRecordsPerGroup)
+            try {
+                val response: HttpResponse =
+                    client.get("${state.url}/v1/limits") {
+                        timeout { requestTimeoutMillis = LIMITS_TIMEOUT.inWholeMilliseconds }
+                    }
+                // A relay that predates the endpoint 404s it, which is not a missing group.
+                if (response.status == HttpStatusCode.NotFound) return state.fallbackLimits()
+                val body: LimitsResponseDto = response.decode(RelayOperation.Limits)
+                RelayLimits.published(body.maxBodyBytes, body.maxRecordBytes, body.maxRecordsPerGroup)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Never rethrow. Limits are a sizing hint, and failing here would fail a push that would otherwise have worked.
+                Logger.w(e) { "could not read relay limits from ${state.url}" }
+                return state.fallbackLimits()
             }
-        cachedLimits = url to limits
+        state.fetched = limits
+        state.fetchedAt = timeSource.markNow()
         return limits
+    }
+
+    /**
+     * The last published limits, or a guess, and opens the window before the relay is asked again.
+     */
+    private fun RelayState.fallbackLimits(): RelayLimits {
+        askedAt = timeSource.markNow()
+        return fetched ?: RelayLimits.CONSERVATIVE
     }
 
     override suspend fun createGroup(lookupId: String): GroupHandle =
@@ -66,10 +128,7 @@ class RelayClient(
                     settings.instanceSecret?.let { header("X-Quits-Instance", it) }
                     setBody(GroupLookupRequest(lookupId))
                 }
-            // 507 here means the instance holds all the groups it will; the same status from a
-            // push means one group is full. Only the caller knows which endpoint it hit.
-            if (response.status == HttpStatusCode.InsufficientStorage) throw SyncError.RelayFull
-            val body: CreateGroupResponse = response.decode()
+            val body: CreateGroupResponse = response.decode(RelayOperation.CreateGroup)
             GroupHandle(body.groupId, body.token)
         }
 
@@ -82,7 +141,7 @@ class RelayClient(
                 }
             // A missing invite code is expected here, not an error.
             if (response.status == HttpStatusCode.NotFound) return@relayCall null
-            val body: JoinGroupResponse = response.decode()
+            val body: JoinGroupResponse = response.decode(RelayOperation.JoinGroup)
             GroupHandle(body.groupId, body.token)
         }
 
@@ -98,13 +157,7 @@ class RelayClient(
                     contentType(ContentType.Application.Json)
                     setBody(PushRequestDto(records.map { it.toWire() }))
                 }
-            if (response.status == HttpStatusCode.PayloadTooLarge) {
-                // The batch was sized from cached limits, so an operator lowering max_body_bytes
-                // under a running client would otherwise dead-end every future push at the same
-                // size. Dropping the cache lets the next sync refetch and re-chunk.
-                cachedLimits = null
-            }
-            val body: PushResponseDto = response.decode()
+            val body: PushResponseDto = response.decode(RelayOperation.Push)
             PushResult(body.seq, body.applied, body.rejected)
         }
 
@@ -119,7 +172,7 @@ class RelayClient(
                     bearerAuth(token)
                     parameter("since", since)
                 }
-            val body: PullResponseDto = response.decode()
+            val body: PullResponseDto = response.decode(RelayOperation.Pull)
             PullResult(body.records.map { it.toRecord() }, body.seq)
         }
 
@@ -136,7 +189,7 @@ class RelayClient(
         }
 
     /** Deserializes a 2xx body as [T]; a non-2xx status becomes the matching [SyncError]. */
-    private suspend inline fun <reified T> HttpResponse.decode(): T {
+    private suspend inline fun <reified T> HttpResponse.decode(operation: RelayOperation): T {
         if (status.isSuccess()) {
             return try {
                 body()
@@ -155,6 +208,7 @@ class RelayClient(
             retryAfterHint(),
             message?.takeIf { it.isNotBlank() },
             error?.records.orEmpty(),
+            operation,
         )
     }
 

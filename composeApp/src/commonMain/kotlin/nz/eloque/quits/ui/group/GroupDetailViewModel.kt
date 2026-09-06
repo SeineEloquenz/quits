@@ -3,6 +3,8 @@ package nz.eloque.quits.ui.group
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -11,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -31,7 +34,7 @@ import nz.eloque.quits.domain.Settlement
 import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.domain.Transfer
 import nz.eloque.quits.resources.Res
-import nz.eloque.quits.resources.detail_quota_new_group_created
+import nz.eloque.quits.resources.detail_quota_new_group_failed
 import nz.eloque.quits.resources.export_empty
 import nz.eloque.quits.ui.category.INCOME_PRESET_CATEGORIES
 import nz.eloque.quits.ui.category.PRESET_CATEGORIES
@@ -152,20 +155,22 @@ class GroupDetailViewModel(
     private val _syncStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
     val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
 
-    private val _usage = MutableStateFlow<GroupUsage?>(null)
-
-    /** Headroom left on the relay for this group; null when the limit does not apply. */
-    val usage: StateFlow<GroupUsage?> = _usage.asStateFlow()
+    /** Headroom left on the relay for this group, null when the limit does not apply. */
+    val usage: StateFlow<GroupUsage?> =
+        engine.usageFlow(groupId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 1)
 
     /** One-shot user-facing messages (e.g. "nothing to export") for a snackbar. */
     val messages: SharedFlow<String> = _messages.asSharedFlow()
 
-    private val _createdGroups = MutableSharedFlow<GroupId>(extraBufferCapacity = 1)
+    // A channel, not a replaying flow. The id must survive a screen that left composition mid-write,
+    // but it must also be consumed: this view model outlives the switch to the new group, and a
+    // retained value would re-navigate away every time the user came back to this one.
+    private val _createdGroups = Channel<GroupId>(Channel.BUFFERED)
 
     /** Groups this screen created, for the host to switch to. */
-    val createdGroups: SharedFlow<GroupId> = _createdGroups.asSharedFlow()
+    val createdGroups: Flow<GroupId> = _createdGroups.receiveAsFlow()
 
     fun setQuery(value: String) = filter.update { it.copy(query = value) }
 
@@ -193,7 +198,6 @@ class GroupDetailViewModel(
             } catch (e: Exception) {
                 _syncStatus.value = SyncStatus.Failed(e.toSyncMessage())
             }
-            _usage.value = engine.usage(groupId)
         }
     }
 
@@ -224,16 +228,17 @@ class GroupDetailViewModel(
         if (_syncStatus.value is SyncStatus.Failed) _syncStatus.value = SyncStatus.Idle
     }
 
-    /**
-     * Creates a fresh group carrying this one's members and categories over.
-     */
+    /** Creates a fresh, unshared group carrying this one's members and categories over. */
     fun startGroupWithSameMembers(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
-            val created = repo.createGroupFrom(groupId, trimmed) ?: return@launch
-            _messages.emit(getString(Res.string.detail_quota_new_group_created, trimmed))
-            _createdGroups.emit(created)
+            val created = repo.createGroupFrom(groupId, trimmed)
+            if (created == null) {
+                _messages.emit(getString(Res.string.detail_quota_new_group_failed))
+                return@launch
+            }
+            _createdGroups.send(created)
         }
     }
 
@@ -301,8 +306,6 @@ class GroupDetailViewModel(
         } catch (e: Exception) {
             _syncStatus.value = SyncStatus.Failed(e.toSyncMessage())
         }
-        // Also after a failure: the records that did land still changed how full the group is.
-        _usage.value = engine.usage(groupId)
     }
 }
 

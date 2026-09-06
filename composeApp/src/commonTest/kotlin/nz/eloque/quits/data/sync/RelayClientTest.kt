@@ -9,6 +9,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -20,13 +22,22 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TestTimeSource
+
+/** Just past the assumed-limits window, so the next call asks the relay again. */
+private val ASSUMED_LIMITS_TTL_TEST = ASSUMED_LIMITS_TTL + 1.seconds
+
+/** Past the probe's own bound but well inside the client-wide one, so only the probe can end the wait. */
+private val HUNG_PROBE_DELAY = LIMITS_TIMEOUT * 2
 
 @OptIn(ExperimentalEncodingApi::class)
 class RelayClientTest {
     private val settings = InMemorySyncSettings(relayUrl = "https://relay.test")
 
+    private val clock = TestTimeSource()
+
     private fun client(handler: MockRequestHandleScope.(HttpRequestData) -> HttpResponseData): RelayClient =
-        RelayClient(MockEngine(handler), settings)
+        RelayClient(MockEngine(handler), settings, clock)
 
     private fun MockRequestHandleScope.json(body: String): HttpResponseData =
         respond(body, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
@@ -41,8 +52,8 @@ class RelayClientTest {
                     json("""{"max_body_bytes":4096,"max_record_bytes":128,"max_records_per_group":7}""")
                 }
 
-            assertEquals(RelayLimits(maxBodyBytes = 4096, maxRecordBytes = 128, maxRecordsPerGroup = 7), relay.limits())
-            assertEquals(RelayLimits(maxBodyBytes = 4096, maxRecordBytes = 128, maxRecordsPerGroup = 7), relay.limits())
+            assertEquals(RelayLimits.published(4096, 128, 7), relay.limits())
+            assertEquals(RelayLimits.published(4096, 128, 7), relay.limits())
             assertEquals(1, calls, "limits should be fetched once per relay, not once per push")
         }
 
@@ -51,6 +62,63 @@ class RelayClientTest {
         runTest {
             val relay = client { respond("", HttpStatusCode.NotFound) }
             assertEquals(RelayLimits.CONSERVATIVE, relay.limits())
+            assertFalse(relay.limits().fromRelay, "a guess must never pass as published")
+        }
+
+    @Test
+    fun limits_are_re_read_once_the_endpoint_appears() =
+        runTest {
+            var missing = true
+            val relay =
+                client {
+                    if (missing) {
+                        respond("", HttpStatusCode.NotFound)
+                    } else {
+                        json("""{"max_body_bytes":1048576,"max_record_bytes":8192,"max_records_per_group":5000}""")
+                    }
+                }
+
+            assertEquals(RelayLimits.CONSERVATIVE, relay.limits())
+            missing = false
+            clock += ASSUMED_LIMITS_TTL_TEST
+            assertEquals(RelayLimits.published(1048576, 8192, 5000), relay.limits())
+        }
+
+    @Test
+    fun a_hung_limits_probe_gives_up_on_its_own_bound() =
+        runTest {
+            // Needs its own engine. A suspending handler in the shared one lets the virtual clock jump
+            // to whichever deadline is nearest, which is the behaviour under test here.
+            val relay =
+                RelayClient(
+                    MockEngine {
+                        delay(HUNG_PROBE_DELAY)
+                        json("""{"max_body_bytes":4096,"max_record_bytes":128,"max_records_per_group":7}""")
+                    },
+                    settings,
+                    clock,
+                )
+
+            // The handler answers inside the client-wide ceiling, so falling back can only mean
+            // the probe applied its own, tighter bound.
+            assertEquals(RelayLimits.CONSERVATIVE, relay.limits())
+        }
+
+    @Test
+    fun a_cancelled_probe_does_not_open_the_retry_window() =
+        runTest {
+            var cancelled = true
+            val relay =
+                client {
+                    if (cancelled) throw CancellationException("navigated away")
+                    json("""{"max_body_bytes":4096,"max_record_bytes":128,"max_records_per_group":7}""")
+                }
+
+            assertFailsWith<CancellationException> { relay.limits() }
+            cancelled = false
+
+            // No clock movement. The window was never opened, so the next call really asks.
+            assertEquals(RelayLimits.published(4096, 128, 7), relay.limits())
         }
 
     @Test
@@ -144,7 +212,8 @@ class RelayClientTest {
         runTest {
             val relay = client { respond("""{"error":"server has no room for more groups"}""", HttpStatusCode.InsufficientStorage) }
             val error = assertFailsWith<SyncError.RelayFull> { relay.createGroup("look-1") }
-            assertFalse(error.retriable)
+            // The reaper frees empty and inactive groups, so the instance makes room on its own.
+            assertTrue(error.retriable)
         }
 
     @Test
@@ -153,6 +222,7 @@ class RelayClientTest {
             val relay = client { respond("", HttpStatusCode.PayloadTooLarge) }
             val record = EncryptedRecord("m1", updatedAt = 1, deviceId = "dev", deleted = false, ciphertext = byteArrayOf(1))
             val error = assertFailsWith<SyncError.BatchTooLarge> { relay.push("rid", "tok", listOf(record)) }
+            // The engine resizes and retries within the push, so nothing outside it should.
             assertFalse(error.retriable)
         }
 
@@ -226,5 +296,46 @@ class RelayClientTest {
             val record = result.records.single()
             assertEquals("m1", record.id)
             assertContentEquals(ciphertext, record.ciphertext)
+        }
+
+    @Test
+    fun limits_fall_back_only_for_its_window_when_the_relay_errors() =
+        runTest {
+            var fail = true
+            val relay =
+                client {
+                    if (fail) {
+                        respond("""{"error":"boom"}""", HttpStatusCode.InternalServerError)
+                    } else {
+                        json("""{"max_body_bytes":1048576,"max_record_bytes":8192,"max_records_per_group":5000}""")
+                    }
+                }
+
+            assertEquals(RelayLimits.CONSERVATIVE, relay.limits())
+            fail = false
+            clock += ASSUMED_LIMITS_TTL_TEST
+            assertEquals(RelayLimits.published(1048576, 8192, 5000), relay.limits(), "the fallback must not outlive its window")
+        }
+
+    @Test
+    fun a_batch_level_413_leaves_the_published_limits_alone() =
+        runTest {
+            val relay =
+                client { request ->
+                    if (request.url.encodedPath.endsWith("/v1/limits")) {
+                        json("""{"max_body_bytes":1048576,"max_record_bytes":0,"max_records_per_group":0}""")
+                    } else {
+                        respond("", HttpStatusCode.PayloadTooLarge)
+                    }
+                }
+            val record = EncryptedRecord("m1", updatedAt = 1, deviceId = "dev", deleted = false, ciphertext = byteArrayOf(1))
+
+            assertEquals(1048576, relay.limits().maxBodyBytes)
+            assertFailsWith<SyncError.BatchTooLarge> { relay.push("rid", "tok", listOf(record)) }
+
+            // The working budget is the engine's. A refusal must not restate it as something the
+            // relay published, which is what would license refusing records outright.
+            assertEquals(1048576, relay.limits().maxBodyBytes)
+            assertTrue(relay.limits().fromRelay)
         }
 }

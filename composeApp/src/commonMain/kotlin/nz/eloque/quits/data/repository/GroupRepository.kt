@@ -56,17 +56,17 @@ class GroupRepository(
         source: GroupId,
         name: String,
     ): GroupId? {
-        val existing = load(source) ?: return null
+        val entity = db.groupDao().byId(source.value) ?: return null
         val id = GroupId(newId())
-        saveGroup(
-            Group(
-                id = id,
-                name = name,
-                baseCurrency = existing.baseCurrency,
-                members = existing.members.map { Member(MemberId(newId()), it.name) },
-            ),
+        // Not via [saveGroup], which drops each member's colour because [Member] carries none.
+        db.groupDao().insertGroupWith(
+            group = GroupEntity(id.value, name, entity.baseCurrency, meta()),
+            members = db.memberDao().forGroup(source.value).map { MemberEntity(newId(), id.value, it.name, it.color, meta()) },
+            categories =
+                db.categoryDao().forGroup(source.value).map {
+                    CategoryEntity(newId(), id.value, it.name, it.icon, it.color, meta())
+                },
         )
-        existing.categories.forEach { upsertCategory(id, Category(CategoryId(newId()), it.name, it.icon, it.color)) }
         return id
     }
 

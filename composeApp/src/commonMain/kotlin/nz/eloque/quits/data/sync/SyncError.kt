@@ -78,12 +78,16 @@ sealed class SyncError(
 
     /**
      * The relay is already holding as many groups as it will store (HTTP 507 from group creation).
+     *
+     * Retriable, since the relay's reaper frees empty and inactive groups on its own.
      */
     data object RelayFull : SyncError("relay full") {
-        override val retriable = false
+        override val retriable = true
     }
 
-    /** The push body as a whole exceeded the relay's request limit (HTTP 413 with no record ids). */
+    /**
+     * The push body as a whole exceeded the relay's request limit (HTTP 413 with no record ids).
+     */
     data object BatchTooLarge : SyncError("batch too large") {
         override val retriable = false
     }
@@ -101,22 +105,35 @@ sealed class SyncError(
     }
 }
 
+/** Which call produced a response, for statuses whose meaning depends on the endpoint. */
+internal enum class RelayOperation { CreateGroup, JoinGroup, Push, Pull, Limits }
+
 /** Maps an HTTP status (plus any hints already parsed from the response) to a [SyncError]. */
 internal fun syncErrorForStatus(
     status: Int,
     retryAfter: Duration?,
     serverMessage: String?,
-    recordIds: List<String> = emptyList(),
+    recordIds: List<String>,
+    operation: RelayOperation,
 ): SyncError =
     when (status) {
         400 -> SyncError.BadRequest(serverMessage)
         401, 403 -> SyncError.Unauthorized
         404 -> SyncError.GroupGone
-        // A batch-level 413 (body limit) carries no ids; a record-level one names the offenders.
-        413 -> if (recordIds.isEmpty()) SyncError.BatchTooLarge else SyncError.RecordTooLarge(recordIds)
+        // A record-level 413 names the offenders. Without ids it is the body limit, which only a
+        // push can reach. Anywhere else it is a proxy refusing a request that carries no records.
+        413 ->
+            when {
+                recordIds.isNotEmpty() -> SyncError.RecordTooLarge(recordIds)
+                operation == RelayOperation.Push -> SyncError.BatchTooLarge
+                else -> SyncError.Unexpected(status)
+            }
+
         429 -> SyncError.RateLimited(retryAfter)
         503 -> SyncError.ServerUnavailable(retryAfter)
-        507 -> SyncError.GroupFull
+        // Insufficient storage means the instance cannot hold another group when creating one, and
+        // that this group is at its record limit anywhere else.
+        507 -> if (operation == RelayOperation.CreateGroup) SyncError.RelayFull else SyncError.GroupFull
         in 500..599 -> SyncError.ServerError(status)
         else -> SyncError.Unexpected(status)
     }

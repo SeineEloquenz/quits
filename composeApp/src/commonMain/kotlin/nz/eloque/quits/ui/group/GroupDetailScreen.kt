@@ -77,6 +77,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -155,6 +156,7 @@ import nz.eloque.quits.resources.group_leave_menu
 import nz.eloque.quits.resources.group_leave_title
 import nz.eloque.quits.resources.group_new_from_name
 import nz.eloque.quits.resources.group_new_from_title
+import nz.eloque.quits.resources.group_new_from_unshared
 import nz.eloque.quits.resources.group_rename_menu
 import nz.eloque.quits.resources.group_rename_title
 import nz.eloque.quits.resources.group_unarchive_menu
@@ -200,8 +202,7 @@ fun GroupDetailScreen(
     val usage by viewModel.usage.collectAsState()
 
     var balancesExpanded by remember(groupId) { mutableStateOf(false) }
-    // Session-scoped: the group only gets fuller, so it is right to raise this again next visit.
-    var quotaWarningDismissed by remember(groupId) { mutableStateOf(false) }
+    var quotaWarningDismissed by rememberSaveable(groupId) { mutableStateOf(false) }
     var startingSuccessor by remember(groupId) { mutableStateOf(false) }
     var showShare by remember(groupId) { mutableStateOf(false) }
     var menuExpanded by remember(groupId) { mutableStateOf(false) }
@@ -219,11 +220,11 @@ fun GroupDetailScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
         viewModel.messages.collect { snackbarHostState.showSnackbar(it) }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
         viewModel.createdGroups.collect(onGroupCreated)
     }
 
@@ -276,6 +277,7 @@ fun GroupDetailScreen(
                 startingSuccessor = false
                 viewModel.startGroupWithSameMembers(name)
             },
+            note = stringResource(Res.string.group_new_from_unshared),
         )
     }
 
@@ -856,7 +858,7 @@ private fun AddMemberDialog(
     )
 }
 
-/** Renames the group. Prefilled with the current name; syncs like any other edit. */
+/** Prompts for a group name, prefilled with [initial]. */
 @Composable
 private fun GroupNameDialog(
     title: String,
@@ -864,18 +866,25 @@ private fun GroupNameDialog(
     initial: String,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
+    note: String? = null,
 ) {
     var name by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text(stringResource(Res.string.label_name)) },
-                singleLine = true,
-            )
+            Column {
+                note?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(12.dp))
+                }
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(Res.string.label_name)) },
+                    singleLine = true,
+                )
+            }
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) {
@@ -920,12 +929,7 @@ private fun LeaveGroupDialog(
     )
 }
 
-/**
- * Warns while there is still room to act on it.
- *
- * Deliberately says nothing about deleting: the relay counts tombstones, so removing entries frees
- * no space. Starting a fresh group is the only thing that actually helps.
- */
+/** Never suggest deleting here. The relay counts tombstones, so it frees nothing. */
 @Composable
 private fun GroupNearlyFullBanner(
     usage: GroupUsage,
@@ -1011,7 +1015,6 @@ private fun ShareSheet(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
-                // Below halfway the number is noise; the ceiling is far enough away to be irrelevant.
                 if (usage != null && usage.filling) {
                     Text(
                         stringResource(Res.string.detail_sync_storage, usage.remainingEntries),

@@ -131,7 +131,6 @@ fun HomeScreen(
             onOpenSettlement = { onOpenSettlement(active, it) },
             onSettleUp = { onSettleUp(active) },
             onOpenStats = { onOpenStats(active) },
-            // The detail screen is keyed on the active group, so switching it is the navigation.
             onGroupCreated = { scope.launch { viewModel.setActiveGroup(it) } },
         )
     }
