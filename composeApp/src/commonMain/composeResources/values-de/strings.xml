@@ -21,6 +21,7 @@
     <string name="cd_settings">Einstellungen</string>
     <string name="cd_back">Zurück</string>
     <string name="cd_sync">Synchronisieren</string>
+    <string name="cd_invite_qr">Einladungs-QR-Code</string>
     <string name="cd_rename">%1$s umbenennen</string>
     <string name="cd_remove">%1$s entfernen</string>
     <string name="cd_delete">%1$s löschen</string>
@@ -54,7 +55,6 @@
 
     <!-- Group detail -->
     <string name="group_fallback_name">Gruppe</string>
-    <string name="detail_sharing">Freigabe</string>
     <string name="action_share_link">Link teilen</string>
     <string name="action_copy_link">Link kopieren</string>
     <string name="invite_join_title">Gruppe beitreten</string>
@@ -62,6 +62,7 @@
     <string name="detail_local_only">Diese Gruppe ist nur lokal.</string>
     <string name="detail_share_group">Gruppe freigeben</string>
     <string name="detail_share_hint">Andere treten mit diesem Code der Gruppe bei.</string>
+    <string name="detail_qr_hint">Mit einer beliebigen Kamera-App scannen, um beizutreten.</string>
     <string name="detail_last_synced">Zuletzt synchronisiert %1$s</string>
     <string name="detail_sync_storage">Platz für etwa %1$d weitere Einträge auf dem Sync-Server.</string>
     <string name="detail_not_synced">Noch nicht synchronisiert</string>

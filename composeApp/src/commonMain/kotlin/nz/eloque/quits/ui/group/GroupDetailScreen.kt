@@ -133,6 +133,7 @@ import nz.eloque.quits.resources.detail_local_only
 import nz.eloque.quits.resources.detail_no_matches
 import nz.eloque.quits.resources.detail_not_synced
 import nz.eloque.quits.resources.detail_note
+import nz.eloque.quits.resources.detail_qr_hint
 import nz.eloque.quits.resources.detail_quota_new_group
 import nz.eloque.quits.resources.detail_quota_warning_body
 import nz.eloque.quits.resources.detail_quota_warning_title
@@ -142,7 +143,6 @@ import nz.eloque.quits.resources.detail_settlement_row
 import nz.eloque.quits.resources.detail_settlement_title
 import nz.eloque.quits.resources.detail_share_group
 import nz.eloque.quits.resources.detail_share_hint
-import nz.eloque.quits.resources.detail_sharing
 import nz.eloque.quits.resources.detail_split_unsupported
 import nz.eloque.quits.resources.detail_sync_storage
 import nz.eloque.quits.resources.export_csv_menu
@@ -170,6 +170,7 @@ import nz.eloque.quits.ui.category.categoryDisplay
 import nz.eloque.quits.ui.components.BalanceText
 import nz.eloque.quits.ui.components.EmptyHint
 import nz.eloque.quits.ui.components.EntryAmountText
+import nz.eloque.quits.ui.components.InviteQr
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.MoneyText
@@ -970,9 +971,12 @@ private fun ShareSheet(
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
-            Text(stringResource(Res.string.detail_sharing), style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(16.dp))
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+        ) {
             val code = state.shareCode
             if (code == null) {
                 Text(stringResource(Res.string.detail_local_only))
@@ -982,6 +986,17 @@ private fun ShareSheet(
                 val clipboard = LocalClipboardManager.current
                 val sharer = koinInject<Sharer>()
                 val link = InviteLink.build(code)
+
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    InviteQr(link)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(Res.string.detail_qr_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(onClick = { sharer.share(link) }, modifier = Modifier.weight(1f)) {

@@ -23,6 +23,7 @@
     <string name="cd_settings">Settings</string>
     <string name="cd_back">Back</string>
     <string name="cd_sync">Sync</string>
+    <string name="cd_invite_qr">Invite QR code</string>
     <string name="cd_rename">Rename %1$s</string>
     <string name="cd_remove">Remove %1$s</string>
     <string name="cd_delete">Delete %1$s</string>
@@ -60,10 +61,10 @@
 
     <!-- Group detail -->
     <string name="group_fallback_name">Group</string>
-    <string name="detail_sharing">Sharing</string>
     <string name="detail_local_only">This group is on this device only.</string>
     <string name="detail_share_group">Share group</string>
     <string name="detail_share_hint">Others join with this code to sync.</string>
+    <string name="detail_qr_hint">Scan with any camera app to join.</string>
     <string name="detail_last_synced">Last synced %1$s</string>
     <string name="detail_sync_storage">Room for about %1$d more entries on the sync server.</string>
     <string name="detail_not_synced">Not synced yet</string>
