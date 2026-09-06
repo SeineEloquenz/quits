@@ -25,6 +25,7 @@ ktlint = "14.2.0"
 cryptography = "0.6.0"
 kermit = "2.1.0"
 aboutLibraries = "15.2.0"
+qrose = "1.1.2"
 
 # Android SDK
 compileSdk = "37"
@@ -101,6 +102,9 @@ kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 # AboutLibraries
 aboutlibraries-core = { module = "com.mikepenz:aboutlibraries-core", version.ref = "aboutLibraries" }
 aboutlibraries-compose-m3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutLibraries" }
+
+# QRose (invite QR rendering)
+qrose = { module = "io.github.alexzhirkevich:qrose", version.ref = "qrose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -153,6 +153,7 @@ kotlin {
             implementation(libs.kermit)
             implementation(libs.aboutlibraries.core)
             implementation(libs.aboutlibraries.compose.m3)
+            implementation(libs.qrose)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
