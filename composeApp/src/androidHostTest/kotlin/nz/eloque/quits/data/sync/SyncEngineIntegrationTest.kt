@@ -96,4 +96,74 @@ class SyncEngineIntegrationTest {
                 db2.close()
             }
         }
+
+    @Test
+    fun a_group_past_the_body_limit_shares_in_several_requests() =
+        live { client ->
+            val relay = CountingRelay(client)
+            val needed = (relay.info().maxBodyBytes / APPROX_ENTRY_WIRE_BYTES).toInt() + 1
+            if (needed > MAX_ENTRIES) {
+                println("Skipping chunking test; $needed entries needed. Run the relay with QUITS_MAX_BODY_BYTES=32768.")
+                return@live
+            }
+
+            val db1 = inMemoryDatabase()
+            val repo1 = GroupRepository(db1, deviceId = "dev1", now = { 1000L })
+            val engine1 = SyncEngine(db1, relay, GroupCrypto(), deviceId = "dev1")
+            val db2 = inMemoryDatabase()
+            val repo2 = GroupRepository(db2, deviceId = "dev2", now = { 1000L })
+            val engine2 = SyncEngine(db2, relay, GroupCrypto(), deviceId = "dev2")
+
+            try {
+                val g = GroupId("g-big-live")
+                repo1.saveGroup(Group(g, "Big trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
+                repeat(needed) { i ->
+                    repo1.upsertEntry(
+                        g,
+                        Entry(EntryId("e$i"), "Entry number $i", listOf(Payment(a, Money(1000, usd))), Split.Equal(listOf(a, b))),
+                        spentAt = i.toLong(),
+                    )
+                }
+
+                relay.pushes = 0
+                val code = engine1.share(g)
+                assertTrue(relay.pushes > 1, "expected the share to split, but it went out in ${relay.pushes} request(s)")
+
+                val joined = engine2.join(code)!!
+                val pulled = repo2.load(joined)!!
+                assertEquals(needed, pulled.entries.size)
+                assertEquals(2, pulled.members.size)
+                assertEquals(
+                    repo1.load(g)!!.balances().net.mapKeys { it.key.value },
+                    pulled.balances().net.mapKeys { it.key.value },
+                )
+            } finally {
+                db1.close()
+                db2.close()
+            }
+        }
+
+    /** Counts pushes so a test can tell one request from several. */
+    private class CountingRelay(
+        private val delegate: Relay,
+    ) : Relay by delegate {
+        var pushes = 0
+
+        override suspend fun push(
+            remoteId: String,
+            token: String,
+            records: List<EncryptedRecord>,
+        ): PushResult {
+            pushes++
+            return delegate.push(remoteId, token, records)
+        }
+    }
+
+    private companion object {
+        /** One two-payer entry, sealed and base64-encoded, rounded down so the count over-shoots. */
+        const val APPROX_ENTRY_WIRE_BYTES = 400
+
+        /** Past this the test is slower than it is worth, so it skips instead. */
+        const val MAX_ENTRIES = 400
+    }
 }

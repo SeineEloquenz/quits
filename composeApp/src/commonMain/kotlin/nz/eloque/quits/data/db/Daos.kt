@@ -39,6 +39,39 @@ interface GroupDao {
     @Query("DELETE FROM groups WHERE id = :id")
     suspend fun delete(id: String)
 
+    /**
+     * How many records this group occupies on the relay, which caps them per group.
+     *
+     * Tombstones are counted deliberately. A deletion is a row with `deleted = 1` on both sides, so
+     * filtering them here would report free space the relay does not have.
+     */
+    @Query(
+        "SELECT (SELECT COUNT(*) FROM groups WHERE id = :groupId) " +
+            "+ (SELECT COUNT(*) FROM member WHERE groupId = :groupId) " +
+            "+ (SELECT COUNT(*) FROM category WHERE groupId = :groupId) " +
+            "+ (SELECT COUNT(*) FROM entry WHERE groupId = :groupId) " +
+            "+ (SELECT COUNT(*) FROM settlement WHERE groupId = :groupId)",
+    )
+    fun countSyncedRecordsFlow(groupId: String): Flow<Int>
+
+    @Upsert
+    suspend fun upsertMembers(members: List<MemberEntity>)
+
+    @Upsert
+    suspend fun upsertCategories(categories: List<CategoryEntity>)
+
+    /** Writes a whole group at once, so a failure part-way cannot leave a half-built one behind. */
+    @Transaction
+    suspend fun insertGroupWith(
+        group: GroupEntity,
+        members: List<MemberEntity>,
+        categories: List<CategoryEntity>,
+    ) {
+        upsert(group)
+        upsertMembers(members)
+        upsertCategories(categories)
+    }
+
     /** Clears dirty only if the row is unchanged since it was pushed, so a concurrent edit survives. */
     @Query("UPDATE groups SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt AND deviceId = :deviceId")
     suspend fun clearDirty(

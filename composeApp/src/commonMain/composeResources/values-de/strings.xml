@@ -63,6 +63,7 @@
     <string name="detail_share_group">Gruppe freigeben</string>
     <string name="detail_share_hint">Andere treten mit diesem Code der Gruppe bei.</string>
     <string name="detail_last_synced">Zuletzt synchronisiert %1$s</string>
+    <string name="detail_sync_storage">Platz für etwa %1$d weitere Einträge auf dem Sync-Server.</string>
     <string name="detail_not_synced">Noch nicht synchronisiert</string>
     <string name="detail_balances">Salden</string>
     <string name="detail_balances_summary">%1$d Mitglieder</string>
@@ -100,6 +101,9 @@
     <string name="detail_items">Positionen</string>
     <string name="detail_split_unsupported">Dieser Eintrag wurde mit einer neueren App-Version erstellt. Aktualisiere die App, um ihre Aufteilung zu sehen und zu bearbeiten.</string>
     <string name="detail_note">Notiz</string>
+    <string name="detail_quota_warning_title">Diese Gruppe ist fast voll</string>
+    <string name="detail_quota_warning_body">Etwa %1$d weitere Einträge passen noch, bevor der Sync-Server keine neuen mehr annimmt. Bestehende Einträge werden weiterhin synchronisiert. Für die nächste Reise lohnt sich eine neue Gruppe.</string>
+    <string name="detail_quota_new_group">Neue Gruppe starten</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d Personen</string>
     <string name="detail_edit_expense">Ausgabe bearbeiten</string>
     <string name="detail_delete_expense">Ausgabe löschen</string>
@@ -117,6 +121,9 @@
     <string name="group_archived_label">Archiviert</string>
     <string name="drawer_archived">Archiviert (%1$d)</string>
     <string name="group_leave_title">Gruppe verlassen?</string>
+    <string name="group_new_from_title">Neue Gruppe, gleiche Leute</string>
+    <string name="group_new_from_name">%1$s 2</string>
+    <string name="group_new_from_unshared">Die neue Gruppe liegt zunächst nur auf diesem Gerät. Gib sie frei, um alle anderen mitzunehmen.</string>
     <string name="group_leave_body_local">Dies entfernt "%1$s" und alles darin von diesem Gerät. Sie wird mit niemandem geteilt, daher kann dies nicht rückgängig gemacht werden.</string>
     <string name="group_leave_body_shared">Dies entfernt "%1$s" nur von diesem Gerät. Andere Mitglieder behalten ihre Kopie, und du kannst später mit dem Freigabecode wieder beitreten.</string>
     <string name="group_leave_confirm">Verlassen</string>
@@ -216,6 +223,29 @@
     <!-- Settings -->
     <string name="settings_title">Einstellungen</string>
     <string name="settings_sync">Synchronisierung</string>
+    <string name="relay_info_entry">Sync-Server</string>
+    <string name="relay_info_entry_desc">Limits und Regeln des Servers, mit dem diese App synchronisiert.</string>
+    <string name="relay_info_title">Sync-Server</string>
+    <string name="relay_info_limits">Limits</string>
+    <string name="relay_info_max_body">Größte Anfrage</string>
+    <string name="relay_info_max_record">Größter Eintrag</string>
+    <string name="relay_info_records_per_group">Datensätze pro Gruppe</string>
+    <string name="relay_info_retention">Aufbewahrung</string>
+    <string name="relay_info_retention_desc">Der Server entfernt Gruppen, von denen er nichts mehr hört. Ein Sync setzt die Frist zurück.</string>
+    <string name="relay_info_empty_ttl">Leere Gruppen entfernt nach</string>
+    <string name="relay_info_inactive_ttl">Ungenutzte Gruppen entfernt nach</string>
+    <string name="relay_info_access">Zugang</string>
+    <string name="relay_info_requires_secret">Braucht ein Server-Geheimnis für neue Gruppen</string>
+    <string name="relay_info_no_limit">Kein Limit</string>
+    <string name="relay_info_never">Nie</string>
+    <string name="relay_info_day">%1$d Tag</string>
+    <string name="relay_info_days">%1$d Tage</string>
+    <string name="relay_info_hour">%1$d Stunde</string>
+    <string name="relay_info_hours">%1$d Stunden</string>
+    <string name="relay_info_silent">Dieser Server hat seine Einstellungen nicht gemeldet. Er ist eventuell nicht erreichbar oder zu alt, um sich zu beschreiben.</string>
+    <string name="relay_info_retry">Erneut versuchen</string>
+    <string name="value_yes">Ja</string>
+    <string name="value_no">Nein</string>
     <string name="settings_advanced">Erweitert</string>
     <string name="settings_advanced_desc">Relay- und Sync-Konfiguration. Die Voreinstellungen funktionieren sofort — ändere sie nur, um dein eigenes Relay zu nutzen.</string>
     <string name="settings_relay_url">Relay-URL</string>
@@ -242,6 +272,8 @@
     <string name="error_sync_unauthorized">Dieses Gerät ist nicht berechtigt, diese Gruppe zu synchronisieren. Eventuell musst du erneut beitreten.</string>
     <string name="error_sync_group_gone">Diese geteilte Gruppe existiert auf dem Server nicht mehr.</string>
     <string name="error_sync_group_full">Diese Gruppe hat das Limit des Sync-Servers erreicht. Neue Einträge können nicht mehr geteilt werden. Änderungen an bestehenden Einträgen werden weiterhin synchronisiert.</string>
+    <string name="error_sync_relay_full">Der Sync-Server hat derzeit keinen Platz für neue geteilte Gruppen. Diese Gruppe bleibt auf diesem Gerät. Versuche es später erneut, oder gib in den Einstellungen einen anderen Sync-Server an.</string>
+    <string name="error_sync_batch_too_large">Es gibt zu viele nicht synchronisierte Daten für eine einzelne Anfrage.</string>
     <string name="error_sync_record_too_large">Einer deiner Einträge ist zu groß zum Synchronisieren. Kürze die Beschreibung oder teile ihn auf.</string>
     <string name="error_sync_rejected">Der Sync-Server hat die Anfrage abgelehnt. Ein App-Update kann helfen.</string>
     <string name="error_sync_incompatible">Die Antwort des Servers konnte nicht gelesen werden. Die App muss möglicherweise aktualisiert werden.</string>
@@ -283,4 +315,5 @@
     <string name="export_csv_menu">CSV exportieren</string>
     <string name="sync_now_menu">Jetzt synchronisieren</string>
     <string name="export_empty">Nichts zum Exportieren.</string>
+    <string name="detail_quota_new_group_failed">Diese Gruppe ist nicht mehr verfügbar, es wurde nichts kopiert.</string>
 </resources>

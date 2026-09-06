@@ -22,6 +22,7 @@ import nz.eloque.quits.domain.Member
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Settlement
 import nz.eloque.quits.domain.SettlementId
+import nz.eloque.quits.util.newId
 
 /** Lightweight projection for the groups list (avoids loading each full aggregate). */
 data class GroupSummary(
@@ -45,6 +46,28 @@ class GroupRepository(
         db.memberDao().upsert(
             group.members.map { MemberEntity(it.id.value, group.id.value, it.name, color = null, meta()) },
         )
+    }
+
+    /**
+     * Starts a fresh group with [source]'s members and custom categories but none of its history,
+     * for carrying on with the same people once a group has filled the relay's per-group limit.
+     */
+    suspend fun createGroupFrom(
+        source: GroupId,
+        name: String,
+    ): GroupId? {
+        val entity = db.groupDao().byId(source.value) ?: return null
+        val id = GroupId(newId())
+        // Not via [saveGroup], which drops each member's colour because [Member] carries none.
+        db.groupDao().insertGroupWith(
+            group = GroupEntity(id.value, name, entity.baseCurrency, meta()),
+            members = db.memberDao().forGroup(source.value).map { MemberEntity(newId(), id.value, it.name, it.color, meta()) },
+            categories =
+                db.categoryDao().forGroup(source.value).map {
+                    CategoryEntity(newId(), id.value, it.name, it.icon, it.color, meta())
+                },
+        )
+        return id
     }
 
     /** Leaves the group: removes it and everything under it from *this device only*. */

@@ -98,6 +98,20 @@ pub struct ChangesQuery {
     pub since: i64,
 }
 
+/// What a client can learn about an instance before it holds any group token.
+#[derive(Debug, Serialize)]
+pub struct InfoResponse {
+    pub max_body_bytes: u64,
+    pub max_record_bytes: u64,
+    pub max_records_per_group: u64,
+    /// Age at which a group holding no records is reaped. `0` when the reaper leaves them.
+    pub empty_group_ttl_secs: u64,
+    /// Age of the newest record past which the whole group is reaped. `0` when disabled.
+    pub inactive_group_ttl_secs: u64,
+    /// Whether creating a group needs the instance secret in `X-Quits-Instance`.
+    pub requires_instance_secret: bool,
+}
+
 #[derive(sqlx::FromRow)]
 struct RecordRow {
     id: String,
@@ -125,6 +139,19 @@ pub async fn health() -> &'static str {
     "ok"
 }
 
+/// The instance's limits and policies, so a client can size its pushes and explain what the
+/// instance will do to a group before it happens.
+pub async fn info(State(state): State<AppState>) -> Json<InfoResponse> {
+    Json(InfoResponse {
+        max_body_bytes: state.config.max_body_bytes as u64,
+        max_record_bytes: state.config.max_record_bytes as u64,
+        max_records_per_group: state.config.max_records_per_group,
+        empty_group_ttl_secs: state.config.empty_group_ttl_secs,
+        inactive_group_ttl_secs: state.config.inactive_group_ttl_secs,
+        requires_instance_secret: state.config.instance_secret.is_some(),
+    })
+}
+
 /// Creates a group under a client-supplied lookup id. Gated by the optional instance secret.
 pub async fn create_group(
     State(state): State<AppState>,
@@ -150,7 +177,7 @@ pub async fn create_group(
                 "group creation rejected: at global group cap"
             );
             state.metrics.group_created(GroupCreate::Capacity);
-            return Err(AppError::Capacity);
+            return Err(AppError::InstanceFull);
         }
     }
 

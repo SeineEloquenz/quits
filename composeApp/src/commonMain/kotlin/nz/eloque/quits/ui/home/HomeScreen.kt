@@ -131,6 +131,7 @@ fun HomeScreen(
             onOpenSettlement = { onOpenSettlement(active, it) },
             onSettleUp = { onSettleUp(active) },
             onOpenStats = { onOpenStats(active) },
+            onGroupCreated = { scope.launch { viewModel.setActiveGroup(it) } },
         )
     }
 }

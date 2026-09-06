@@ -33,7 +33,7 @@ pub struct Config {
     /// Stricter per-IP limiter on group creation only. `0` burst disables it.
     pub create_burst: u32,
     pub create_replenish_secs: u64,
-    /// Hard ceiling on total groups; creation past it returns 503. `0` disables.
+    /// Hard ceiling on total groups. Creation past it returns 507. `0` disables.
     pub max_groups: u64,
     /// Max request body size in bytes (bounds push batch size).
     pub max_body_bytes: usize,

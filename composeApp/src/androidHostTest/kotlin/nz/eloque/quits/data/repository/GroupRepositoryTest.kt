@@ -295,4 +295,40 @@ class GroupRepositoryTest {
             assertTrue(db.entryDao().forGroup("g").isEmpty())
             assertTrue(db.settlementDao().forGroup("g").isEmpty())
         }
+
+    @Test
+    fun new_group_from_another_leaves_tombstoned_members_behind() =
+        runTest {
+            persist(sampleGroup())
+            // Straight to the dao, since removeMember refuses while an entry references them,
+            // which is exactly the state a peer's tombstone produces here.
+
+            db.memberDao().tombstone(c.value, 2000L, "dev-2")
+
+            val copy = repo.createGroupFrom(GroupId("g"), "Trip 2")!!
+            val members = repo.load(copy)!!.members.map { it.name }
+
+            assertEquals(listOf("Alice", "Bob"), members.sorted())
+            assertTrue(repo.load(GroupId("g"))!!.members.any { it.name == "Carol" }, "source keeps the referenced member")
+        }
+
+    @Test
+    fun new_group_from_another_carries_no_history_and_mints_fresh_ids() =
+        runTest {
+            persist(sampleGroup())
+            repo.upsertCategory(GroupId("g"), Category(CategoryId("cat"), "Food", "restaurant", 0xFF00FF00))
+
+            val copy = repo.createGroupFrom(GroupId("g"), "Trip 2")!!
+            val source = repo.load(GroupId("g"))!!
+            val fresh = repo.load(copy)!!
+
+            assertEquals("Trip 2", fresh.name)
+            assertEquals(source.baseCurrency, fresh.baseCurrency)
+            assertTrue(fresh.entries.isEmpty(), "history must not come across")
+            assertTrue(fresh.settlements.isEmpty(), "history must not come across")
+            assertEquals(listOf("Food"), fresh.categories.map { it.name })
+            // Both tables key on the id alone, so a shared row could not belong to two groups.
+            assertTrue(fresh.members.none { it.id in source.members.map { m -> m.id } })
+            assertTrue(fresh.categories.none { it.id in source.categories.map { k -> k.id } })
+        }
 }

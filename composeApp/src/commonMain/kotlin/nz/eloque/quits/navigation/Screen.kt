@@ -56,6 +56,9 @@ data class SettlementEditorKey(
 data object SettingsKey : NavKey
 
 @Serializable
+data object RelayInfoKey : NavKey
+
+@Serializable
 data object AboutKey : NavKey
 
 @Serializable

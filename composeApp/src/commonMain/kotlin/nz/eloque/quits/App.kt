@@ -36,6 +36,7 @@ import nz.eloque.quits.navigation.GroupsHomeKey
 import nz.eloque.quits.navigation.JoinInviteKey
 import nz.eloque.quits.navigation.LibrariesKey
 import nz.eloque.quits.navigation.MemberDetailKey
+import nz.eloque.quits.navigation.RelayInfoKey
 import nz.eloque.quits.navigation.SettingsKey
 import nz.eloque.quits.navigation.SettleUpKey
 import nz.eloque.quits.navigation.SettlementEditorKey
@@ -51,6 +52,7 @@ import nz.eloque.quits.ui.group.SettlementEditorScreen
 import nz.eloque.quits.ui.groups.AddGroupScreen
 import nz.eloque.quits.ui.groups.JoinInviteScreen
 import nz.eloque.quits.ui.home.HomeScreen
+import nz.eloque.quits.ui.settings.RelayInfoScreen
 import nz.eloque.quits.ui.settings.SettingsScreen
 import nz.eloque.quits.ui.stats.StatsScreen
 import org.koin.compose.koinInject
@@ -69,6 +71,7 @@ private val navSavedStateConfiguration =
                     subclass(StatsKey::class)
                     subclass(EntryEditorKey::class)
                     subclass(SettingsKey::class)
+                    subclass(RelayInfoKey::class)
                     subclass(AboutKey::class)
                     subclass(LibrariesKey::class)
                     subclass(JoinInviteKey::class)
@@ -176,7 +179,13 @@ fun App() {
                             )
                         }
                         entry<SettingsKey> {
-                            SettingsScreen(onBack = { backStack.removeLastOrNull() })
+                            SettingsScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                                onOpenRelayInfo = { backStack.add(RelayInfoKey) },
+                            )
+                        }
+                        entry<RelayInfoKey> {
+                            RelayInfoScreen(onBack = { backStack.removeLastOrNull() })
                         }
                         entry<AboutKey> {
                             AboutScreen(

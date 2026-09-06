@@ -75,7 +75,7 @@ fn record(id: &str, updated_at: i64, device: &str, payload: &str) -> Value {
 }
 
 #[tokio::test]
-async fn global_group_cap_returns_503_when_full() {
+async fn global_group_cap_returns_507_when_full() {
     let mut config = test_config();
     config.max_groups = 1;
     let app = router(state_with(config).await);
@@ -84,7 +84,7 @@ async fn global_group_cap_returns_503_when_full() {
     assert_eq!(status, StatusCode::OK);
 
     let (status, _) = create(&app, None).await;
-    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(status, StatusCode::INSUFFICIENT_STORAGE);
 }
 
 #[tokio::test]
@@ -358,3 +358,38 @@ async fn reaper_removes_empty_and_inactive_groups_only() {
     let ids: Vec<&str> = survivors.iter().map(|(s,)| s.as_str()).collect();
     assert_eq!(ids, vec!["active", "empty_new"]);
 }
+
+#[tokio::test]
+async fn info_is_public_and_reflects_config() {
+    let mut config = test_config();
+    config.max_body_bytes = 4096;
+    config.max_record_bytes = 128;
+    config.max_records_per_group = 7;
+    config.empty_group_ttl_secs = 3600;
+    config.inactive_group_ttl_secs = 86400;
+    let app = router(state_with(config).await);
+
+    let (status, resp) = send(&app, "GET", "/v1/info", None, None, None).await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(resp["max_body_bytes"], json!(4096));
+    assert_eq!(resp["max_record_bytes"], json!(128));
+    assert_eq!(resp["max_records_per_group"], json!(7));
+    assert_eq!(resp["empty_group_ttl_secs"], json!(3600));
+    assert_eq!(resp["inactive_group_ttl_secs"], json!(86400));
+    assert_eq!(resp["requires_instance_secret"], json!(false));
+}
+
+/// The flag has to follow the instance secret, since it is what tells a client to ask for one.
+#[tokio::test]
+async fn info_reports_a_locked_instance() {
+    let mut config = test_config();
+    config.instance_secret = Some("s3cret".into());
+    let app = router(state_with(config).await);
+
+    let (status, resp) = send(&app, "GET", "/v1/info", None, None, None).await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(resp["requires_instance_secret"], json!(true));
+}
+

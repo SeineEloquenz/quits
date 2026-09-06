@@ -65,6 +65,7 @@
     <string name="detail_share_group">Share group</string>
     <string name="detail_share_hint">Others join with this code to sync.</string>
     <string name="detail_last_synced">Last synced %1$s</string>
+    <string name="detail_sync_storage">Room for about %1$d more entries on the sync server.</string>
     <string name="detail_not_synced">Not synced yet</string>
     <string name="detail_balances">Balances</string>
     <string name="detail_balances_summary">%1$d members</string>
@@ -102,6 +103,9 @@
     <string name="detail_items">Items</string>
     <string name="detail_split_unsupported">This entry was created with a newer version of the app. Update to view and edit how it's split.</string>
     <string name="detail_note">Note</string>
+    <string name="detail_quota_warning_title">This group is nearly full</string>
+    <string name="detail_quota_warning_body">About %1$d more entries fit before the sync server stops accepting new ones. Existing entries will keep syncing. Consider starting a fresh group for your next trip.</string>
+    <string name="detail_quota_new_group">Start a new group</string>
     <string name="detail_split_summary_dated">%1$s · %2$s · %3$d people</string>
     <string name="detail_edit_expense">Edit expense</string>
     <string name="detail_delete_expense">Delete expense</string>
@@ -119,6 +123,9 @@
     <string name="group_archived_label">Archived</string>
     <string name="drawer_archived">Archived (%1$d)</string>
     <string name="group_leave_title">Leave group?</string>
+    <string name="group_new_from_title">New group, same people</string>
+    <string name="group_new_from_name">%1$s 2</string>
+    <string name="group_new_from_unshared">The new group starts on this device only. Share it to bring everyone else across.</string>
     <string name="group_leave_body_local">This removes "%1$s" and everything in it from this device. It isn't shared with anyone, so this can't be undone.</string>
     <string name="group_leave_body_shared">This removes "%1$s" from this device only. Other members keep their copy, and you can re-join later with the share code.</string>
     <string name="group_leave_confirm">Leave</string>
@@ -218,6 +225,29 @@
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_sync">Sync</string>
+    <string name="relay_info_entry">Sync server</string>
+    <string name="relay_info_entry_desc">Limits and policies of the server this app syncs with.</string>
+    <string name="relay_info_title">Sync server</string>
+    <string name="relay_info_limits">Limits</string>
+    <string name="relay_info_max_body">Largest request</string>
+    <string name="relay_info_max_record">Largest entry</string>
+    <string name="relay_info_records_per_group">Records per group</string>
+    <string name="relay_info_retention">Retention</string>
+    <string name="relay_info_retention_desc">The server removes groups it has not heard from. Syncing a group resets its clock.</string>
+    <string name="relay_info_empty_ttl">Empty groups removed after</string>
+    <string name="relay_info_inactive_ttl">Unused groups removed after</string>
+    <string name="relay_info_access">Access</string>
+    <string name="relay_info_requires_secret">Needs a server secret to create groups</string>
+    <string name="relay_info_no_limit">No limit</string>
+    <string name="relay_info_never">Never</string>
+    <string name="relay_info_day">%1$d day</string>
+    <string name="relay_info_days">%1$d days</string>
+    <string name="relay_info_hour">%1$d hour</string>
+    <string name="relay_info_hours">%1$d hours</string>
+    <string name="relay_info_silent">This server did not report its settings. It may be unreachable, or too old to describe itself.</string>
+    <string name="relay_info_retry">Try again</string>
+    <string name="value_yes">Yes</string>
+    <string name="value_no">No</string>
     <string name="settings_advanced">Advanced</string>
     <string name="settings_advanced_desc">Relay and sync configuration. The defaults work out of the box — change these only to point at your own relay.</string>
     <string name="settings_relay_url">Relay URL</string>
@@ -244,6 +274,8 @@
     <string name="error_sync_unauthorized">This device isn't authorized to sync this group. You may need to rejoin it.</string>
     <string name="error_sync_group_gone">This shared group no longer exists on the server.</string>
     <string name="error_sync_group_full">This group has reached the sync server's limit, so new entries cannot be shared. Changes to existing entries still sync.</string>
+    <string name="error_sync_relay_full">The sync server has no room for new shared groups right now. This group stays on this device. Try again later, or point the app at a different sync server in settings.</string>
+    <string name="error_sync_batch_too_large">There is too much unsynced data to send in one request.</string>
     <string name="error_sync_record_too_large">One of your entries is too large to sync. Try shortening its description or splitting it up.</string>
     <string name="error_sync_rejected">The sync server rejected the request. Updating the app may help.</string>
     <string name="error_sync_incompatible">Couldn't read the server's response. The app may need updating.</string>
@@ -285,4 +317,5 @@
     <string name="export_csv_menu">Export CSV</string>
     <string name="sync_now_menu">Sync now</string>
     <string name="export_empty">Nothing to export yet.</string>
+    <string name="detail_quota_new_group_failed">This group is no longer available, so nothing was copied.</string>
 </resources>

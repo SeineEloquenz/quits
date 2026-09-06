@@ -19,8 +19,8 @@ pub enum AppError {
     #[error("not found")]
     NotFound,
 
-    #[error("server at capacity")]
-    Capacity,
+    #[error("server has no room for more groups")]
+    InstanceFull,
 
     #[error("record payload exceeds the size limit")]
     RecordTooLarge(Vec<String>),
@@ -42,7 +42,7 @@ impl IntoResponse for AppError {
             AppError::Unauthorized => StatusCode::UNAUTHORIZED,
             AppError::Forbidden => StatusCode::FORBIDDEN,
             AppError::NotFound => StatusCode::NOT_FOUND,
-            AppError::Capacity => StatusCode::SERVICE_UNAVAILABLE,
+            AppError::InstanceFull => StatusCode::INSUFFICIENT_STORAGE,
             AppError::RecordTooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
             AppError::GroupFull => StatusCode::INSUFFICIENT_STORAGE,
             AppError::Internal(e) => {

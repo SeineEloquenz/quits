@@ -1,9 +1,12 @@
 package nz.eloque.quits.data.sync
 
+import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -19,25 +22,111 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
+
+/** Hard ceiling on one relay call, wide enough for a push carrying the relay's whole body limit. */
+private val REQUEST_TIMEOUT = 120.seconds
+
+/** Per-request bound on the info probe, which [RelayClient.info] holds its lock across. */
+internal val INFO_TIMEOUT = 10.seconds
+
+/** How long an unreachable relay is assumed unreachable before asking again. */
+internal val ASSUMED_INFO_TTL = 30.seconds
+
+/** How long a relay's published info is trusted, so an operator changing it is picked up. */
+internal val PUBLISHED_INFO_TTL = 30.minutes
 
 /** Talks to the relay over HTTP. Payloads are JSON, base64-encoded on the wire. */
 class RelayClient(
     engine: HttpClientEngine,
     private val settings: SyncSettings,
+    private val timeSource: TimeSource = TimeSource.Monotonic,
 ) : Relay {
     private val client =
         HttpClient(engine) {
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+            install(HttpTimeout) { requestTimeoutMillis = REQUEST_TIMEOUT.inWholeMilliseconds }
         }
 
     private val baseUrl: String get() = settings.relayUrl.trimEnd('/')
+
+    /** What is known about one relay, discarded wholesale when [baseUrl] changes. */
+    private class RelayState(
+        val url: String,
+    ) {
+        var fetched: RelayInfo? = null
+        var fetchedAt: TimeMark? = null
+        var askedAt: TimeMark? = null
+    }
+
+    private var relayState: RelayState? = null
+
+    // Background sync and the screen that shows headroom both ask, on different threads. Every
+    // read-modify-write of relayState happens under this.
+    private val infoLock = Mutex()
+
+    private fun currentState(): RelayState = relayState?.takeIf { it.url == baseUrl } ?: RelayState(baseUrl).also { relayState = it }
+
+    override suspend fun info(): RelayInfo = infoLock.withLock { readInfo() }
+
+    private suspend fun readInfo(): RelayInfo {
+        val state = currentState()
+        state.fetched?.let { cached ->
+            if (state.fetchedAt?.elapsedNow()?.let { it < PUBLISHED_INFO_TTL } == true) return cached
+        }
+
+        state.askedAt?.let { asked ->
+            if (asked.elapsedNow() < ASSUMED_INFO_TTL) return state.fetched ?: RelayInfo.CONSERVATIVE
+        }
+
+        val info =
+            try {
+                val response: HttpResponse =
+                    client.get("${state.url}/v1/info") {
+                        timeout { requestTimeoutMillis = INFO_TIMEOUT.inWholeMilliseconds }
+                    }
+                // A relay that predates the endpoint 404s it, which is not a missing group.
+                if (response.status == HttpStatusCode.NotFound) return state.fallbackInfo()
+                val body: InfoResponseDto = response.decode(RelayOperation.Info)
+                RelayInfo.published(
+                    maxBodyBytes = body.maxBodyBytes,
+                    maxRecordBytes = body.maxRecordBytes,
+                    maxRecordsPerGroup = body.maxRecordsPerGroup,
+                    emptyGroupTtl = body.emptyGroupTtlSecs.seconds,
+                    inactiveGroupTtl = body.inactiveGroupTtlSecs.seconds,
+                    requiresInstanceSecret = body.requiresInstanceSecret,
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Never rethrow. This is a sizing hint, and failing here would fail a push that would
+                // otherwise have worked.
+                Logger.w(e) { "could not read relay info from ${state.url}" }
+                return state.fallbackInfo()
+            }
+        state.fetched = info
+        state.fetchedAt = timeSource.markNow()
+        return info
+    }
+
+    /**
+     * The last published info, or a guess, and opens the window before the relay is asked again.
+     */
+    private fun RelayState.fallbackInfo(): RelayInfo {
+        askedAt = timeSource.markNow()
+        return fetched ?: RelayInfo.CONSERVATIVE
+    }
 
     override suspend fun createGroup(lookupId: String): GroupHandle =
         relayCall {
@@ -47,7 +136,7 @@ class RelayClient(
                     settings.instanceSecret?.let { header("X-Quits-Instance", it) }
                     setBody(GroupLookupRequest(lookupId))
                 }
-            val body: CreateGroupResponse = response.decode()
+            val body: CreateGroupResponse = response.decode(RelayOperation.CreateGroup)
             GroupHandle(body.groupId, body.token)
         }
 
@@ -60,7 +149,7 @@ class RelayClient(
                 }
             // A missing invite code is expected here, not an error.
             if (response.status == HttpStatusCode.NotFound) return@relayCall null
-            val body: JoinGroupResponse = response.decode()
+            val body: JoinGroupResponse = response.decode(RelayOperation.JoinGroup)
             GroupHandle(body.groupId, body.token)
         }
 
@@ -76,7 +165,7 @@ class RelayClient(
                     contentType(ContentType.Application.Json)
                     setBody(PushRequestDto(records.map { it.toWire() }))
                 }
-            val body: PushResponseDto = response.decode()
+            val body: PushResponseDto = response.decode(RelayOperation.Push)
             PushResult(body.seq, body.applied, body.rejected)
         }
 
@@ -91,7 +180,7 @@ class RelayClient(
                     bearerAuth(token)
                     parameter("since", since)
                 }
-            val body: PullResponseDto = response.decode()
+            val body: PullResponseDto = response.decode(RelayOperation.Pull)
             PullResult(body.records.map { it.toRecord() }, body.seq)
         }
 
@@ -108,7 +197,7 @@ class RelayClient(
         }
 
     /** Deserializes a 2xx body as [T]; a non-2xx status becomes the matching [SyncError]. */
-    private suspend inline fun <reified T> HttpResponse.decode(): T {
+    private suspend inline fun <reified T> HttpResponse.decode(operation: RelayOperation): T {
         if (status.isSuccess()) {
             return try {
                 body()
@@ -127,6 +216,7 @@ class RelayClient(
             retryAfterHint(),
             message?.takeIf { it.isNotBlank() },
             error?.records.orEmpty(),
+            operation,
         )
     }
 
@@ -158,6 +248,19 @@ class RelayClient(
     private data class RelayErrorResponse(
         val error: String? = null,
         val records: List<String> = emptyList(),
+    )
+
+    /**
+     * Defaults cover a relay older than a field, which is why none of them are required.
+     */
+    @Serializable
+    private data class InfoResponseDto(
+        @SerialName("max_body_bytes") val maxBodyBytes: Long,
+        @SerialName("max_record_bytes") val maxRecordBytes: Long,
+        @SerialName("max_records_per_group") val maxRecordsPerGroup: Long,
+        @SerialName("empty_group_ttl_secs") val emptyGroupTtlSecs: Long = 0,
+        @SerialName("inactive_group_ttl_secs") val inactiveGroupTtlSecs: Long = 0,
+        @SerialName("requires_instance_secret") val requiresInstanceSecret: Boolean = false,
     )
 
     @Serializable
