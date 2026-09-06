@@ -108,7 +108,7 @@ class SyncEngine(
         try {
             // Only a published figure answers this. A fallback reports no cap, which the caller
             // would memoize as the answer and never ask again once the relay came back.
-            relay.limits().takeIf { it.fromRelay }?.maxRecordsPerGroup
+            relay.info().takeIf { it.fromRelay }?.maxRecordsPerGroup
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -212,7 +212,7 @@ class SyncEngine(
         val applied = mutableSetOf<String>()
         val rejected = mutableListOf<String>()
         try {
-            pushChunks(handle, sealed, relay.limits(), referents, applied, rejected)
+            pushChunks(handle, sealed, relay.info(), referents, applied, rejected)
         } finally {
             // NonCancellable or these DAO calls throw at their first suspension point when the sync
             // is cancelled, leaving records the relay already accepted marked dirty.
@@ -233,7 +233,7 @@ class SyncEngine(
     private suspend fun pushChunks(
         handle: GroupSyncEntity,
         sealed: List<EncryptedRecord>,
-        limits: RelayLimits,
+        limits: RelayInfo,
         referents: Set<String>,
         applied: MutableSet<String>,
         rejected: MutableList<String>,
@@ -427,7 +427,7 @@ private const val RECORD_OVERHEAD_BYTES = 128L
  * they do not have, so an unstorable one fails the whole push rather than leaving that behind.
  */
 private fun List<EncryptedRecord>.withoutUnstorable(
-    limits: RelayLimits,
+    limits: RelayInfo,
     maxBodyBytes: Long,
     referents: Set<String>,
     rejected: MutableList<String>,

@@ -21,14 +21,16 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TestTimeSource
 
 /** Just past the assumed-limits window, so the next call asks the relay again. */
-private val ASSUMED_LIMITS_TTL_TEST = ASSUMED_LIMITS_TTL + 1.seconds
+private val ASSUMED_INFO_TTL_TEST = ASSUMED_INFO_TTL + 1.seconds
 
 /** Past the probe's own bound but well inside the client-wide one, so only the probe can end the wait. */
-private val HUNG_PROBE_DELAY = LIMITS_TIMEOUT * 2
+private val HUNG_PROBE_DELAY = INFO_TIMEOUT * 2
 
 @OptIn(ExperimentalEncodingApi::class)
 class RelayClientTest {
@@ -43,7 +45,7 @@ class RelayClientTest {
         respond(body, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
 
     @Test
-    fun limits_are_parsed_and_cached_per_relay() =
+    fun info_is_parsed_and_cached_per_relay() =
         runTest {
             var calls = 0
             val relay =
@@ -52,21 +54,56 @@ class RelayClientTest {
                     json("""{"max_body_bytes":4096,"max_record_bytes":128,"max_records_per_group":7}""")
                 }
 
-            assertEquals(RelayLimits.published(4096, 128, 7), relay.limits())
-            assertEquals(RelayLimits.published(4096, 128, 7), relay.limits())
-            assertEquals(1, calls, "limits should be fetched once per relay, not once per push")
+            assertEquals(RelayInfo.published(4096, 128, 7), relay.info())
+            assertEquals(RelayInfo.published(4096, 128, 7), relay.info())
+            assertEquals(1, calls, "info should be fetched once per relay, not once per push")
         }
 
     @Test
-    fun limits_fall_back_conservatively_when_the_relay_has_no_endpoint() =
+    fun info_carries_the_instance_policies() =
+        runTest {
+            val relay =
+                client {
+                    json(
+                        """
+                        {"max_body_bytes":4096,"max_record_bytes":128,"max_records_per_group":7,
+
+                         "empty_group_ttl_secs":172800,"inactive_group_ttl_secs":15552000,
+                         "requires_instance_secret":true}
+                        """.trimIndent(),
+                    )
+                }
+
+            val info = relay.info()
+
+            assertEquals(2.days, info.emptyGroupTtl)
+            assertEquals(180.days, info.inactiveGroupTtl)
+            assertTrue(info.requiresInstanceSecret)
+        }
+
+    /** A relay older than a field must read as no policy at all, never as a deadline. */
+    @Test
+    fun info_from_a_relay_without_the_policies_reports_none() =
+        runTest {
+            val relay = client { json("""{"max_body_bytes":4096,"max_record_bytes":128,"max_records_per_group":7}""") }
+
+            val info = relay.info()
+
+            assertEquals(Duration.ZERO, info.emptyGroupTtl)
+            assertEquals(Duration.ZERO, info.inactiveGroupTtl)
+            assertFalse(info.requiresInstanceSecret)
+        }
+
+    @Test
+    fun info_falls_back_conservatively_when_the_relay_has_no_endpoint() =
         runTest {
             val relay = client { respond("", HttpStatusCode.NotFound) }
-            assertEquals(RelayLimits.CONSERVATIVE, relay.limits())
-            assertFalse(relay.limits().fromRelay, "a guess must never pass as published")
+            assertEquals(RelayInfo.CONSERVATIVE, relay.info())
+            assertFalse(relay.info().fromRelay, "a guess must never pass as published")
         }
 
     @Test
-    fun limits_are_re_read_once_the_endpoint_appears() =
+    fun info_is_re_read_once_the_endpoint_appears() =
         runTest {
             var missing = true
             val relay =
@@ -78,14 +115,14 @@ class RelayClientTest {
                     }
                 }
 
-            assertEquals(RelayLimits.CONSERVATIVE, relay.limits())
+            assertEquals(RelayInfo.CONSERVATIVE, relay.info())
             missing = false
-            clock += ASSUMED_LIMITS_TTL_TEST
-            assertEquals(RelayLimits.published(1048576, 8192, 5000), relay.limits())
+            clock += ASSUMED_INFO_TTL_TEST
+            assertEquals(RelayInfo.published(1048576, 8192, 5000), relay.info())
         }
 
     @Test
-    fun a_hung_limits_probe_gives_up_on_its_own_bound() =
+    fun a_hung_info_probe_gives_up_on_its_own_bound() =
         runTest {
             // Needs its own engine. A suspending handler in the shared one lets the virtual clock jump
             // to whichever deadline is nearest, which is the behaviour under test here.
@@ -101,7 +138,7 @@ class RelayClientTest {
 
             // The handler answers inside the client-wide ceiling, so falling back can only mean
             // the probe applied its own, tighter bound.
-            assertEquals(RelayLimits.CONSERVATIVE, relay.limits())
+            assertEquals(RelayInfo.CONSERVATIVE, relay.info())
         }
 
     @Test
@@ -114,11 +151,11 @@ class RelayClientTest {
                     json("""{"max_body_bytes":4096,"max_record_bytes":128,"max_records_per_group":7}""")
                 }
 
-            assertFailsWith<CancellationException> { relay.limits() }
+            assertFailsWith<CancellationException> { relay.info() }
             cancelled = false
 
             // No clock movement. The window was never opened, so the next call really asks.
-            assertEquals(RelayLimits.published(4096, 128, 7), relay.limits())
+            assertEquals(RelayInfo.published(4096, 128, 7), relay.info())
         }
 
     @Test
@@ -299,7 +336,7 @@ class RelayClientTest {
         }
 
     @Test
-    fun limits_fall_back_only_for_its_window_when_the_relay_errors() =
+    fun info_falls_back_only_for_its_window_when_the_relay_errors() =
         runTest {
             var fail = true
             val relay =
@@ -311,18 +348,18 @@ class RelayClientTest {
                     }
                 }
 
-            assertEquals(RelayLimits.CONSERVATIVE, relay.limits())
+            assertEquals(RelayInfo.CONSERVATIVE, relay.info())
             fail = false
-            clock += ASSUMED_LIMITS_TTL_TEST
-            assertEquals(RelayLimits.published(1048576, 8192, 5000), relay.limits(), "the fallback must not outlive its window")
+            clock += ASSUMED_INFO_TTL_TEST
+            assertEquals(RelayInfo.published(1048576, 8192, 5000), relay.info(), "the fallback must not outlive its window")
         }
 
     @Test
-    fun a_batch_level_413_leaves_the_published_limits_alone() =
+    fun a_batch_level_413_leaves_the_published_info_alone() =
         runTest {
             val relay =
                 client { request ->
-                    if (request.url.encodedPath.endsWith("/v1/limits")) {
+                    if (request.url.encodedPath.endsWith("/v1/info")) {
                         json("""{"max_body_bytes":1048576,"max_record_bytes":0,"max_records_per_group":0}""")
                     } else {
                         respond("", HttpStatusCode.PayloadTooLarge)
@@ -330,12 +367,12 @@ class RelayClientTest {
                 }
             val record = EncryptedRecord("m1", updatedAt = 1, deviceId = "dev", deleted = false, ciphertext = byteArrayOf(1))
 
-            assertEquals(1048576, relay.limits().maxBodyBytes)
+            assertEquals(1048576, relay.info().maxBodyBytes)
             assertFailsWith<SyncError.BatchTooLarge> { relay.push("rid", "tok", listOf(record)) }
 
             // The working budget is the engine's. A refusal must not restate it as something the
             // relay published, which is what would license refusing records outright.
-            assertEquals(1048576, relay.limits().maxBodyBytes)
-            assertTrue(relay.limits().fromRelay)
+            assertEquals(1048576, relay.info().maxBodyBytes)
+            assertTrue(relay.info().fromRelay)
         }
 }

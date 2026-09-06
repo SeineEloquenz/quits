@@ -101,7 +101,7 @@ class SyncEngineIntegrationTest {
     fun a_group_past_the_body_limit_shares_in_several_requests() =
         live { client ->
             val relay = CountingRelay(client)
-            val needed = (relay.limits().maxBodyBytes / APPROX_ENTRY_WIRE_BYTES).toInt() + 1
+            val needed = (relay.info().maxBodyBytes / APPROX_ENTRY_WIRE_BYTES).toInt() + 1
             if (needed > MAX_ENTRIES) {
                 println("Skipping chunking test; $needed entries needed. Run the relay with QUITS_MAX_BODY_BYTES=32768.")
                 return@live

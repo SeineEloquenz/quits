@@ -53,7 +53,8 @@ pub fn router(state: AppState) -> Router {
 
     let mut app = Router::new()
         .route("/health", get(routes::health))
-        .route("/v1/limits", get(routes::limits))
+        .route("/v1/info", get(routes::info))
+
         .route("/v1/groups/join", post(routes::join_group))
         .route(
             "/v1/groups/{id}/changes",

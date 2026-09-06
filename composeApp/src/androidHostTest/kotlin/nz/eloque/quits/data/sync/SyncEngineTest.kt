@@ -37,8 +37,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 private class FakeRelay(
-    private val limits: RelayLimits =
-        RelayLimits(maxBodyBytes = Long.MAX_VALUE, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true),
+    private val limits: RelayInfo =
+        RelayInfo(maxBodyBytes = Long.MAX_VALUE, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true),
     /** Batch index (0-based) to reject with [failWith], to exercise a part-way failure. */
     private val failOnPush: Int = -1,
     private val failWith: Throwable = SyncError.Unreachable(null),
@@ -67,7 +67,7 @@ private class FakeRelay(
     /** Batches the fake stored, in order, excluding the ones it refused whole. */
     val accepted = mutableListOf<List<EncryptedRecord>>()
 
-    override suspend fun limits(): RelayLimits = limits
+    override suspend fun info(): RelayInfo = limits
 
     override suspend fun createGroup(lookupId: String): GroupHandle {
         val remoteId = newId()
@@ -137,7 +137,7 @@ private class FakeRelay(
 private class FlakyLimitsRelay : Relay {
     @Volatile var reachable = false
 
-    override suspend fun limits(): RelayLimits = if (reachable) RelayLimits.published(1048576, 8192, 5000) else RelayLimits.CONSERVATIVE
+    override suspend fun info(): RelayInfo = if (reachable) RelayInfo.published(1048576, 8192, 5000) else RelayInfo.CONSERVATIVE
 
     override suspend fun createGroup(lookupId: String): GroupHandle = newId().let { GroupHandle(it, "token-$it") }
 
@@ -350,7 +350,7 @@ class SyncEngineTest {
     fun a_group_larger_than_the_body_limit_is_pushed_in_several_requests() =
         runTest {
             // Small enough that the group cannot go out in one request.
-            val relay = FakeRelay(limits = RelayLimits(maxBodyBytes = 2048, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true))
+            val relay = FakeRelay(limits = RelayInfo(maxBodyBytes = 2048, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true))
             val db = inMemoryDatabase()
             val repo = GroupRepository(db, deviceId = "dev1", now = { 1000L })
             val engine = SyncEngine(db, relay, GroupCrypto(), deviceId = "dev1")
@@ -383,7 +383,7 @@ class SyncEngineTest {
         runTest {
             val relay =
                 FakeRelay(
-                    limits = RelayLimits(maxBodyBytes = 2048, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true),
+                    limits = RelayInfo(maxBodyBytes = 2048, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true),
                     failOnPush = 1,
                 )
             val db = inMemoryDatabase()
@@ -419,7 +419,7 @@ class SyncEngineTest {
     fun a_record_over_the_relays_record_limit_is_rejected_without_a_request() =
         runTest {
             val relay =
-                FakeRelay(limits = RelayLimits(maxBodyBytes = Long.MAX_VALUE, maxRecordBytes = 1, maxRecordsPerGroup = 0, fromRelay = true))
+                FakeRelay(limits = RelayInfo(maxBodyBytes = Long.MAX_VALUE, maxRecordBytes = 1, maxRecordsPerGroup = 0, fromRelay = true))
             val db = inMemoryDatabase()
             val repo = GroupRepository(db, deviceId = "dev1", now = { 1000L })
             val engine = SyncEngine(db, relay, GroupCrypto(), deviceId = "dev1")
@@ -438,7 +438,7 @@ class SyncEngineTest {
     @Test
     fun a_record_too_big_for_any_batch_is_rejected_against_a_published_budget() =
         runTest {
-            val relay = FakeRelay(limits = RelayLimits(maxBodyBytes = 700, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true))
+            val relay = FakeRelay(limits = RelayInfo(maxBodyBytes = 700, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true))
             val db = inMemoryDatabase()
             val repo = GroupRepository(db, deviceId = "dev1", now = { 1000L })
             val engine = SyncEngine(db, relay, GroupCrypto(), deviceId = "dev1")
@@ -461,7 +461,7 @@ class SyncEngineTest {
     @Test
     fun a_guessed_budget_never_rejects_a_record_outright() =
         runTest {
-            val relay = FakeRelay(limits = RelayLimits(maxBodyBytes = 700, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = false))
+            val relay = FakeRelay(limits = RelayInfo(maxBodyBytes = 700, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = false))
             val db = inMemoryDatabase()
             val repo = GroupRepository(db, deviceId = "dev1", now = { 1000L })
             val engine = SyncEngine(db, relay, GroupCrypto(), deviceId = "dev1")
@@ -489,7 +489,7 @@ class SyncEngineTest {
             val reachedSecondBatch = CompletableDeferred<Unit>()
             val relay =
                 FakeRelay(
-                    limits = RelayLimits(maxBodyBytes = 2048, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true),
+                    limits = RelayInfo(maxBodyBytes = 2048, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true),
                     blockOnPush = 1,
                     blocked = reachedSecondBatch,
                 )
@@ -532,7 +532,7 @@ class SyncEngineTest {
             // engine has halved its way down to something the relay actually accepts.
             val relay =
                 FakeRelay(
-                    limits = RelayLimits(maxBodyBytes = 65536, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true),
+                    limits = RelayInfo(maxBodyBytes = 65536, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true),
                     refuseOverBytes = 4700,
                 )
             val db = inMemoryDatabase()
@@ -566,7 +566,7 @@ class SyncEngineTest {
             // Low enough that the long entries never fit, however far the budget comes down.
             val relay =
                 FakeRelay(
-                    limits = RelayLimits(maxBodyBytes = 65536, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true),
+                    limits = RelayInfo(maxBodyBytes = 65536, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true),
                     refuseOverBytes = 2200,
                 )
             val db = inMemoryDatabase()
@@ -595,7 +595,7 @@ class SyncEngineTest {
         runTest {
             val relay =
                 FakeRelay(
-                    limits = RelayLimits(maxBodyBytes = 65536, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true),
+                    limits = RelayInfo(maxBodyBytes = 65536, maxRecordBytes = 0, maxRecordsPerGroup = 0, fromRelay = true),
                     refuseOverBytes = 0,
                 )
             val db = inMemoryDatabase()
@@ -620,7 +620,7 @@ class SyncEngineTest {
         runTest {
             // Big enough for everything the test shares, too small for the entry added at the end.
             val relay =
-                FakeRelay(limits = RelayLimits(maxBodyBytes = 65536, maxRecordBytes = 3000, maxRecordsPerGroup = 0, fromRelay = true))
+                FakeRelay(limits = RelayInfo(maxBodyBytes = 65536, maxRecordBytes = 3000, maxRecordsPerGroup = 0, fromRelay = true))
             val db1 = inMemoryDatabase()
             val repo1 = GroupRepository(db1, deviceId = "dev1", now = { 1000L })
             val engine1 = SyncEngine(db1, relay, GroupCrypto(), deviceId = "dev1")
@@ -662,7 +662,7 @@ class SyncEngineTest {
     fun a_record_that_can_never_be_pushed_does_not_hold_back_the_others() =
         runTest {
             val relay =
-                FakeRelay(limits = RelayLimits(maxBodyBytes = 65536, maxRecordBytes = 3000, maxRecordsPerGroup = 0, fromRelay = true))
+                FakeRelay(limits = RelayInfo(maxBodyBytes = 65536, maxRecordBytes = 3000, maxRecordsPerGroup = 0, fromRelay = true))
             val db1 = inMemoryDatabase()
             val repo1 = GroupRepository(db1, deviceId = "dev1", now = { 1000L })
             val engine1 = SyncEngine(db1, relay, GroupCrypto(), deviceId = "dev1")
@@ -710,7 +710,7 @@ class SyncEngineTest {
     fun an_unstorable_category_is_set_aside_like_any_other_record() =
         runTest {
             val relay =
-                FakeRelay(limits = RelayLimits(maxBodyBytes = 65536, maxRecordBytes = 3000, maxRecordsPerGroup = 0, fromRelay = true))
+                FakeRelay(limits = RelayInfo(maxBodyBytes = 65536, maxRecordBytes = 3000, maxRecordsPerGroup = 0, fromRelay = true))
             val db = inMemoryDatabase()
             val repo = GroupRepository(db, deviceId = "dev1", now = { 1000L })
             val engine = SyncEngine(db, relay, GroupCrypto(), deviceId = "dev1")
@@ -742,7 +742,7 @@ class SyncEngineTest {
     fun an_unstorable_member_fails_the_push_instead_of_being_dropped() =
         runTest {
             val relay =
-                FakeRelay(limits = RelayLimits(maxBodyBytes = 65536, maxRecordBytes = 3000, maxRecordsPerGroup = 0, fromRelay = true))
+                FakeRelay(limits = RelayInfo(maxBodyBytes = 65536, maxRecordBytes = 3000, maxRecordsPerGroup = 0, fromRelay = true))
             val db = inMemoryDatabase()
             val repo = GroupRepository(db, deviceId = "dev1", now = { 1000L })
             val engine = SyncEngine(db, relay, GroupCrypto(), deviceId = "dev1")
@@ -825,7 +825,7 @@ class SyncEngineTest {
         runTest {
             val relay =
                 FakeRelay(
-                    limits = RelayLimits(maxBodyBytes = Long.MAX_VALUE, maxRecordBytes = 0, maxRecordsPerGroup = 100, fromRelay = true),
+                    limits = RelayInfo(maxBodyBytes = Long.MAX_VALUE, maxRecordBytes = 0, maxRecordsPerGroup = 100, fromRelay = true),
                 )
             val db = inMemoryDatabase()
             val repo = GroupRepository(db, deviceId = "dev1", now = { 1000L })

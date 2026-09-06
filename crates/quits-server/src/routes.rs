@@ -17,6 +17,7 @@ use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 use crate::telemetry::{GroupCreate, GroupJoin, RejectReason};
 
+
 pub struct ClientContext {
     pub instance_header: Option<String>,
 }
@@ -98,11 +99,21 @@ pub struct ChangesQuery {
     pub since: i64,
 }
 
+/// What a client can learn about an instance before it holds any group token.
+///
+/// Versioned by the `/v1` path. Fields are only ever added, so a client older than one of them
+/// simply never reads it.
 #[derive(Debug, Serialize)]
-pub struct LimitsResponse {
+pub struct InfoResponse {
     pub max_body_bytes: u64,
     pub max_record_bytes: u64,
     pub max_records_per_group: u64,
+    /// Age at which a group holding no records is reaped. `0` when the reaper leaves them.
+    pub empty_group_ttl_secs: u64,
+    /// Age of the newest record past which the whole group is reaped. `0` when disabled.
+    pub inactive_group_ttl_secs: u64,
+    /// Whether creating a group needs the instance secret in `X-Quits-Instance`.
+    pub requires_instance_secret: bool,
 }
 
 #[derive(sqlx::FromRow)]
@@ -132,12 +143,16 @@ pub async fn health() -> &'static str {
     "ok"
 }
 
-/// The instance's request and storage limits, so a client can size its pushes to fit.
-pub async fn limits(State(state): State<AppState>) -> Json<LimitsResponse> {
-    Json(LimitsResponse {
+/// The instance's limits and policies, so a client can size its pushes and explain what the
+/// instance will do to a group before it happens.
+pub async fn info(State(state): State<AppState>) -> Json<InfoResponse> {
+    Json(InfoResponse {
         max_body_bytes: state.config.max_body_bytes as u64,
         max_record_bytes: state.config.max_record_bytes as u64,
         max_records_per_group: state.config.max_records_per_group,
+        empty_group_ttl_secs: state.config.empty_group_ttl_secs,
+        inactive_group_ttl_secs: state.config.inactive_group_ttl_secs,
+        requires_instance_secret: state.config.instance_secret.is_some(),
     })
 }
 

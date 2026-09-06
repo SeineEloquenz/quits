@@ -38,14 +38,14 @@ import kotlin.time.TimeSource
 /** Hard ceiling on one relay call, wide enough for a push carrying the relay's whole body limit. */
 private val REQUEST_TIMEOUT = 120.seconds
 
-/** Per-request bound on the limits probe, which [RelayClient.limits] holds its lock across. */
-internal val LIMITS_TIMEOUT = 10.seconds
+/** Per-request bound on the info probe, which [RelayClient.info] holds its lock across. */
+internal val INFO_TIMEOUT = 10.seconds
 
 /** How long an unreachable relay is assumed unreachable before asking again. */
-internal val ASSUMED_LIMITS_TTL = 30.seconds
+internal val ASSUMED_INFO_TTL = 30.seconds
 
-/** How long a relay's published limits are trusted, so an operator changing them is picked up. */
-internal val PUBLISHED_LIMITS_TTL = 30.minutes
+/** How long a relay's published info is trusted, so an operator changing it is picked up. */
+internal val PUBLISHED_INFO_TTL = 30.minutes
 
 /** Talks to the relay over HTTP. Payloads are JSON, base64-encoded on the wire. */
 class RelayClient(
@@ -65,7 +65,7 @@ class RelayClient(
     private class RelayState(
         val url: String,
     ) {
-        var fetched: RelayLimits? = null
+        var fetched: RelayInfo? = null
         var fetchedAt: TimeMark? = null
         var askedAt: TimeMark? = null
     }
@@ -74,50 +74,58 @@ class RelayClient(
 
     // Background sync and the screen that shows headroom both ask, on different threads. Every
     // read-modify-write of relayState happens under this.
-    private val limitsLock = Mutex()
+    private val infoLock = Mutex()
 
     private fun currentState(): RelayState = relayState?.takeIf { it.url == baseUrl } ?: RelayState(baseUrl).also { relayState = it }
 
-    override suspend fun limits(): RelayLimits = limitsLock.withLock { readLimits() }
+    override suspend fun info(): RelayInfo = infoLock.withLock { readInfo() }
 
-    private suspend fun readLimits(): RelayLimits {
+    private suspend fun readInfo(): RelayInfo {
         val state = currentState()
         state.fetched?.let { cached ->
-            if (state.fetchedAt?.elapsedNow()?.let { it < PUBLISHED_LIMITS_TTL } == true) return cached
+            if (state.fetchedAt?.elapsedNow()?.let { it < PUBLISHED_INFO_TTL } == true) return cached
         }
 
         state.askedAt?.let { asked ->
-            if (asked.elapsedNow() < ASSUMED_LIMITS_TTL) return state.fetched ?: RelayLimits.CONSERVATIVE
+            if (asked.elapsedNow() < ASSUMED_INFO_TTL) return state.fetched ?: RelayInfo.CONSERVATIVE
         }
 
-        val limits =
+        val info =
             try {
                 val response: HttpResponse =
-                    client.get("${state.url}/v1/limits") {
-                        timeout { requestTimeoutMillis = LIMITS_TIMEOUT.inWholeMilliseconds }
+                    client.get("${state.url}/v1/info") {
+                        timeout { requestTimeoutMillis = INFO_TIMEOUT.inWholeMilliseconds }
                     }
                 // A relay that predates the endpoint 404s it, which is not a missing group.
-                if (response.status == HttpStatusCode.NotFound) return state.fallbackLimits()
-                val body: LimitsResponseDto = response.decode(RelayOperation.Limits)
-                RelayLimits.published(body.maxBodyBytes, body.maxRecordBytes, body.maxRecordsPerGroup)
+                if (response.status == HttpStatusCode.NotFound) return state.fallbackInfo()
+                val body: InfoResponseDto = response.decode(RelayOperation.Info)
+                RelayInfo.published(
+                    maxBodyBytes = body.maxBodyBytes,
+                    maxRecordBytes = body.maxRecordBytes,
+                    maxRecordsPerGroup = body.maxRecordsPerGroup,
+                    emptyGroupTtl = body.emptyGroupTtlSecs.seconds,
+                    inactiveGroupTtl = body.inactiveGroupTtlSecs.seconds,
+                    requiresInstanceSecret = body.requiresInstanceSecret,
+                )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // Never rethrow. Limits are a sizing hint, and failing here would fail a push that would otherwise have worked.
-                Logger.w(e) { "could not read relay limits from ${state.url}" }
-                return state.fallbackLimits()
+                // Never rethrow. This is a sizing hint, and failing here would fail a push that would
+                // otherwise have worked.
+                Logger.w(e) { "could not read relay info from ${state.url}" }
+                return state.fallbackInfo()
             }
-        state.fetched = limits
+        state.fetched = info
         state.fetchedAt = timeSource.markNow()
-        return limits
+        return info
     }
 
     /**
-     * The last published limits, or a guess, and opens the window before the relay is asked again.
+     * The last published info, or a guess, and opens the window before the relay is asked again.
      */
-    private fun RelayState.fallbackLimits(): RelayLimits {
+    private fun RelayState.fallbackInfo(): RelayInfo {
         askedAt = timeSource.markNow()
-        return fetched ?: RelayLimits.CONSERVATIVE
+        return fetched ?: RelayInfo.CONSERVATIVE
     }
 
     override suspend fun createGroup(lookupId: String): GroupHandle =
@@ -242,11 +250,18 @@ class RelayClient(
         val records: List<String> = emptyList(),
     )
 
+    /**
+     * Defaults cover a relay older than a field, which is why none of them are required. An unknown
+     * retention window reads as disabled rather than as a deadline the client would announce.
+     */
     @Serializable
-    private data class LimitsResponseDto(
+    private data class InfoResponseDto(
         @SerialName("max_body_bytes") val maxBodyBytes: Long,
         @SerialName("max_record_bytes") val maxRecordBytes: Long,
         @SerialName("max_records_per_group") val maxRecordsPerGroup: Long,
+        @SerialName("empty_group_ttl_secs") val emptyGroupTtlSecs: Long = 0,
+        @SerialName("inactive_group_ttl_secs") val inactiveGroupTtlSecs: Long = 0,
+        @SerialName("requires_instance_secret") val requiresInstanceSecret: Boolean = false,
     )
 
     @Serializable

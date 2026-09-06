@@ -1,5 +1,7 @@
 package nz.eloque.quits.data.sync
 
+import kotlin.time.Duration
+
 /** A group's sync handle as known to the relay. */
 data class GroupHandle(
     val remoteId: String,
@@ -18,40 +20,49 @@ data class PullResult(
 )
 
 /**
- * The relay's request and storage limits.
+ * What an instance publishes about itself, before a client holds any group token.
  *
- * `0` means unlimited for the two record limits, matching the relay's configuration.
+ * `0` means unlimited for the record limits and disabled for the retention windows, matching the
+ * relay's own configuration. Only [maxBodyBytes] carries a usable value when [fromRelay] is false,
+ * since the rest then stands in for an answer the relay never gave.
  */
-data class RelayLimits(
+data class RelayInfo(
     val maxBodyBytes: Long,
     val maxRecordBytes: Long,
     val maxRecordsPerGroup: Long,
+    val emptyGroupTtl: Duration = Duration.ZERO,
+    val inactiveGroupTtl: Duration = Duration.ZERO,
+    val requiresInstanceSecret: Boolean = false,
     val fromRelay: Boolean = false,
 ) {
     companion object {
-        /** Assumed for a relay that does not publish `/v1/limits` yet. */
-        val CONSERVATIVE = RelayLimits(maxBodyBytes = 256L * 1024, maxRecordBytes = 0, maxRecordsPerGroup = 0)
+        /** Assumed for a relay that does not publish `/v1/info` yet, or could not be asked. */
+        val CONSERVATIVE = RelayInfo(maxBodyBytes = 256L * 1024, maxRecordBytes = 0, maxRecordsPerGroup = 0)
 
-        /**
-         * Limits as reported by a relay.
-         */
+        /** Info as reported by a relay. */
         fun published(
             maxBodyBytes: Long,
             maxRecordBytes: Long,
             maxRecordsPerGroup: Long,
-        ): RelayLimits =
-            RelayLimits(
+            emptyGroupTtl: Duration = Duration.ZERO,
+            inactiveGroupTtl: Duration = Duration.ZERO,
+            requiresInstanceSecret: Boolean = false,
+        ): RelayInfo =
+            RelayInfo(
                 maxBodyBytes = maxBodyBytes.takeIf { it > 0 } ?: CONSERVATIVE.maxBodyBytes,
                 maxRecordBytes = maxRecordBytes,
                 maxRecordsPerGroup = maxRecordsPerGroup,
+                emptyGroupTtl = emptyGroupTtl,
+                inactiveGroupTtl = inactiveGroupTtl,
+                requiresInstanceSecret = requiresInstanceSecret,
                 fromRelay = maxBodyBytes > 0,
             )
     }
 }
 
 interface Relay {
-    /** The relay's limits, or [RelayLimits.CONSERVATIVE] if it does not publish them. */
-    suspend fun limits(): RelayLimits
+    /** What the relay publishes about itself, or [RelayInfo.CONSERVATIVE] if it does not say. */
+    suspend fun info(): RelayInfo
 
     suspend fun createGroup(lookupId: String): GroupHandle
 

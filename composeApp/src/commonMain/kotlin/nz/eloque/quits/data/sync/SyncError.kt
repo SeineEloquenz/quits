@@ -106,7 +106,7 @@ sealed class SyncError(
 }
 
 /** Which call produced a response, for statuses whose meaning depends on the endpoint. */
-internal enum class RelayOperation { CreateGroup, JoinGroup, Push, Pull, Limits }
+internal enum class RelayOperation { CreateGroup, JoinGroup, Push, Pull, Info }
 
 /** Maps an HTTP status (plus any hints already parsed from the response) to a [SyncError]. */
 internal fun syncErrorForStatus(
