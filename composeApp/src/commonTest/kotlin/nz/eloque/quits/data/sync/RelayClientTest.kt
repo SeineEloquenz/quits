@@ -12,6 +12,7 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
+import nz.eloque.quits.BuildInfo
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.test.Test
@@ -198,6 +199,35 @@ class RelayClientTest {
                 }
             val error = assertFailsWith<SyncError.BadRequest> { relay.createGroup("look-1") }
             assertEquals("group already exists", error.detail)
+        }
+
+    @Test
+    fun every_request_reports_the_client_version() =
+        runTest {
+            var reported: String? = null
+            val relay =
+                client { request ->
+                    reported = request.headers[VERSION_HEADER]
+                    json("""{"group_id":"g","token":"t"}""")
+                }
+            relay.createGroup("look-1")
+            assertEquals(BuildInfo.VERSION, reported)
+        }
+
+    @Test
+    fun upgrade_required_reports_the_minimum_version() =
+        runTest {
+            val relay =
+                client {
+                    respond(
+                        """{"error":"client older than the minimum this relay accepts (0.11.0)","min_version":"0.11.0"}""",
+                        HttpStatusCode.UpgradeRequired,
+                        headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+            val error = assertFailsWith<SyncError.ClientTooOld> { relay.createGroup("look-1") }
+            assertFalse(error.retriable)
+            assertEquals("0.11.0", error.minVersion)
         }
 
     @Test

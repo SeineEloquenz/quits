@@ -11,7 +11,7 @@ Here's what happens to your data.
   leaves your phone. A relay server only ever sees scrambled data it can't
   read.
 - There are no accounts. Quits never asks for your name, email, or phone number.
-- No ads. No analytics. No trackers. No selling data. None of that.
+- No ads. No trackers. No selling data. None of that.
 
 ## What stays on your device
 
@@ -33,6 +33,8 @@ with. When it's on:
   passes the encrypted data between devices.
 - Anyone with the invite link/code can join the group and read its contents,
   because they get the key. Only share invite links with people you trust.
+- The app reports its version to the relay, so the relay can turn away outdated
+  clients, and prompt them to update
 
 You can use the free public relay (`quits.eloque.nz`) or **host your own** — the
 server is open source. If you self-host, that data lives entirely on your

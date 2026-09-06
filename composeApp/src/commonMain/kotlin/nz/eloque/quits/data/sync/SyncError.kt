@@ -97,6 +97,13 @@ sealed class SyncError(
         override val retriable = false
     }
 
+    /** The relay no longer serves this app version (HTTP 426).*/
+    class ClientTooOld(
+        val minVersion: String,
+    ) : SyncError("client too old, relay needs $minVersion") {
+        override val retriable = false
+    }
+
     /** Any other status we have no specific meaning for. */
     class Unexpected(
         val status: Int,
@@ -114,6 +121,7 @@ internal fun syncErrorForStatus(
     retryAfter: Duration?,
     serverMessage: String?,
     recordIds: List<String>,
+    minVersion: String?,
     operation: RelayOperation,
 ): SyncError =
     when (status) {
@@ -129,6 +137,7 @@ internal fun syncErrorForStatus(
                 else -> SyncError.Unexpected(status)
             }
 
+        426 -> minVersion?.let { SyncError.ClientTooOld(it) } ?: SyncError.Unexpected(status)
         429 -> SyncError.RateLimited(retryAfter)
         503 -> SyncError.ServerUnavailable(retryAfter)
         // Insufficient storage means the instance cannot hold another group when creating one, and

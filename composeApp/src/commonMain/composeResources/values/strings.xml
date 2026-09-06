@@ -278,6 +278,7 @@
     <string name="error_sync_batch_too_large">There is too much unsynced data to send in one request.</string>
     <string name="error_sync_record_too_large">One of your entries is too large to sync. Try shortening its description or splitting it up.</string>
     <string name="error_sync_rejected">The sync server rejected the request. Updating the app may help.</string>
+    <string name="error_sync_client_too_old">This sync server needs Quits %1$s or newer. Update the app to keep syncing.</string>
     <string name="error_sync_incompatible">Couldn't read the server's response. The app may need updating.</string>
     <string name="error_sync_unexpected">Sync failed. Please try again.</string>
     <string name="rate_cached">Offline — using cached rate from %1$s</string>
