@@ -244,6 +244,7 @@ pub async fn get_changes(
     Query(query): Query<ChangesQuery>,
 ) -> AppResult<Json<PullResponse>> {
     authorize(&claims, &group_id)?;
+    require_group(&state.db, &group_id).await?;
 
     let rows: Vec<RecordRow> = sqlx::query_as(
         "SELECT id, updated_at, deleted, device_id, payload, server_seq
@@ -284,6 +285,7 @@ pub async fn post_changes(
 
     // Everything that can refuse the push is checked before the first write, so a non-2xx always
     // means nothing was stored. Returning here drops the transaction, rolling it back.
+    require_group(&mut *tx, &group_id).await?;
     let payloads = decode_payloads(&state, &group_id, &req)?;
     let existing = current_rows(&mut tx, &group_id, &req).await?;
     enforce_record_cap(&state, &group_id, &mut tx, &existing).await?;
@@ -443,7 +445,24 @@ async fn enforce_record_cap(
     Err(AppError::GroupFull)
 }
 
+/// Refuses a request for a group the relay no longer holds.
+///
+/// A token outlives its group, since it carries its own expiry and the reaper deletes groups on
+/// age alone. Without this a push hits the records foreign key and answers 500, which a client
+/// reads as a server fault worth retrying forever rather than a group that is gone for good.
+async fn require_group<'a, E>(executor: E, group_id: &str) -> AppResult<()>
+where
+    E: sqlx::Executor<'a, Database = sqlx::Sqlite>,
+{
+    let found: Option<(i64,)> = sqlx::query_as("SELECT 1 FROM groups WHERE id = ?")
+        .bind(group_id)
+        .fetch_optional(executor)
+        .await?;
+    found.map(|_| ()).ok_or(AppError::NotFound)
+}
+
 fn authorize(claims: &Claims, group_id: &str) -> AppResult<()> {
+
     if claims.gid == group_id {
         Ok(())
     } else {

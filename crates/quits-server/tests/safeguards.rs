@@ -359,8 +359,67 @@ async fn reaper_removes_empty_and_inactive_groups_only() {
     assert_eq!(ids, vec!["active", "empty_new"]);
 }
 
+/// The reaper deletes groups on age alone, while a token carries its own expiry and outlives it.
+/// Both halves have to say the group is gone, or a client retries a 500 forever and never learns.
+#[tokio::test]
+async fn a_reaped_group_is_gone_rather_than_broken() {
+    let state = state_with(test_config()).await;
+    let app = router(state.clone());
+
+    let (_status, created) = create(&app, None).await;
+    let gid = created["group_id"].as_str().unwrap().to_string();
+    let token = created["token"].as_str().unwrap().to_string();
+
+    let (status, _) = send(
+        &app,
+        "POST",
+        &format!("/v1/groups/{gid}/changes"),
+        Some(&token),
+        None,
+        Some(json!({ "records": [record("e1", 100, "A", "before")] })),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+
+    sqlx::query("DELETE FROM records WHERE group_id = ?")
+        .bind(&gid)
+        .execute(&state.db)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM groups WHERE id = ?")
+        .bind(&gid)
+        .execute(&state.db)
+        .await
+        .unwrap();
+
+    // A push used to hit the records foreign key and answer 500, which reads as retriable.
+    let (status, _) = send(
+        &app,
+        "POST",
+        &format!("/v1/groups/{gid}/changes"),
+        Some(&token),
+        None,
+        Some(json!({ "records": [record("e2", 200, "A", "after")] })),
+    )
+    .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+
+    // A pull used to answer 200 with nothing, which reads as a group that is simply empty.
+    let (status, _) = send(
+        &app,
+        "GET",
+        &format!("/v1/groups/{gid}/changes?since=0"),
+        Some(&token),
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
 #[tokio::test]
 async fn info_is_public_and_reflects_config() {
+
     let mut config = test_config();
     config.max_body_bytes = 4096;
     config.max_record_bytes = 128;
