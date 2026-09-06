@@ -1,0 +1,4 @@
+* Add qr code display to share sheet
+* Add information about sync server quota settings to app settings
+* App now handles sync server quotas gracefully
+* The sync relay can now turn away outdated clients

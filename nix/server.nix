@@ -10,7 +10,7 @@ let
 in
 rustPlatform.buildRustPackage {
   pname = "quits-server";
-  version = "0.8.0";
+  version = "0.11.0";
 
   src = fs.toSource {
     inherit root;
