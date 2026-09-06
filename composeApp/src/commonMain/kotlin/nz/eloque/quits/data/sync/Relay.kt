@@ -22,9 +22,7 @@ data class PullResult(
 /**
  * What an instance publishes about itself, before a client holds any group token.
  *
- * `0` means unlimited for the record limits and disabled for the retention windows, matching the
- * relay's own configuration. Only [maxBodyBytes] carries a usable value when [fromRelay] is false,
- * since the rest then stands in for an answer the relay never gave.
+ * `0` means unlimited for the record limits and disabled for the retention windows.
  */
 data class RelayInfo(
     val maxBodyBytes: Long,

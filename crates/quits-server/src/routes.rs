@@ -17,7 +17,6 @@ use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 use crate::telemetry::{GroupCreate, GroupJoin, RejectReason};
 
-
 pub struct ClientContext {
     pub instance_header: Option<String>,
 }
@@ -100,9 +99,6 @@ pub struct ChangesQuery {
 }
 
 /// What a client can learn about an instance before it holds any group token.
-///
-/// Versioned by the `/v1` path. Fields are only ever added, so a client older than one of them
-/// simply never reads it.
 #[derive(Debug, Serialize)]
 pub struct InfoResponse {
     pub max_body_bytes: u64,

@@ -13,6 +13,7 @@ import nz.eloque.quits.ui.group.GroupDetailViewModel
 import nz.eloque.quits.ui.group.MemberDetailViewModel
 import nz.eloque.quits.ui.group.SettlementEditorViewModel
 import nz.eloque.quits.ui.groups.GroupsViewModel
+import nz.eloque.quits.ui.settings.RelayInfoViewModel
 import nz.eloque.quits.ui.settings.SettingsViewModel
 import nz.eloque.quits.ui.stats.StatsViewModel
 import org.koin.core.context.startKoin
@@ -28,6 +29,7 @@ val appModule =
         singleOf(::InviteResolver)
         viewModelOf(::GroupsViewModel)
         viewModelOf(::SettingsViewModel)
+        viewModelOf(::RelayInfoViewModel)
         viewModel { params -> GroupDetailViewModel(get(), get(), get(), params.get<GroupId>()) }
         viewModel { params ->
             EntryEditorViewModel(get(), get(), get(), params.get<GroupId>(), params.getOrNull<String>(), params.get<EntryKind>())

@@ -251,8 +251,7 @@ class RelayClient(
     )
 
     /**
-     * Defaults cover a relay older than a field, which is why none of them are required. An unknown
-     * retention window reads as disabled rather than as a deadline the client would announce.
+     * Defaults cover a relay older than a field, which is why none of them are required.
      */
     @Serializable
     private data class InfoResponseDto(

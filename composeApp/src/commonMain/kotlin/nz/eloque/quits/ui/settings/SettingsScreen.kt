@@ -14,7 +14,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Tune
@@ -38,6 +40,8 @@ import nz.eloque.compose_kit.input.SubmittableTextField
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.cd_back
+import nz.eloque.quits.resources.relay_info_entry
+import nz.eloque.quits.resources.relay_info_entry_desc
 import nz.eloque.quits.resources.settings_advanced
 import nz.eloque.quits.resources.settings_advanced_desc
 import nz.eloque.quits.resources.settings_instance_secret
@@ -48,7 +52,10 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(
+    onBack: () -> Unit,
+    onOpenRelayInfo: () -> Unit,
+) {
     val viewModel = koinViewModel<SettingsViewModel>()
     val state by viewModel.state.collectAsState()
 
@@ -74,6 +81,12 @@ fun SettingsScreen(onBack: () -> Unit) {
                 .padding(horizontal = 16.dp),
         ) {
             Spacer(Modifier.height(8.dp))
+            NavigationRow(
+                title = stringResource(Res.string.relay_info_entry),
+                description = stringResource(Res.string.relay_info_entry_desc),
+                onClick = onOpenRelayInfo,
+            )
+            Spacer(Modifier.height(16.dp))
             AdvancedSection {
                 Text(
                     text = stringResource(Res.string.settings_advanced_desc),
@@ -100,6 +113,36 @@ fun SettingsScreen(onBack: () -> Unit) {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun NavigationRow(
+    title: String,
+    description: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp),
+        ) {
+            Icon(Icons.Default.Dns, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Column(Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
         }
     }
 }

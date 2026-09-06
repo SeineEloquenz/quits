@@ -190,7 +190,7 @@ class SyncEngine(
         val settlements = if (full) db.settlementDao().forGroup(gid) else db.settlementDao().dirty(gid)
         val categories = if (full) db.categoryDao().forGroup(gid) else db.categoryDao().dirty(gid)
 
-        // Order is load-bearing. server_seq follows arrival order and a peer pulling between chunks
+        // Order is relevant. server_seq follows arrival order and a peer pulling between chunks
         // applies a prefix of this list. The group record must lead, since every other entity's
         // groupId foreign key needs that row. Members must precede the entries and settlements
         // naming them, or the peer's Group init rejects the aggregate and the group stops loading.
