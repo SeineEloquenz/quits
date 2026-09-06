@@ -276,6 +276,7 @@
     <string name="error_sync_batch_too_large">Es gibt zu viele nicht synchronisierte Daten für eine einzelne Anfrage.</string>
     <string name="error_sync_record_too_large">Einer deiner Einträge ist zu groß zum Synchronisieren. Kürze die Beschreibung oder teile ihn auf.</string>
     <string name="error_sync_rejected">Der Sync-Server hat die Anfrage abgelehnt. Ein App-Update kann helfen.</string>
+    <string name="error_sync_client_too_old">Dieser Sync-Server benötigt Quits %1$s oder neuer. Aktualisiere die App, um weiter zu synchronisieren.</string>
     <string name="error_sync_incompatible">Die Antwort des Servers konnte nicht gelesen werden. Die App muss möglicherweise aktualisiert werden.</string>
     <string name="error_sync_unexpected">Synchronisierung fehlgeschlagen. Bitte versuche es erneut.</string>
     <string name="rate_cached">Offline - zwischengespeicherter Kurs vom %1$s wird verwendet</string>

@@ -1,7 +1,8 @@
 //! Metrics: an OpenTelemetry meter provider rendered through a Prometheus endpoint.
 
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
 use axum::Router;
@@ -18,6 +19,7 @@ use prometheus::{Encoder, Registry, TEXT_FORMAT, TextEncoder};
 use sqlx::SqlitePool;
 use tokio::net::TcpListener;
 
+use crate::client::ClientVersion;
 use crate::clock::now_secs;
 use crate::config::Config;
 
@@ -32,6 +34,15 @@ const RECORD_PAYLOAD: &str = "quits.record.payload";
 const REAP_DURATION: &str = "quits.reaper.duration";
 
 const COUNT_BUCKETS: &[f64] = &[1.0, 2.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0];
+
+/// Ceiling on distinct values of the `version` label. It is derived from a client-controlled
+/// header, so without a cap anyone could mint series until the process runs out of memory.
+const MAX_TRACKED_VERSIONS: usize = 64;
+
+const VERSION_UNKNOWN: &str = "unknown";
+
+/// Version label once [`MAX_TRACKED_VERSIONS`] distinct ones are already tracked.
+const VERSION_OVERFLOW: &str = "other";
 
 /// Every histogram needs explicit boundaries: the SDK's defaults assume milliseconds, which puts
 /// every real observation of a seconds-valued histogram in the first bucket.
@@ -274,6 +285,50 @@ impl Http {
     }
 }
 
+/// Instruments for the clients talking to the relay.
+#[derive(Clone)]
+struct Client {
+    requests: Counter<u64>,
+    /// Versions already granted a series, bounded by [`MAX_TRACKED_VERSIONS`].
+    tracked: Arc<RwLock<HashSet<String>>>,
+}
+
+impl Client {
+    fn new(meter: &Meter) -> Self {
+        Self {
+            requests: meter
+                .u64_counter("quits.client.requests")
+                .with_description("Group-endpoint requests, by the client version that sent them.")
+                .build(),
+            tracked: Arc::new(RwLock::new(HashSet::new())),
+        }
+    }
+
+    /// Resolves the label for `version`, admitting it to [`Self::tracked`] while there is room.
+    fn label(&self, version: Option<ClientVersion>) -> String {
+        let Some(version) = version else {
+            return VERSION_UNKNOWN.to_string();
+        };
+        let series = version.series();
+        if self
+            .tracked
+            .read()
+            .is_ok_and(|tracked| tracked.contains(&series))
+        {
+            return series;
+        }
+        match self.tracked.write() {
+            Ok(mut tracked)
+                if tracked.contains(&series) || tracked.len() < MAX_TRACKED_VERSIONS =>
+            {
+                tracked.insert(series.clone());
+                series
+            }
+            _ => VERSION_OVERFLOW.to_string(),
+        }
+    }
+}
+
 /// Instruments for the sync protocol itself: group lifecycle and record reconciliation.
 #[derive(Clone)]
 struct Relay {
@@ -380,6 +435,7 @@ pub struct Metrics {
     _provider: SdkMeterProvider,
     registry: Registry,
     http: Http,
+    client: Client,
     relay: Relay,
     reaper: Reaper,
     storage: StorageStats,
@@ -401,12 +457,34 @@ impl Metrics {
 
         Self {
             http: Http::new(&meter),
+            client: Client::new(&meter),
             relay: Relay::new(&meter),
             reaper: Reaper::new(&meter),
             storage,
             registry,
             _provider: provider,
         }
+    }
+
+    /// Renders the registry in the Prometheus text format. Empty when no exporter is attached.
+    pub fn encode(&self) -> String {
+        let mut buf = Vec::new();
+        match TextEncoder::new().encode(&self.registry.gather(), &mut buf) {
+            Ok(()) => String::from_utf8(buf).unwrap_or_default(),
+            Err(e) => {
+                tracing::error!("metrics encoding failed: {e}");
+                String::new()
+            }
+        }
+    }
+
+    /// Counts one group-endpoint request against the version that sent it. `None` is every caller
+    /// that reports no Quits product token, and lands in a single catch-all series.
+    pub fn client_request(&self, version: Option<ClientVersion>) {
+        let label = self.client.label(version);
+        self.client
+            .requests
+            .add(1, &[KeyValue::new("version", label)]);
     }
 
     pub fn group_created(&self, outcome: GroupCreate) {
@@ -577,15 +655,7 @@ fn register_limits(meter: &Meter, config: &Config) {
 }
 
 async fn render(State(metrics): State<Metrics>) -> impl IntoResponse {
-    let mut buf = Vec::new();
-    let body = match TextEncoder::new().encode(&metrics.registry.gather(), &mut buf) {
-        Ok(()) => String::from_utf8(buf).unwrap_or_default(),
-        Err(e) => {
-            tracing::error!("metrics encoding failed: {e}");
-            String::new()
-        }
-    };
-    ([(CONTENT_TYPE, TEXT_FORMAT)], body)
+    ([(CONTENT_TYPE, TEXT_FORMAT)], metrics.encode())
 }
 
 /// Carries the matched route out through the response.
@@ -663,3 +733,41 @@ async fn sample_once(db: &SqlitePool) -> Result<Snapshot, sqlx::Error> {
     })
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn client() -> Client {
+        Client::new(&SdkMeterProvider::builder().build().meter(METER))
+    }
+
+    fn version(s: &str) -> Option<ClientVersion> {
+        Some(s.parse().expect("parses"))
+    }
+
+    #[test]
+    fn labels_a_version_by_major_and_minor() {
+        let client = client();
+        assert_eq!(client.label(version("0.10.1")), "0.10");
+        assert_eq!(client.label(version("0.10.7")), "0.10");
+        assert_eq!(client.label(version("1.2.0")), "1.2");
+    }
+
+    #[test]
+    fn labels_an_unreported_version_as_unknown() {
+        assert_eq!(client().label(None), VERSION_UNKNOWN);
+    }
+
+    #[test]
+    fn spills_into_one_series_past_the_cap() {
+        let client = client();
+        for minor in 0..MAX_TRACKED_VERSIONS {
+            let label = client.label(version(&format!("0.{minor}.0")));
+            assert_eq!(label, format!("0.{minor}"));
+        }
+
+        assert_eq!(client.label(version("9.9.9")), VERSION_OVERFLOW);
+        assert_eq!(client.label(version("0.1.0")), "0.1");
+        assert_eq!(client.label(None), VERSION_UNKNOWN);
+    }
+}

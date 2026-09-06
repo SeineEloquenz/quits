@@ -3,6 +3,7 @@ package nz.eloque.quits.ui.sync
 import nz.eloque.quits.data.sync.SyncError
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.error_sync_batch_too_large
+import nz.eloque.quits.resources.error_sync_client_too_old
 import nz.eloque.quits.resources.error_sync_group_full
 import nz.eloque.quits.resources.error_sync_group_gone
 import nz.eloque.quits.resources.error_sync_incompatible
@@ -34,6 +35,7 @@ suspend fun SyncError.toUserMessage(): String =
         is SyncError.BatchTooLarge -> getString(Res.string.error_sync_batch_too_large)
         is SyncError.RecordTooLarge -> getString(Res.string.error_sync_record_too_large)
         is SyncError.BadRequest -> getString(Res.string.error_sync_rejected)
+        is SyncError.ClientTooOld -> getString(Res.string.error_sync_client_too_old, minVersion)
         is SyncError.Protocol -> getString(Res.string.error_sync_incompatible)
         is SyncError.Unexpected -> getString(Res.string.error_sync_unexpected)
     }

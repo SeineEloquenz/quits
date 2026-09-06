@@ -5,6 +5,7 @@
 //! money/split/balance/FX logic lives in the client. See [`routes`] for the protocol.
 
 pub mod auth;
+pub mod client;
 pub mod clock;
 pub mod config;
 pub mod error;
@@ -51,22 +52,28 @@ pub fn router(state: AppState) -> Router {
         create = create.layer(GovernorLayer::new(conf));
     }
 
-    let mut app = Router::new()
-        .route("/health", get(routes::health))
-        .route("/v1/info", get(routes::info))
-
+    let groups = Router::new()
         .route("/v1/groups/join", post(routes::join_group))
         .route(
             "/v1/groups/{id}/changes",
             get(routes::get_changes).post(routes::post_changes),
         )
+        .merge(create)
+        .route_layer(axum::middleware::from_fn_with_state(
+            state.metrics.clone(),
+            client::check_version,
+        ));
+
+    let mut app = Router::new()
+        .route("/health", get(routes::health))
+        .route("/v1/info", get(routes::info))
         .route("/.well-known/assetlinks.json", get(wellknown::assetlinks))
         .route(
             "/.well-known/apple-app-site-association",
             get(wellknown::apple_app_site_association),
         )
         .route("/join", get(wellknown::join_landing))
-        .merge(create)
+        .merge(groups)
         .route_layer(axum::middleware::from_fn(telemetry::tag_route));
 
     if let Some(conf) = ratelimit::global_config(&config) {

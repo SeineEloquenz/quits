@@ -6,6 +6,7 @@ import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.timeout
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
@@ -27,6 +28,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import nz.eloque.quits.BuildInfo
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.time.Duration
@@ -47,6 +49,8 @@ internal val ASSUMED_INFO_TTL = 30.seconds
 /** How long a relay's published info is trusted, so an operator changing it is picked up. */
 internal val PUBLISHED_INFO_TTL = 30.minutes
 
+internal const val VERSION_HEADER = "X-Quits-Version"
+
 /** Talks to the relay over HTTP. Payloads are JSON, base64-encoded on the wire. */
 class RelayClient(
     engine: HttpClientEngine,
@@ -57,6 +61,7 @@ class RelayClient(
         HttpClient(engine) {
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
             install(HttpTimeout) { requestTimeoutMillis = REQUEST_TIMEOUT.inWholeMilliseconds }
+            defaultRequest { header(VERSION_HEADER, BuildInfo.VERSION) }
         }
 
     private val baseUrl: String get() = settings.relayUrl.trimEnd('/')
@@ -216,6 +221,7 @@ class RelayClient(
             retryAfterHint(),
             message?.takeIf { it.isNotBlank() },
             error?.records.orEmpty(),
+            error?.minVersion?.takeIf { it.isNotBlank() },
             operation,
         )
     }
@@ -248,6 +254,7 @@ class RelayClient(
     private data class RelayErrorResponse(
         val error: String? = null,
         val records: List<String> = emptyList(),
+        @SerialName("min_version") val minVersion: String? = null,
     )
 
     /**
