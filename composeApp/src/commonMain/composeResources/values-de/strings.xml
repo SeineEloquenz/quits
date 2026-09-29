@@ -288,7 +288,6 @@
     <string name="error_invalid_total">Gib einen gültigen Betrag ein</string>
     <string name="error_paid_sum">Die gezahlten Beträge müssen zusammen %1$s ergeben</string>
     <string name="error_invalid_split">Ungültige Aufteilung</string>
-    <string name="error_invalid_expense">Ungültiger Eintrag</string>
     <string name="error_no_participant">Wähle mindestens eine Person aus</string>
     <string name="error_invalid_share">Ungültiger Anteil für %1$s</string>
     <string name="error_no_share">Gib mindestens einen Anteil ein</string>

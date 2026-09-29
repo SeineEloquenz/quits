@@ -290,7 +290,6 @@
     <string name="error_invalid_total">Enter a valid amount</string>
     <string name="error_paid_sum">Paid amounts must add up to %1$s</string>
     <string name="error_invalid_split">Invalid split</string>
-    <string name="error_invalid_expense">Invalid entry</string>
     <string name="error_no_participant">Select at least one participant</string>
     <string name="error_invalid_share">Invalid share for %1$s</string>
     <string name="error_no_share">Enter at least one share</string>
