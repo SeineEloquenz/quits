@@ -319,4 +319,15 @@
     <string name="sync_now_menu">Sync now</string>
     <string name="export_empty">Nothing to export yet.</string>
     <string name="detail_quota_new_group_failed">This group is no longer available, so nothing was copied.</string>
+    <string name="quick_split_title">Split a receipt</string>
+    <string name="quick_split_people">People</string>
+    <string name="quick_split_add_person">Add person</string>
+    <string name="quick_split_who_pays">Who pays whom</string>
+    <string name="quick_split_incomplete">Fill in the receipt to see who owes what.</string>
+    <string name="quick_split_even">Nobody owes anything.</string>
+    <string name="quick_split_paid_and_share">Paid %1$s · share %2$s</string>
+    <string name="quick_split_share">Share split</string>
+    <string name="quick_split_share_total">Receipt total %1$s</string>
+    <string name="quick_split_share_transfer">%1$s pays %2$s %3$s</string>
+    <string name="quick_split_onboarding_hint">Only need to split one receipt?</string>
 </resources>

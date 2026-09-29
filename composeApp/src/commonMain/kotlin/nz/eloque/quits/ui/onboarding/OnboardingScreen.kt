@@ -1,17 +1,21 @@
 package nz.eloque.quits.ui.onboarding
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +28,8 @@ import nz.eloque.quits.resources.add_group_no_account
 import nz.eloque.quits.resources.add_group_tagline
 import nz.eloque.quits.resources.app_name
 import nz.eloque.quits.resources.logo
+import nz.eloque.quits.resources.quick_split_onboarding_hint
+import nz.eloque.quits.resources.quick_split_title
 import nz.eloque.quits.ui.groups.AddGroupContent
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -34,6 +40,7 @@ fun OnboardingScreen(
     onJoin: (code: String) -> Unit,
     error: String?,
     onJoinInput: () -> Unit,
+    onQuickSplit: () -> Unit,
 ) {
     Column(
         Modifier
@@ -61,6 +68,22 @@ fun OnboardingScreen(
         Spacer(Modifier.height(28.dp))
 
         AddGroupContent(onCreate = onCreate, onJoin = onJoin, error = error, onJoinInput = onJoinInput, modifier = Modifier.fillMaxWidth())
+
+        Spacer(Modifier.height(16.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(Res.string.quick_split_onboarding_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = onQuickSplit) {
+                Text(stringResource(Res.string.quick_split_title))
+            }
+        }
 
         Spacer(Modifier.height(24.dp))
         Text(

@@ -36,6 +36,7 @@ import nz.eloque.quits.navigation.GroupsHomeKey
 import nz.eloque.quits.navigation.JoinInviteKey
 import nz.eloque.quits.navigation.LibrariesKey
 import nz.eloque.quits.navigation.MemberDetailKey
+import nz.eloque.quits.navigation.QuickSplitKey
 import nz.eloque.quits.navigation.RelayInfoKey
 import nz.eloque.quits.navigation.SettingsKey
 import nz.eloque.quits.navigation.SettleUpKey
@@ -52,6 +53,7 @@ import nz.eloque.quits.ui.group.SettlementEditorScreen
 import nz.eloque.quits.ui.groups.AddGroupScreen
 import nz.eloque.quits.ui.groups.JoinInviteScreen
 import nz.eloque.quits.ui.home.HomeScreen
+import nz.eloque.quits.ui.quicksplit.QuickSplitScreen
 import nz.eloque.quits.ui.settings.RelayInfoScreen
 import nz.eloque.quits.ui.settings.SettingsScreen
 import nz.eloque.quits.ui.stats.StatsScreen
@@ -75,6 +77,7 @@ private val navSavedStateConfiguration =
                     subclass(AboutKey::class)
                     subclass(LibrariesKey::class)
                     subclass(JoinInviteKey::class)
+                    subclass(QuickSplitKey::class)
                 }
             }
     }
@@ -126,6 +129,7 @@ fun App() {
                                 onOpenSettings = { backStack.add(SettingsKey) },
                                 onOpenAbout = { backStack.add(AboutKey) },
                                 onAddGroup = { backStack.add(AddGroupKey) },
+                                onQuickSplit = { backStack.add(QuickSplitKey) },
                                 onAddExpense = { groupId -> backStack.add(EntryEditorKey(groupId.value, kind = EntryKind.EXPENSE.name)) },
                                 onAddIncome = { groupId -> backStack.add(EntryEditorKey(groupId.value, kind = EntryKind.INCOME.name)) },
                                 onOpenEntry = { groupId, entryId -> backStack.add(EntryDetailKey(groupId.value, entryId.value)) },
@@ -192,6 +196,9 @@ fun App() {
                                 onBack = { backStack.removeLastOrNull() },
                                 onOpenLibraries = { backStack.add(LibrariesKey) },
                             )
+                        }
+                        entry<QuickSplitKey> {
+                            QuickSplitScreen(onBack = { backStack.removeLastOrNull() })
                         }
                         entry<LibrariesKey> {
                             LibrariesScreen(onBack = { backStack.removeLastOrNull() })

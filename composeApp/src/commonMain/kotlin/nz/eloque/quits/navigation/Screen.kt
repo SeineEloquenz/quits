@@ -68,3 +68,7 @@ data object LibrariesKey : NavKey
 data class JoinInviteKey(
     val code: String,
 ) : NavKey
+
+/** Split a single receipt among ad-hoc people, outside any group. */
+@Serializable
+data object QuickSplitKey : NavKey
