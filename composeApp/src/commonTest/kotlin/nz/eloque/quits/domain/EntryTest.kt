@@ -9,23 +9,18 @@ class EntryTest {
     private val b = mid("b")
 
     @Test
-    fun derives_shares_and_totals_from_payments_and_split() {
-        val entry =
-            Entry(
-                EntryId("e1"),
-                "Dinner",
-                listOf(Payment(a, usd(3000))),
-                Split.Equal(listOf(a, b)),
-            )
+    fun exposes_its_bill() {
+        val payments = listOf(Payment(a, usd(3000)))
+        val split = Split.Equal(listOf(a, b))
+        val entry = Entry(EntryId("e1"), "Dinner", payments, split)
+        assertEquals(Bill(payments, split), entry.bill)
         assertEquals(usd(3000), entry.total)
-        assertEquals(usd(1500), entry.shareOf(a))
         assertEquals(usd(1500), entry.shareOf(b))
         assertEquals(usd(3000), entry.paymentsBy(a))
-        assertEquals(usd(0), entry.paymentsBy(b))
     }
 
     @Test
-    fun rejects_payments_in_mixed_currencies() {
+    fun rejects_an_invalid_bill() {
         assertFailsWith<IllegalArgumentException> {
             Entry(
                 EntryId("e"),
