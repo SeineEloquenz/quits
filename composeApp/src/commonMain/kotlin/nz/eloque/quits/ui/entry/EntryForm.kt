@@ -132,11 +132,12 @@ fun EntryForm(
         selected = state.currency,
         onSelected = actions::setCurrency,
     )
-    if (state.isForeign) {
+    val base = state.baseCurrency
+    if (base != null && state.isForeign) {
         ListRowDivider()
         ListTextRow(
             icon = Icons.Default.CurrencyExchange,
-            label = stringResource(Res.string.editor_label_rate, state.baseCurrency.code),
+            label = stringResource(Res.string.editor_label_rate, base.code),
             value = state.rate,
             onValueChange = actions::setRate,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -318,7 +319,7 @@ fun EntryForm(
     }
 }
 
-/** One tappable avatar chip; a checkmark badge marks selection. Used for both single-payer pick and equal-split toggle. */
+/** Tappable member avatar with a selection badge. */
 @Composable
 private fun MemberChip(
     member: MemberInput,
@@ -374,7 +375,7 @@ private fun paidByEqualHint(state: EntryFormState): String {
     }
 }
 
-/** Split-payer mode's "remaining to assign" — mirrors the split section's own hint below. */
+/** Remaining amount to assign across custom payers. */
 @Composable
 private fun PaidRemainingHint(state: EntryFormState) {
     val currency = state.currency
@@ -632,7 +633,7 @@ private fun SharesStepper(
     }
 }
 
-/** Compact circular −/+ button for [SharesStepper]; skips [IconButton]'s 48dp min touch target to align with the compact split fields. */
+/** Compact circular −/+ button for [SharesStepper]. Skips the 48dp minimum touch target to align with the compact split fields. */
 @Composable
 private fun StepperButton(
     icon: ImageVector,
@@ -661,7 +662,7 @@ private fun StepperButton(
     }
 }
 
-/** "4 people · ¥1,200 each" once the amount is valid; a plain count otherwise. */
+/** "4 people · ¥1,200 each" once the amount is valid, otherwise a plain count. */
 @Composable
 private fun equalSplitHint(state: EntryFormState): String {
     val count = state.equalSelected.size
@@ -674,7 +675,7 @@ private fun equalSplitHint(state: EntryFormState): String {
     }
 }
 
-/** Live € equivalent for a percentage input; uses the real [Split.Percentage.divide] once the percentages sum to 100, else per-row division. */
+/** Live amount preview for a percentage input. */
 @Composable
 private fun percentagePreview(
     state: EntryFormState,

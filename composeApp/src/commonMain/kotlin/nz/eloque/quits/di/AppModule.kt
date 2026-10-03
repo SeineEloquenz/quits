@@ -31,7 +31,7 @@ val appModule =
         viewModelOf(::GroupsViewModel)
         viewModelOf(::SettingsViewModel)
         viewModelOf(::RelayInfoViewModel)
-        viewModelOf(::QuickSplitViewModel)
+        viewModel { params -> QuickSplitViewModel(params.getOrNull<String>()) }
         viewModel { params -> GroupDetailViewModel(get(), get(), get(), params.get<GroupId>()) }
         viewModel { params ->
             EntryEditorViewModel(get(), get(), get(), params.get<GroupId>(), params.getOrNull<String>(), params.get<EntryKind>())

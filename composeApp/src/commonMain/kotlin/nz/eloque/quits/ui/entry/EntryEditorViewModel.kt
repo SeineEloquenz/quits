@@ -24,7 +24,6 @@ import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.EntryKind
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
-import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Split
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.error_discount_too_large
@@ -118,10 +117,7 @@ class EntryEditorViewModel(
                 tzOffsetMinutes = currentOffsetMinutes(),
             )
         }
-        val paidMoney =
-            existing.payments
-                .groupBy { it.member }
-                .mapValues { (_, payments) -> payments.fold(Money.zero(existing.currency)) { a, p -> a + p.amount } }
+        val paidMoney = existing.payments.map { it.member }.distinct().associateWith(existing::paymentsBy)
         val paid = paidMoney.entries.associate { (member, money) -> member to money.toDecimalString() }
         val distinctPayers = paidMoney.keys.toList()
         val isEvenSplit =
@@ -225,7 +221,7 @@ class EntryEditorViewModel(
     override fun setCurrency(value: Currency) {
         super.setCurrency(value)
         val base = _state.value.form.baseCurrency
-        if (value != base) {
+        if (base != null && value != base) {
             fetchRate(value, base)
         }
     }
@@ -268,7 +264,7 @@ class EntryEditorViewModel(
                     }
 
                     is EntryValidation.Valid -> {
-                        outcome.entry
+                        outcome
                     }
                 }
 

@@ -17,16 +17,16 @@ import nz.eloque.quits.ui.entry.EntryFormViewModel
 import nz.eloque.quits.ui.entry.EntryValidation
 import nz.eloque.quits.ui.entry.MemberInput
 import nz.eloque.quits.ui.entry.validate
-import nz.eloque.quits.ui.entry.withCurrency
 import nz.eloque.quits.ui.entry.withMember
 import nz.eloque.quits.ui.entry.withMemberRenamed
 import nz.eloque.quits.ui.entry.withoutMember
 import nz.eloque.quits.util.newId
 
 /** Splits a single receipt among ad-hoc people. Nothing is persisted. */
-class QuickSplitViewModel : EntryFormViewModel() {
-    private val _form =
-        Currency.of("USD").let { MutableStateFlow(EntryFormState(baseCurrency = it, currency = it)) }
+class QuickSplitViewModel(
+    currencyCode: String?,
+) : EntryFormViewModel() {
+    private val _form = MutableStateFlow(EntryFormState(currency = Currency.of(currencyCode ?: "USD")))
     val form: StateFlow<EntryFormState> = _form.asStateFlow()
 
     /** The settled split once the form is valid, otherwise null. */
@@ -34,8 +34,6 @@ class QuickSplitViewModel : EntryFormViewModel() {
         _form.map { it.toQuickSplit() }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     override fun updateForm(transform: (EntryFormState) -> EntryFormState) = _form.update(transform)
-
-    override fun setCurrency(value: Currency) = updateForm { it.withCurrency(value).copy(baseCurrency = value) }
 
     fun addPerson(name: String) {
         val trimmed = name.trim()
@@ -52,6 +50,7 @@ class QuickSplitViewModel : EntryFormViewModel() {
 }
 
 private fun EntryFormState.toQuickSplit(): QuickSplit? {
+    if (members.any { it.name.isBlank() }) return null
     val valid = validate() as? EntryValidation.Valid ?: return null
-    return QuickSplit(members.map { Member(it.id, it.name.trim()) }, valid.entry.bill)
+    return QuickSplit(members.map { Member(it.id, it.name.trim()) }, valid.bill)
 }

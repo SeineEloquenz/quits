@@ -27,8 +27,8 @@ class QuickSplitTest {
     @Test
     fun people_without_a_part_in_the_bill_are_settled() {
         val split = QuickSplit(people, Bill(listOf(Payment(a, usd(300))), Split.Equal(listOf(a, b))))
-        assertEquals(usd(0), split.balances().of(c))
-        assertEquals(listOf(Transfer(b, a, usd(150))), split.transfers())
+        assertEquals(usd(0), split.balances.of(c))
+        assertEquals(listOf(Transfer(b, a, usd(150))), split.transfers)
     }
 
     @Test
@@ -39,8 +39,8 @@ class QuickSplitTest {
                 Split.Shares(mapOf(a to 1L, b to 3L, c to 2L)),
             )
         val split = QuickSplit(people, bill)
-        val settled = split.balances().net.mapValues { it.value.minorUnits }.toMutableMap()
-        split.transfers().forEach {
+        val settled = split.balances.net.mapValues { it.value.minorUnits }.toMutableMap()
+        split.transfers.forEach {
             settled[it.from] = settled.getValue(it.from) + it.amount.minorUnits
             settled[it.to] = settled.getValue(it.to) - it.amount.minorUnits
         }
@@ -66,7 +66,7 @@ class QuickSplitTest {
         splits.forEach { split ->
             val entry = Entry(EntryId("e"), "x", payments, split)
             val group = Group(GroupId("g"), "G", USD, people, listOf(entry))
-            assertEquals(group.balances(), QuickSplit(people, entry.bill).balances(), "split $split")
+            assertEquals(group.balances(), QuickSplit(people, entry.bill).balances, "split $split")
         }
     }
 }

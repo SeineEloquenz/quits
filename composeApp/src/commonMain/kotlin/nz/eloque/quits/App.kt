@@ -129,7 +129,7 @@ fun App() {
                                 onOpenSettings = { backStack.add(SettingsKey) },
                                 onOpenAbout = { backStack.add(AboutKey) },
                                 onAddGroup = { backStack.add(AddGroupKey) },
-                                onQuickSplit = { backStack.add(QuickSplitKey) },
+                                onQuickSplit = { currency -> backStack.add(QuickSplitKey(currency?.code)) },
                                 onAddExpense = { groupId -> backStack.add(EntryEditorKey(groupId.value, kind = EntryKind.EXPENSE.name)) },
                                 onAddIncome = { groupId -> backStack.add(EntryEditorKey(groupId.value, kind = EntryKind.INCOME.name)) },
                                 onOpenEntry = { groupId, entryId -> backStack.add(EntryDetailKey(groupId.value, entryId.value)) },
@@ -197,8 +197,8 @@ fun App() {
                                 onOpenLibraries = { backStack.add(LibrariesKey) },
                             )
                         }
-                        entry<QuickSplitKey> {
-                            QuickSplitScreen(onBack = { backStack.removeLastOrNull() })
+                        entry<QuickSplitKey> { key ->
+                            QuickSplitScreen(currency = key.currency, onBack = { backStack.removeLastOrNull() })
                         }
                         entry<LibrariesKey> {
                             LibrariesScreen(onBack = { backStack.removeLastOrNull() })

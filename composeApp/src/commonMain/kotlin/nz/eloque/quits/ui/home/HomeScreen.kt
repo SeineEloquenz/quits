@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
@@ -59,7 +60,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
     onAddGroup: () -> Unit,
-    onQuickSplit: () -> Unit,
+    onQuickSplit: (Currency?) -> Unit,
     onAddExpense: (GroupId) -> Unit,
     onAddIncome: (GroupId) -> Unit,
     onOpenEntry: (GroupId, EntryId) -> Unit,
@@ -79,7 +80,7 @@ fun HomeScreen(
             onJoin = viewModel::join,
             error = error,
             onJoinInput = viewModel::clearError,
-            onQuickSplit = onQuickSplit,
+            onQuickSplit = { onQuickSplit(null) },
         )
         return
     }
@@ -111,7 +112,7 @@ fun HomeScreen(
                     },
                     onQuickSplit = {
                         closeDrawer()
-                        onQuickSplit()
+                        onQuickSplit(state.groups.firstOrNull { it.id == active }?.baseCurrency)
                     },
                     onAddGroup = {
                         closeDrawer()

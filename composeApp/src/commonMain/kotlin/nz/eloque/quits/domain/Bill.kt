@@ -31,7 +31,7 @@ data class Bill(
     val shares: Map<MemberId, Money> = split.divide(total)
 
     /** Every member who paid or holds a share. */
-    val members: Set<MemberId> get() = payments.map { it.member }.toSet() + shares.keys
+    val members: Set<MemberId> = payments.map { it.member }.toSet() + shares.keys
 
     fun paymentsBy(member: MemberId): Money =
         payments.filter { it.member == member }.fold(Money.zero(currency)) { acc, p -> acc + p.amount }

@@ -28,7 +28,7 @@ class EntryFormStateTest {
     fun equal_split_validates_into_a_bill() {
         val state = form().withAmount("300").withPayerToggled(a)
         val valid = assertIs<EntryValidation.Valid>(state.validate())
-        assertEquals(Bill(listOf(Payment(a, yen(300))), Split.Equal(listOf(a, b, c))), valid.entry.bill)
+        assertEquals(Bill(listOf(Payment(a, yen(300))), Split.Equal(listOf(a, b, c))), valid.bill)
     }
 
     @Test
@@ -37,7 +37,7 @@ class EntryFormStateTest {
         assertEquals(setOf(a), state.payerSelected)
         assertEquals(mapOf(a to "300"), state.paid)
         val valid = assertIs<EntryValidation.Valid>(state.validate())
-        assertEquals(Split.Equal(listOf(a, c)), valid.entry.bill.split)
+        assertEquals(Split.Equal(listOf(a, c)), valid.bill.split)
     }
 
     @Test

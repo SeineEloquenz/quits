@@ -28,7 +28,8 @@ data class ItemInput(
 /** The editable inputs that describe a [Bill]. */
 data class EntryFormState(
     val kind: EntryKind = EntryKind.EXPENSE,
-    val baseCurrency: Currency = Currency.of("EUR"),
+    /** The currency [rate] converts into, or null when the form does no conversion. */
+    val baseCurrency: Currency? = null,
     val members: List<MemberInput> = emptyList(),
     /** The entry total. Payments (in either payer mode) must add up to exactly this. */
     val amount: String = "",
@@ -50,7 +51,7 @@ data class EntryFormState(
     val draftAmount: String = "",
     val draftParticipants: Set<MemberId> = emptySet(),
 ) {
-    val isForeign: Boolean get() = currency != baseCurrency
+    val isForeign: Boolean get() = baseCurrency != null && currency != baseCurrency
 }
 
 fun EntryFormState.withAmount(value: String): EntryFormState {
@@ -198,15 +199,10 @@ sealed class EntryValidationError {
     data object DiscountTooLarge : EntryValidationError()
 }
 
-/** A form that checked out, ready to become a domain object. */
-data class ValidatedEntry(
-    val bill: Bill,
-    val rate: Double,
-)
-
 sealed class EntryValidation {
     data class Valid(
-        val entry: ValidatedEntry,
+        val bill: Bill,
+        val rate: Double,
     ) : EntryValidation()
 
     data class Invalid(
@@ -215,11 +211,14 @@ sealed class EntryValidation {
 }
 
 fun EntryFormState.validate(): EntryValidation {
-    val currency = this.currency
-    val rate = if (currency == baseCurrency) 1.0 else this.rate.trim().toDoubleOrNull()
-    if (rate == null || rate <= 0.0) {
-        return EntryValidation.Invalid(EntryValidationError.InvalidRate(baseCurrency.code))
-    }
+    val base = baseCurrency
+    val rate =
+        if (base == null || base == currency) {
+            1.0
+        } else {
+            rate.trim().toDoubleOrNull()?.takeIf { it > 0.0 }
+                ?: return EntryValidation.Invalid(EntryValidationError.InvalidRate(base.code))
+        }
 
     val total = Money.parse(amount.trim(), currency)
     if (total == null || !total.isPositive) {
@@ -249,7 +248,7 @@ fun EntryFormState.validate(): EntryValidation {
 
     val bill =
         try {
-            when (val outcome = buildSplit(this, currency, total)) {
+            when (val outcome = buildSplit(total)) {
                 is SplitOutcome.Invalid -> return EntryValidation.Invalid(outcome.reason)
                 is SplitOutcome.Valid -> Bill(payments, outcome.split)
             }
@@ -257,10 +256,10 @@ fun EntryFormState.validate(): EntryValidation {
             return EntryValidation.Invalid(EntryValidationError.InvalidSplit)
         }
 
-    return EntryValidation.Valid(ValidatedEntry(bill, rate))
+    return EntryValidation.Valid(bill, rate)
 }
 
-/** True once [validate] would succeed. Drives the save button's enabled state. */
+/** True once [validate] would succeed. */
 fun EntryFormState.isValid(): Boolean = validate() is EntryValidation.Valid
 
 /** Parses one editor line into a domain item, or null if it isn't a complete, valid line yet. */
@@ -297,14 +296,10 @@ private sealed class SplitOutcome {
     ) : SplitOutcome()
 }
 
-private fun buildSplit(
-    s: EntryFormState,
-    currency: Currency,
-    total: Money,
-): SplitOutcome =
-    when (s.splitKind) {
+private fun EntryFormState.buildSplit(total: Money): SplitOutcome =
+    when (splitKind) {
         SplitKind.EQUAL -> {
-            val participants = s.members.filter { it.id in s.equalSelected }.map { it.id }
+            val participants = members.filter { it.id in equalSelected }.map { it.id }
             if (participants.isEmpty()) {
                 SplitOutcome.Invalid(EntryValidationError.NoParticipant)
             } else {
@@ -314,8 +309,8 @@ private fun buildSplit(
 
         SplitKind.SHARES -> {
             val map = mutableMapOf<MemberId, Long>()
-            for (member in s.members) {
-                val text = s.splitInput[member.id].orEmpty().trim()
+            for (member in members) {
+                val text = splitInput[member.id].orEmpty().trim()
                 if (text.isEmpty()) continue
                 val weight = text.toLongOrNull()
                 if (weight == null || weight < 0) {
@@ -332,8 +327,8 @@ private fun buildSplit(
 
         SplitKind.PERCENTAGE -> {
             val map = mutableMapOf<MemberId, Int>()
-            for (member in s.members) {
-                val text = s.splitInput[member.id].orEmpty().trim()
+            for (member in members) {
+                val text = splitInput[member.id].orEmpty().trim()
                 if (text.isEmpty()) continue
                 val percent = text.toIntOrNull()
                 if (percent == null || percent < 0) {
@@ -350,8 +345,8 @@ private fun buildSplit(
 
         SplitKind.EXACT -> {
             val map = mutableMapOf<MemberId, Money>()
-            for (member in s.members) {
-                val text = s.splitInput[member.id].orEmpty().trim()
+            for (member in members) {
+                val text = splitInput[member.id].orEmpty().trim()
                 if (text.isEmpty()) continue
                 val money = Money.parse(text, currency)
                 if (money == null) {
@@ -369,7 +364,7 @@ private fun buildSplit(
         }
 
         SplitKind.ITEMIZED -> {
-            val built = s.itemizedItems()
+            val built = itemizedItems()
             if (built.isEmpty()) {
                 SplitOutcome.Invalid(EntryValidationError.NoItems)
             } else if (built.fold(Money.zero(currency)) { acc, i -> acc + i.amount } != total) {

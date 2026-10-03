@@ -69,6 +69,8 @@ data class JoinInviteKey(
     val code: String,
 ) : NavKey
 
-/** Split a single receipt among ad-hoc people, outside any group. */
+/** Split a single receipt among ad-hoc people, outside any group. [currency] is the starting currency code. */
 @Serializable
-data object QuickSplitKey : NavKey
+data class QuickSplitKey(
+    val currency: String? = null,
+) : NavKey

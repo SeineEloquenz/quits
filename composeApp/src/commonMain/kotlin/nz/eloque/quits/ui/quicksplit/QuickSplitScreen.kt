@@ -29,7 +29,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,11 +66,15 @@ import nz.eloque.quits.util.Sharer
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuickSplitScreen(onBack: () -> Unit) {
-    val viewModel = koinViewModel<QuickSplitViewModel>()
+fun QuickSplitScreen(
+    currency: String?,
+    onBack: () -> Unit,
+) {
+    val viewModel = koinViewModel<QuickSplitViewModel> { parametersOf(currency) }
     val form by viewModel.form.collectAsState()
     val result by viewModel.result.collectAsState()
     val sharer = koinInject<Sharer>()
@@ -179,11 +182,10 @@ private fun ResultCard(split: QuickSplit?) {
                 return@Column
             }
             val names = split.people.associate { it.id to it.name }
-            val transfers = remember(split) { split.transfers() }
-            if (transfers.isEmpty()) {
+            if (split.transfers.isEmpty()) {
                 Text(stringResource(Res.string.quick_split_even), style = MaterialTheme.typography.bodyMedium)
             }
-            transfers.forEach { transfer ->
+            split.transfers.forEach { transfer ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     MemberAvatar(name = names.getValue(transfer.from), id = transfer.from, size = 32.dp)
                     Text(
@@ -196,7 +198,6 @@ private fun ResultCard(split: QuickSplit?) {
                 }
             }
             HorizontalDivider()
-            val balances = split.balances()
             split.people.forEach { person ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     MemberAvatar(name = person.name, id = person.id, size = 32.dp)
@@ -212,7 +213,7 @@ private fun ResultCard(split: QuickSplit?) {
                             color = MaterialTheme.colorScheme.outline,
                         )
                     }
-                    BalanceText(balances.of(person.id))
+                    BalanceText(split.balances.of(person.id))
                 }
             }
         }
@@ -223,12 +224,11 @@ private fun ResultCard(split: QuickSplit?) {
 private fun shareText(split: QuickSplit): String {
     val names = split.people.associate { it.id to it.name }
     val header = stringResource(Res.string.quick_split_share_total, split.bill.total.display())
-    val transfers = split.transfers()
     val lines =
-        if (transfers.isEmpty()) {
+        if (split.transfers.isEmpty()) {
             listOf(stringResource(Res.string.quick_split_even))
         } else {
-            transfers.map {
+            split.transfers.map {
                 stringResource(Res.string.quick_split_share_transfer, names.getValue(it.from), names.getValue(it.to), it.amount.display())
             }
         }
