@@ -288,7 +288,6 @@
     <string name="error_invalid_total">Gib einen gültigen Betrag ein</string>
     <string name="error_paid_sum">Die gezahlten Beträge müssen zusammen %1$s ergeben</string>
     <string name="error_invalid_split">Ungültige Aufteilung</string>
-    <string name="error_invalid_expense">Ungültiger Eintrag</string>
     <string name="error_no_participant">Wähle mindestens eine Person aus</string>
     <string name="error_invalid_share">Ungültiger Anteil für %1$s</string>
     <string name="error_no_share">Gib mindestens einen Anteil ein</string>
@@ -318,4 +317,15 @@
     <string name="sync_now_menu">Jetzt synchronisieren</string>
     <string name="export_empty">Nichts zum Exportieren.</string>
     <string name="detail_quota_new_group_failed">Diese Gruppe ist nicht mehr verfügbar, es wurde nichts kopiert.</string>
+    <string name="quick_split_title">Rechnung aufteilen</string>
+    <string name="quick_split_people">Personen</string>
+    <string name="quick_split_add_person">Person hinzufügen</string>
+    <string name="quick_split_who_pays">Wer zahlt wem</string>
+    <string name="quick_split_incomplete">Fülle die Rechnung aus, um zu sehen, wer wem was schuldet.</string>
+    <string name="quick_split_even">Niemand schuldet etwas.</string>
+    <string name="quick_split_paid_and_share">Bezahlt %1$s · Anteil %2$s</string>
+    <string name="quick_split_share">Aufteilung teilen</string>
+    <string name="quick_split_share_total">Rechnungsbetrag %1$s</string>
+    <string name="quick_split_share_transfer">%1$s zahlt %2$s %3$s</string>
+    <string name="quick_split_onboarding_hint">Nur eine Rechnung aufteilen?</string>
 </resources>

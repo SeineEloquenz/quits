@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -34,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
@@ -44,6 +46,7 @@ import nz.eloque.quits.resources.app_name
 import nz.eloque.quits.resources.cd_add_group
 import nz.eloque.quits.resources.cd_settings
 import nz.eloque.quits.resources.drawer_archived
+import nz.eloque.quits.resources.quick_split_title
 import nz.eloque.quits.resources.settings_title
 import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.group.GroupDetailScreen
@@ -57,6 +60,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
     onAddGroup: () -> Unit,
+    onQuickSplit: (Currency?) -> Unit,
     onAddExpense: (GroupId) -> Unit,
     onAddIncome: (GroupId) -> Unit,
     onOpenEntry: (GroupId, EntryId) -> Unit,
@@ -76,6 +80,7 @@ fun HomeScreen(
             onJoin = viewModel::join,
             error = error,
             onJoinInput = viewModel::clearError,
+            onQuickSplit = { onQuickSplit(null) },
         )
         return
     }
@@ -104,6 +109,10 @@ fun HomeScreen(
                         scope.launch {
                             viewModel.setActiveGroup(it)
                         }
+                    },
+                    onQuickSplit = {
+                        closeDrawer()
+                        onQuickSplit(state.groups.firstOrNull { it.id == active }?.baseCurrency)
                     },
                     onAddGroup = {
                         closeDrawer()
@@ -142,6 +151,7 @@ private fun GroupDrawer(
     activeGroup: GroupId,
     onSelect: (GroupId) -> Unit,
     onAddGroup: () -> Unit,
+    onQuickSplit: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
 ) {
@@ -199,6 +209,14 @@ private fun GroupDrawer(
             selected = false,
             icon = { Icon(Icons.Default.Add, contentDescription = null) },
             onClick = onAddGroup,
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+        )
+
+        NavigationDrawerItem(
+            label = { Text(stringResource(Res.string.quick_split_title)) },
+            selected = false,
+            icon = { Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null) },
+            onClick = onQuickSplit,
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
         )
 

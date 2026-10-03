@@ -17,25 +17,12 @@ val EntryKind.isExpense: Boolean get() = this == EntryKind.EXPENSE
  */
 val EntryKind.balanceSign: Long get() = if (isIncome) -1L else 1L
 
-/**
- * One member's side of an entry's money movement, in the entry currency: for an expense, who paid and
- * how much; for income, who received it.
- */
-data class Payment(
-    val member: MemberId,
-    val amount: Money,
-)
-
-/**
- * An entry entity. Invariants enforced at construction: at least one payment, all amounts in a
- * single currency, and the [split]'s shares sum exactly to the total. Shares are *derived* from the
- * split so every device computes them identically.
- */
+/** An entry entity. Its money movement is a [Bill], whose invariants hold at construction. */
 class Entry(
     override val id: EntryId,
     val title: String,
-    val payments: List<Payment>,
-    val split: Split,
+    payments: List<Payment>,
+    split: Split,
     /** Rate to convert this entry's currency into the group's base currency, captured at entry. */
     val rateToBase: Double = 1.0,
     /** When the entry was incurred (epoch millis); 0 = unset. Not part of [equals]/[hashCode] (identity is [id]-based). */
@@ -55,24 +42,17 @@ class Entry(
      */
     val splitSupported: Boolean = true,
 ) : Entity<EntryId>() {
-    init {
-        require(payments.isNotEmpty()) { "an entry needs at least one payment" }
-        require(payments.map { it.amount.currency }.distinct().size == 1) {
-            "all payments must be in the same currency"
-        }
-    }
+    val bill: Bill = Bill(payments, split)
+    val payments: List<Payment> get() = bill.payments
+    val split: Split get() = bill.split
 
     val isIncome: Boolean get() = kind.isIncome
-    val currency: Currency = payments.first().amount.currency
-    val total: Money = payments.fold(Money.zero(currency)) { acc, p -> acc + p.amount }
+    val currency: Currency get() = bill.currency
+    val total: Money get() = bill.total
+    val shares: Map<MemberId, Money> get() = bill.shares
 
-    /** Each participant's share of [total], derived from [split] and guaranteed to sum to it. */
-    val shares: Map<MemberId, Money> = split.divide(total)
+    /** What this member paid (expense) or received (income). */
+    fun paymentsBy(member: MemberId): Money = bill.paymentsBy(member)
 
-    /** Total this member moved on the payments side — what they paid (expense) or received (income). */
-    fun paymentsBy(member: MemberId): Money =
-        payments.filter { it.member == member }.fold(Money.zero(currency)) { acc, p -> acc + p.amount }
-
-    /** This member's share of the entry, or zero if they have none. */
-    fun shareOf(member: MemberId): Money = shares[member] ?: Money.zero(currency)
+    fun shareOf(member: MemberId): Money = bill.shareOf(member)
 }
