@@ -1,0 +1,2 @@
+* Add quick split view for a single receipt
+* Fix keyboard inset issues on andoid with predictive back enabled
