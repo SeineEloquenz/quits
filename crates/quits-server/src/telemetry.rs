@@ -595,7 +595,7 @@ fn build_provider(config: &Config, registry: &Registry) -> SdkMeterProvider {
     if config.metrics_addr.is_some() {
         match opentelemetry_prometheus::exporter()
             .with_registry(registry.clone())
-            .without_scope_info()
+            .scope_info_enabled(false)
             .without_target_info()
             .build()
         {
