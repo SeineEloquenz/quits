@@ -5,6 +5,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Balance
 import androidx.compose.material.icons.filled.Construction
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Source
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -20,6 +21,7 @@ import nz.eloque.quits.BuildInfo
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.about_libraries
 import nz.eloque.quits.resources.about_license
+import nz.eloque.quits.resources.about_privacy
 import nz.eloque.quits.resources.about_source_code
 import nz.eloque.quits.resources.about_tagline
 import nz.eloque.quits.resources.about_title
@@ -69,6 +71,11 @@ fun AboutScreen(
                         icon = Icons.Default.Balance,
                         label = stringResource(Res.string.about_license),
                         url = "$REPO_URL/blob/main/LICENSE",
+                    ),
+                    AboutLink.Uri(
+                        icon = Icons.Default.PrivacyTip,
+                        label = stringResource(Res.string.about_privacy),
+                        url = "$REPO_URL/blob/main/PRIVACY.md",
                     ),
                     AboutLink.Action(
                         icon = Icons.AutoMirrored.Filled.LibraryBooks,

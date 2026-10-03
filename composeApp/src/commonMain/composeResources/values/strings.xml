@@ -260,6 +260,7 @@
     <string name="about_tagline">Made with ❤ in Germany</string>
     <string name="about_source_code">Source code</string>
     <string name="about_license">License</string>
+    <string name="about_privacy">Privacy</string>
     <string name="about_libraries">Libraries</string>
 
     <!-- Currency picker -->
