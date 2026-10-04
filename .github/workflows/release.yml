@@ -20,9 +20,9 @@ jobs:
       bundle-task: ":androidApp:bundleRelease"
       apk-path: androidApp/build/outputs/apk/release
       bundle-path: androidApp/build/outputs/bundle/release
-      publish-play: false
+      publish-play: true
       play-package-name: nz.eloque.quits
-      play-track: internal
+      play-track: alpha
     secrets:
       KEYSTORE: ${{ secrets.KEYSTORE }}
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
