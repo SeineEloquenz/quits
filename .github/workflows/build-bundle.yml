@@ -1,0 +1,40 @@
+name: Build Bundle
+
+# Builds a signed release AAB for manual upload to Google Play.
+on:
+  workflow_dispatch:
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Copy CI gradle.properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      # androidApp/build.gradle.kts reads the keystore from ~/work/_temp, which is RUNNER_TEMP.
+      - name: Decode keystore
+        env:
+          ENCODED_STRING: ${{ secrets.KEYSTORE }}
+        run: echo "$ENCODED_STRING" | base64 -di > "${RUNNER_TEMP}/keystore.jks"
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v6.3.0
+
+      - name: Build release bundle
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: ./gradlew :androidApp:bundleRelease
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: bundle
+          path: androidApp/build/outputs/bundle/release/*.aab
