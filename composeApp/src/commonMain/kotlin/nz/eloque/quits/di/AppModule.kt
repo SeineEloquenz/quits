@@ -1,5 +1,7 @@
 package nz.eloque.quits.di
 
+import nz.eloque.quits.application.transfer.ExportGroup
+import nz.eloque.quits.application.transfer.ImportGroup
 import nz.eloque.quits.data.invite.InviteResolver
 import nz.eloque.quits.data.invite.PendingInvite
 import nz.eloque.quits.domain.EntryId
@@ -18,6 +20,7 @@ import nz.eloque.quits.ui.settings.RelayInfoViewModel
 import nz.eloque.quits.ui.settings.SettingsViewModel
 import nz.eloque.quits.ui.stats.StatsViewModel
 import org.koin.core.context.startKoin
+import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -28,6 +31,8 @@ val appModule =
     module {
         singleOf(::PendingInvite)
         singleOf(::InviteResolver)
+        factoryOf(::ExportGroup)
+        factoryOf(::ImportGroup)
         viewModelOf(::GroupsViewModel)
         viewModelOf(::SettingsViewModel)
         viewModelOf(::RelayInfoViewModel)

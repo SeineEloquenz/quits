@@ -1,6 +1,7 @@
 package nz.eloque.quits.data.repository
 
 import nz.eloque.quits.data.db.CategoryEntity
+import nz.eloque.quits.data.db.EntryEntity
 import nz.eloque.quits.data.db.EntryItemEntity
 import nz.eloque.quits.data.db.EntryItemParticipantEntity
 import nz.eloque.quits.data.db.EntryPayerEntity
@@ -9,12 +10,14 @@ import nz.eloque.quits.data.db.EntryWithLines
 import nz.eloque.quits.data.db.ItemWithParticipants
 import nz.eloque.quits.data.db.MemberEntity
 import nz.eloque.quits.data.db.SettlementEntity
+import nz.eloque.quits.data.db.SyncMeta
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Entry
 import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.EntryKind
+import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.Member
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
@@ -104,6 +107,47 @@ private fun toSplit(
         // rebuild from the stored per-member shares (the caller flags it read-only).
         else -> Split.Exact(rows.associate { MemberId(it.memberId) to Money(it.shareMinor, currency) })
     }
+
+internal fun Entry.toEntity(
+    groupId: GroupId,
+    spentAt: Long,
+    sync: SyncMeta,
+): EntryEntity =
+    EntryEntity(
+        id = id.value,
+        groupId = groupId.value,
+        title = title,
+        amountMinor = total.minorUnits,
+        currency = currency.code,
+        rateToBase = rateToBase,
+        categoryId = categoryId?.value,
+        spentAt = spentAt,
+        tzOffsetMinutes = tzOffsetMinutes,
+        note = note,
+        splitType = splitTypeName(split),
+        kind = kind.name,
+        sync = sync,
+    )
+
+internal fun Settlement.toEntity(
+    groupId: GroupId,
+    paidAt: Long,
+    note: String?,
+    sync: SyncMeta,
+): SettlementEntity =
+    SettlementEntity(
+        id = id.value,
+        groupId = groupId.value,
+        fromMember = from.value,
+        toMember = to.value,
+        amountMinor = amount.minorUnits,
+        currency = amount.currency.code,
+        rateToBase = rateToBase,
+        paidAt = paidAt,
+        tzOffsetMinutes = tzOffsetMinutes,
+        note = note,
+        sync = sync,
+    )
 
 /** Payer lines for an entry; synthetic ids since multiple payments may share a member. */
 internal fun payerRows(entry: Entry): List<EntryPayerEntity> =

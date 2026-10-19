@@ -145,7 +145,7 @@ import nz.eloque.quits.resources.detail_share_group
 import nz.eloque.quits.resources.detail_share_hint
 import nz.eloque.quits.resources.detail_split_unsupported
 import nz.eloque.quits.resources.detail_sync_storage
-import nz.eloque.quits.resources.export_csv_menu
+import nz.eloque.quits.resources.export_group_menu
 import nz.eloque.quits.resources.group_archive_menu
 import nz.eloque.quits.resources.group_archived_label
 import nz.eloque.quits.resources.group_fallback_name
@@ -349,11 +349,11 @@ fun GroupDetailScreen(
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.export_csv_menu)) },
+                        text = { Text(stringResource(Res.string.export_group_menu)) },
                         leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
                         onClick = {
                             menuExpanded = false
-                            viewModel.exportCsv()
+                            viewModel.export()
                         },
                     )
                     DropdownMenuItem(

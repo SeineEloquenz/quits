@@ -158,6 +158,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
+            implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.work.runtime)
             implementation(libs.androidx.sqlite.bundled)
         }

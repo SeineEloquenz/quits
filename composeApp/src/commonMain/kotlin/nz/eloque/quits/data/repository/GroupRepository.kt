@@ -1,10 +1,10 @@
 package nz.eloque.quits.data.repository
 
+import androidx.room3.withWriteTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import nz.eloque.quits.data.db.CategoryEntity
-import nz.eloque.quits.data.db.EntryEntity
 import nz.eloque.quits.data.db.EntryWithLines
 import nz.eloque.quits.data.db.GroupEntity
 import nz.eloque.quits.data.db.MemberEntity
@@ -68,6 +68,28 @@ class GroupRepository(
                 },
         )
         return id
+    }
+
+    /** Persists a whole imported aggregate atomically, keeping its timestamps exactly as given. */
+    suspend fun importGroup(group: Group) {
+        val sync = meta()
+        db.withWriteTransaction {
+            db.groupDao().insertGroupWith(
+                group = GroupEntity(group.id.value, group.name, group.baseCurrency.code, sync),
+                members = group.members.map { MemberEntity(it.id.value, group.id.value, it.name, color = null, sync) },
+                categories = group.categories.map { CategoryEntity(it.id.value, group.id.value, it.name, it.icon, it.color, sync) },
+            )
+            group.entries.forEach { entry ->
+                db.entryDao().save(
+                    entry.toEntity(group.id, entry.spentAt, sync),
+                    payerRows(entry),
+                    splitRows(entry),
+                    itemRows(entry),
+                    itemParticipantRows(entry),
+                )
+            }
+            group.settlements.forEach { db.settlementDao().upsert(it.toEntity(group.id, it.paidAt, it.note, sync)) }
+        }
     }
 
     /** Leaves the group: removes it and everything under it from *this device only*. */
@@ -186,21 +208,7 @@ class GroupRepository(
         val existing = db.entryDao().byId(entry.id.value)?.entry
         val resolvedSpentAt = spentAt ?: entry.spentAt.takeIf { it > 0L } ?: existing?.spentAt ?: now()
         db.entryDao().save(
-            EntryEntity(
-                id = entry.id.value,
-                groupId = groupId.value,
-                title = entry.title,
-                amountMinor = entry.total.minorUnits,
-                currency = entry.currency.code,
-                rateToBase = entry.rateToBase,
-                categoryId = entry.categoryId?.value,
-                spentAt = resolvedSpentAt,
-                tzOffsetMinutes = entry.tzOffsetMinutes,
-                note = entry.note,
-                splitType = splitTypeName(entry.split),
-                kind = entry.kind.name,
-                sync = meta(),
-            ),
+            entry.toEntity(groupId, resolvedSpentAt, meta()),
             payerRows(entry),
             splitRows(entry),
             itemRows(entry),
@@ -221,21 +229,7 @@ class GroupRepository(
         note: String? = null,
     ) {
         val resolvedPaidAt = paidAt ?: settlement.paidAt.takeIf { it > 0L } ?: now()
-        db.settlementDao().upsert(
-            SettlementEntity(
-                id = settlement.id.value,
-                groupId = groupId.value,
-                fromMember = settlement.from.value,
-                toMember = settlement.to.value,
-                amountMinor = settlement.amount.minorUnits,
-                currency = settlement.amount.currency.code,
-                rateToBase = settlement.rateToBase,
-                paidAt = resolvedPaidAt,
-                tzOffsetMinutes = settlement.tzOffsetMinutes,
-                note = note ?: settlement.note,
-                sync = meta(),
-            ),
-        )
+        db.settlementDao().upsert(settlement.toEntity(groupId, resolvedPaidAt, note ?: settlement.note, meta()))
     }
 
     /** Soft-deletes (tombstones) a settlement so it drops out of queries and syncs as a deletion. */

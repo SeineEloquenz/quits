@@ -51,6 +51,8 @@
     <string name="add_group_new_here">Neu hier?</string>
     <string name="add_group_create_link">Gruppe erstellen ›</string>
     <string name="add_group_or">oder</string>
+    <string name="add_group_import_link">Gruppe aus Datei importieren</string>
+    <string name="add_group_import_failed">Datei konnte nicht importiert werden: %1$s</string>
     <string name="add_group_no_account">Kein Konto nötig</string>
 
     <!-- Group detail -->
@@ -314,9 +316,8 @@
     <string name="stats_week_of">Woche ab %1$s</string>
 
     <!-- Export -->
-    <string name="export_csv_menu">CSV exportieren</string>
+    <string name="export_group_menu">Gruppe exportieren</string>
     <string name="sync_now_menu">Jetzt synchronisieren</string>
-    <string name="export_empty">Nichts zum Exportieren.</string>
     <string name="detail_quota_new_group_failed">Diese Gruppe ist nicht mehr verfügbar, es wurde nichts kopiert.</string>
     <string name="quick_split_title">Rechnung aufteilen</string>
     <string name="quick_split_people">Personen</string>

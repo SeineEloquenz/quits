@@ -53,6 +53,8 @@
     <string name="add_group_new_here">New here?</string>
     <string name="add_group_create_link">Create a group ›</string>
     <string name="add_group_or">or</string>
+    <string name="add_group_import_link">Import a group from a file</string>
+    <string name="add_group_import_failed">Could not import this file: %1$s</string>
     <string name="add_group_no_account">No account needed</string>
 
     <!-- Invite link -->
@@ -316,9 +318,8 @@
     <string name="stats_week_of">Week of %1$s</string>
 
     <!-- Export -->
-    <string name="export_csv_menu">Export CSV</string>
+    <string name="export_group_menu">Export group</string>
     <string name="sync_now_menu">Sync now</string>
-    <string name="export_empty">Nothing to export yet.</string>
     <string name="detail_quota_new_group_failed">This group is no longer available, so nothing was copied.</string>
     <string name="quick_split_title">Split a receipt</string>
     <string name="quick_split_people">People</string>

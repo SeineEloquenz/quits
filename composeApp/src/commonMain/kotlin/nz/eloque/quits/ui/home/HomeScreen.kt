@@ -73,6 +73,7 @@ fun HomeScreen(
     val state by viewModel.state.collectAsState()
     val activeGroup by viewModel.activeGroup.collectAsState()
     val error by viewModel.error.collectAsState()
+    val importError by viewModel.importError.collectAsState()
 
     if (state.loaded && state.groups.isEmpty()) {
         OnboardingScreen(
@@ -80,6 +81,8 @@ fun HomeScreen(
             onJoin = viewModel::join,
             error = error,
             onJoinInput = viewModel::clearError,
+            onImport = viewModel::importFile,
+            importError = importError,
             onQuickSplit = { onQuickSplit(null) },
         )
         return

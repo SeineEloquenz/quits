@@ -40,6 +40,8 @@ fun OnboardingScreen(
     onJoin: (code: String) -> Unit,
     error: String?,
     onJoinInput: () -> Unit,
+    onImport: (text: String) -> Unit,
+    importError: String?,
     onQuickSplit: () -> Unit,
 ) {
     Column(
@@ -67,7 +69,15 @@ fun OnboardingScreen(
         )
         Spacer(Modifier.height(28.dp))
 
-        AddGroupContent(onCreate = onCreate, onJoin = onJoin, error = error, onJoinInput = onJoinInput, modifier = Modifier.fillMaxWidth())
+        AddGroupContent(
+            onCreate = onCreate,
+            onJoin = onJoin,
+            error = error,
+            onJoinInput = onJoinInput,
+            onImport = onImport,
+            importError = importError,
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         Spacer(Modifier.height(16.dp))
         Row(
