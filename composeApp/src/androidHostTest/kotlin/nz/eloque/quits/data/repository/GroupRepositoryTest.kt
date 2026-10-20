@@ -106,6 +106,43 @@ class GroupRepositoryTest {
         }
 
     @Test
+    fun imported_group_persists_whole_and_keeps_timestamps() =
+        runTest {
+            val itemized =
+                Entry(
+                    EntryId("e-items"),
+                    "Groceries",
+                    listOf(Payment(a, Money(1000, usd))),
+                    Split.Itemized(listOf(Split.Itemized.Item("Wine", Money(1000, usd), setOf(a, b, c)))),
+                    spentAt = 0L,
+                    tzOffsetMinutes = 345,
+                )
+            val sample = sampleGroup()
+            val original =
+                Group(
+                    GroupId("imported"),
+                    "Imported",
+                    usd,
+                    sample.members,
+                    sample.entries + itemized,
+                    listOf(Settlement(SettlementId("s2"), from = b, to = a, amount = Money(500, usd), paidAt = 42L)),
+                    listOf(Category(CategoryId("cat1"), "Snacks", "fastfood", 0xFF4CAF50)),
+                )
+
+            repo.importGroup(original)
+
+            val loaded = repo.load(GroupId("imported"))!!
+            assertEquals(original.balances().net, loaded.balances().net)
+            assertEquals(original.entries.size, loaded.entries.size)
+            assertEquals(1, loaded.categories.size)
+            val items = loaded.entries.first { it.id == EntryId("e-items") }
+            assertEquals(0L, items.spentAt)
+            assertEquals(345, items.tzOffsetMinutes)
+            assertEquals(itemized.split, items.split)
+            assertEquals(42L, loaded.settlements.single().paidAt)
+        }
+
+    @Test
     fun every_split_type_reconstructs() =
         runTest {
             persist(sampleGroup())

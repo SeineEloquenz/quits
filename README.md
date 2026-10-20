@@ -17,7 +17,7 @@ Features (non-exhaustive):
 * Split expenses via different split types: equal, exact, shares, percentage or itemized
 * e2e-encrypted synchronization via a relay server (free public instance or self-hosted)
 * Statistics
-* CSV export
+* Group export and import (lossless JSON)
 * Full offline usage
 
 ## Installation

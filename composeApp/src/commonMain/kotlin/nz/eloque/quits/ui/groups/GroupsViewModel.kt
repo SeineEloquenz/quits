@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import nz.eloque.quits.application.transfer.ImportGroup
+import nz.eloque.quits.application.transfer.ImportResult
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.repository.GroupSummary
 import nz.eloque.quits.data.sync.SyncEngine
@@ -24,6 +26,7 @@ import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.Group
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.resources.Res
+import nz.eloque.quits.resources.add_group_import_failed
 import nz.eloque.quits.resources.groups_join_not_found
 import nz.eloque.quits.ui.sync.toSyncMessage
 import nz.eloque.quits.util.newId
@@ -53,6 +56,7 @@ class GroupsViewModel(
     private val repo: GroupRepository,
     private val engine: SyncEngine,
     private val settings: SyncSettings,
+    private val importGroup: ImportGroup,
 ) : ViewModel() {
     val state: StateFlow<GroupsUiState> =
         repo
@@ -140,6 +144,22 @@ class GroupsViewModel(
 
     fun clearError() {
         _error.value = null
+    }
+
+    private val _importError = MutableStateFlow<String?>(null)
+    val importError: StateFlow<String?> = _importError.asStateFlow()
+
+    /** Creates a new local group from an exported group file's [text]. */
+    fun importFile(text: String) {
+        viewModelScope.launch {
+            when (val result = importGroup(text)) {
+                is ImportResult.Imported -> {
+                    _importError.value = null
+                    setActiveGroup(result.id)
+                }
+                is ImportResult.Invalid -> _importError.value = getString(Res.string.add_group_import_failed, result.reason)
+            }
+        }
     }
 }
 

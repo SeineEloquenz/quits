@@ -3,6 +3,7 @@ package nz.eloque.quits.util
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
+import nz.eloque.quits.application.transfer.FileExporter
 import java.io.File
 
 /** Writes the file to the app cache and shares it via `ACTION_SEND` through a [FileProvider] URI. */

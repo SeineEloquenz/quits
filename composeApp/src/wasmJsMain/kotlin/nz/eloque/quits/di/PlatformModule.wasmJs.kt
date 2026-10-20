@@ -7,9 +7,9 @@ import com.russhwolf.settings.Settings
 import com.russhwolf.settings.StorageSettings
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.js.Js
+import nz.eloque.quits.application.transfer.FileExporter
 import nz.eloque.quits.data.db.QuitsDatabase
 import nz.eloque.quits.sqlite.createWebSqliteDriver
-import nz.eloque.quits.util.FileExporter
 import nz.eloque.quits.util.Sharer
 import nz.eloque.quits.util.WebFileExporter
 import nz.eloque.quits.util.WebSharer

@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import nz.eloque.quits.application.transfer.ExportGroup
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.sync.GroupUsage
 import nz.eloque.quits.data.sync.SyncEngine
@@ -35,14 +36,8 @@ import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.domain.Transfer
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.detail_quota_new_group_failed
-import nz.eloque.quits.resources.export_empty
-import nz.eloque.quits.ui.category.INCOME_PRESET_CATEGORIES
-import nz.eloque.quits.ui.category.PRESET_CATEGORIES
 import nz.eloque.quits.ui.sync.toSyncMessage
-import nz.eloque.quits.util.FileExporter
-import nz.eloque.quits.util.csvFileName
 import nz.eloque.quits.util.currentOffsetMinutes
-import nz.eloque.quits.util.entriesToCsv
 import nz.eloque.quits.util.newId
 import nz.eloque.quits.util.nowMillis
 import org.jetbrains.compose.resources.getString
@@ -136,7 +131,7 @@ data class GroupDetailUiState(
 class GroupDetailViewModel(
     private val repo: GroupRepository,
     private val engine: SyncEngine,
-    private val exporter: FileExporter,
+    private val exportGroup: ExportGroup,
     private val groupId: GroupId,
 ) : ViewModel() {
     private val filter = MutableStateFlow(ActivityFilter())
@@ -201,22 +196,9 @@ class GroupDetailViewModel(
         }
     }
 
-    /** Exports the group's entries as a CSV file via the platform share/save sheet. */
-    fun exportCsv() {
-        viewModelScope.launch {
-            val group = repo.load(groupId) ?: return@launch
-            if (group.entries.isEmpty()) {
-                _messages.emit(getString(Res.string.export_empty))
-                return@launch
-            }
-            val categoryNames =
-                buildMap {
-                    group.categories.forEach { put(it.id, it.name) }
-                    PRESET_CATEGORIES.forEach { put(it.id, getString(it.nameRes)) }
-                    INCOME_PRESET_CATEGORIES.forEach { put(it.id, getString(it.nameRes)) }
-                }
-            exporter.export(csvFileName(group.name), "text/csv", group.entriesToCsv { categoryNames[it] })
-        }
+    /** Exports the whole group as a file via the platform share/save sheet. */
+    fun export() {
+        viewModelScope.launch { exportGroup(groupId) }
     }
 
     /** Push local changes and pull remote ones. */

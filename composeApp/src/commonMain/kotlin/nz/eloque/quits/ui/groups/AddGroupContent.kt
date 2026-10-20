@@ -24,10 +24,12 @@ import androidx.compose.ui.unit.dp
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.add_group_create_link
+import nz.eloque.quits.resources.add_group_import_link
 import nz.eloque.quits.resources.add_group_join_hint
 import nz.eloque.quits.resources.add_group_new_here
 import nz.eloque.quits.resources.add_group_or
 import nz.eloque.quits.resources.groups_new_group
+import nz.eloque.quits.ui.components.rememberTextFilePicker
 import org.jetbrains.compose.resources.stringResource
 
 /** Join-first: the share-code field, with a low-emphasis link below that expands [CreateGroupForm] inline. */
@@ -37,6 +39,8 @@ fun AddGroupContent(
     onJoin: (code: String) -> Unit,
     error: String?,
     onJoinInput: () -> Unit,
+    onImport: (text: String) -> Unit,
+    importError: String?,
     modifier: Modifier = Modifier,
 ) {
     var creating by remember { mutableStateOf(false) }
@@ -77,6 +81,20 @@ fun AddGroupContent(
             TextButton(onClick = { creating = !creating }) {
                 Text(stringResource(Res.string.add_group_create_link))
             }
+        }
+
+        val pickFile = rememberTextFilePicker("application/json", onImport)
+        TextButton(onClick = pickFile, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+            Text(stringResource(Res.string.add_group_import_link))
+        }
+        if (importError != null) {
+            Text(
+                importError,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            )
         }
 
         AnimatedVisibility(visible = creating) {

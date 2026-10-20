@@ -1,5 +1,7 @@
 package nz.eloque.quits.util
 
+import nz.eloque.quits.application.transfer.FileExporter
+
 /** Triggers a browser download via an object URL and a synthetic anchor click. */
 class WebFileExporter : FileExporter {
     override fun export(

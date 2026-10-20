@@ -1,4 +1,4 @@
-package nz.eloque.quits.util
+package nz.eloque.quits.application.transfer
 
 /** Hands a generated text file to the platform's save/share affordance. */
 interface FileExporter {

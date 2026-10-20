@@ -32,7 +32,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Serves cached export files (e.g. CSV) to the share sheet via content:// URIs. -->
+        <!-- Serves cached export files to the share sheet via content:// URIs. -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

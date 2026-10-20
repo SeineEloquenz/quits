@@ -32,6 +32,7 @@ fun AddGroupScreen(
 ) {
     val viewModel = koinViewModel<GroupsViewModel>()
     val error by viewModel.error.collectAsState()
+    val importError by viewModel.importError.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -55,6 +56,8 @@ fun AddGroupScreen(
             onJoin = viewModel::join,
             error = error,
             onJoinInput = viewModel::clearError,
+            onImport = viewModel::importFile,
+            importError = importError,
             modifier =
                 Modifier
                     .fillMaxWidth()
