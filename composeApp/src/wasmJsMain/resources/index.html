@@ -14,27 +14,29 @@
         html, body { margin: 0; padding: 0; height: 100%; background: #1c1b1f; }
         #loader {
             position: fixed; inset: 0; z-index: 1;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
-            background: #1c1b1f;
+            display: flex; align-items: center; justify-content: center;
+            background: #FEF7FF; color: #006A60;
         }
-        #loader span {
-            width: 96px; height: 28px; border-radius: 14px;
-            animation: loader-split 1.2s ease-in-out infinite;
+        @media (prefers-color-scheme: dark) {
+            #loader { background: #141218; color: #53DBC9; }
         }
-        #loader span:first-child { background: #00665C; transform-origin: left; }
-        #loader span:last-child { background: #E0A52A; transform-origin: right; animation-delay: -0.6s; }
-        @keyframes loader-split {
-            0%, 100% { transform: scaleX(1); }
-            50% { transform: scaleX(0.4); }
+        #loader svg { width: 40px; height: 40px; animation: loader-rotate 1.4s linear infinite; }
+        #loader circle {
+            fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round;
+            animation: loader-dash 1.4s ease-in-out infinite;
         }
-        @keyframes loader-fade { 50% { opacity: 0.4; } }
-        @media (prefers-reduced-motion: reduce) {
-            #loader span { animation-name: loader-fade; }
+        @keyframes loader-rotate { to { transform: rotate(360deg); } }
+        @keyframes loader-dash {
+            0% { stroke-dasharray: 1 150; stroke-dashoffset: 0; }
+            50% { stroke-dasharray: 85 150; stroke-dashoffset: -30; }
+            100% { stroke-dasharray: 85 150; stroke-dashoffset: -112; }
         }
     </style>
 </head>
 <body>
-<div id="loader" role="progressbar" aria-label="Loading Quits"><span></span><span></span></div>
+<div id="loader" role="progressbar" aria-label="Loading Quits">
+    <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18"/></svg>
+</div>
 <script type="application/javascript" src="composeApp.js"></script>
 <script type="application/javascript">
     if ('serviceWorker' in navigator) {
