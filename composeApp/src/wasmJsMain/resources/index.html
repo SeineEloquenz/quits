@@ -12,9 +12,29 @@
     <meta name="theme-color" content="#00665C">
     <style>
         html, body { margin: 0; padding: 0; height: 100%; background: #1c1b1f; }
+        #loader {
+            position: fixed; inset: 0; z-index: 1;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+            background: #1c1b1f;
+        }
+        #loader span {
+            width: 96px; height: 28px; border-radius: 14px;
+            animation: loader-split 1.2s ease-in-out infinite;
+        }
+        #loader span:first-child { background: #00665C; transform-origin: left; }
+        #loader span:last-child { background: #E0A52A; transform-origin: right; animation-delay: -0.6s; }
+        @keyframes loader-split {
+            0%, 100% { transform: scaleX(1); }
+            50% { transform: scaleX(0.4); }
+        }
+        @keyframes loader-fade { 50% { opacity: 0.4; } }
+        @media (prefers-reduced-motion: reduce) {
+            #loader span { animation-name: loader-fade; }
+        }
     </style>
 </head>
 <body>
+<div id="loader" role="progressbar" aria-label="Loading Quits"><span></span><span></span></div>
 <script type="application/javascript" src="composeApp.js"></script>
 <script type="application/javascript">
     if ('serviceWorker' in navigator) {

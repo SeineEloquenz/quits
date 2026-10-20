@@ -1,5 +1,6 @@
 package nz.eloque.quits
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import kotlinx.browser.document
@@ -18,5 +19,6 @@ fun main() {
     }
     ComposeViewport(document.body!!) {
         App()
+        LaunchedEffect(Unit) { document.getElementById("loader")?.remove() }
     }
 }
