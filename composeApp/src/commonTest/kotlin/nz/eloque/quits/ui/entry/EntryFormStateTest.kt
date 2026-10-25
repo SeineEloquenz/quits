@@ -1,6 +1,7 @@
 package nz.eloque.quits.ui.entry
 
 import nz.eloque.quits.domain.Bill
+import nz.eloque.quits.domain.DefaultSplit
 import nz.eloque.quits.domain.JPY
 import nz.eloque.quits.domain.Money
 import nz.eloque.quits.domain.Payment
@@ -9,6 +10,7 @@ import nz.eloque.quits.domain.mid
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class EntryFormStateTest {
@@ -76,5 +78,26 @@ class EntryFormStateTest {
     fun renaming_keeps_the_member_id() {
         val state = form().withMemberRenamed(b, "Bea")
         assertEquals(MemberInput(b, "Bea"), state.members[1])
+    }
+
+    @Test
+    fun split_inputs_become_a_default() {
+        val shares = form().withSplitKind(SplitKind.SHARES).copy(splitInput = mapOf(a to "2", b to "1"))
+        assertEquals(DefaultSplit(DefaultSplit.Kind.SHARES, mapOf(a to 2L, b to 1L, c to 0L)), shares.toDefaultSplit())
+        assertNull(form().withSplitKind(SplitKind.PERCENTAGE).copy(splitInput = mapOf(a to "50")).toDefaultSplit())
+        assertNull(form().withSplitKind(SplitKind.EXACT).toDefaultSplit())
+    }
+
+    @Test
+    fun a_form_loaded_from_a_default_matches_it() {
+        val members = listOf(a, b, c)
+        listOf(
+            DefaultSplit(DefaultSplit.Kind.EQUAL, mapOf(a to 1L, b to 0L)),
+            DefaultSplit(DefaultSplit.Kind.SHARES, mapOf(a to 3L)),
+            DefaultSplit(DefaultSplit.Kind.PERCENTAGE, mapOf(a to 50L, b to 50L, c to 0L)),
+        ).forEach { default ->
+            val split = default.splitFor(members)
+            assertEquals(DefaultSplit.from(split, members), form().withSplit(split).toDefaultSplit())
+        }
     }
 }

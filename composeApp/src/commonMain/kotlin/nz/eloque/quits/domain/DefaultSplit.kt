@@ -7,6 +7,9 @@ data class DefaultSplit(
 ) {
     enum class Kind { EQUAL, SHARES, PERCENTAGE }
 
+    /** Whether this behaves like having no default. */
+    fun isEveryoneEqual(): Boolean = kind == Kind.EQUAL && weights.values.all { it == 1L }
+
     /**
      * The split for [members], who must not be empty. A newcomer is included (1 share for SHARES). A
      * percentage default that no longer covers exactly [members] falls back to an equal split.
@@ -18,7 +21,8 @@ data class DefaultSplit(
 
             Kind.SHARES -> {
                 val shares = members.associateWith { weights[it] ?: 1L }.filterValues { it > 0 }
-                if (shares.isEmpty()) equal else Split.Shares(shares)
+                // Synced weights may overflow the share sum, which Split.Shares rejects.
+                if (shares.isEmpty()) equal else runCatching { Split.Shares(shares) }.getOrDefault(equal)
             }
 
             Kind.PERCENTAGE -> {

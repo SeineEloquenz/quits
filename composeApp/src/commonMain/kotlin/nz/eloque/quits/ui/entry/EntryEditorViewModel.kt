@@ -116,6 +116,7 @@ class EntryEditorViewModel(
         val members = group.members.map { MemberInput(it.id, it.name) }
         val allIds = members.map { it.id }.toSet()
         val defaultSplit = groupDefault?.takeIf { allIds.isNotEmpty() }?.splitFor(allIds.toList())
+        val normalizedDefault = defaultSplit?.let { DefaultSplit.from(it, allIds.toList()) }
         if (existing == null) {
             val form =
                 EntryFormState(
@@ -129,7 +130,7 @@ class EntryEditorViewModel(
                 loaded = true,
                 editing = false,
                 form = if (defaultSplit != null && kind == EntryKind.EXPENSE) form.withSplit(defaultSplit) else form,
-                groupDefault = defaultSplit?.let { DefaultSplit.from(it, allIds.toList()) },
+                groupDefault = normalizedDefault,
                 categories = group.categories,
                 spentAt = nowMillis(),
                 tzOffsetMinutes = currentOffsetMinutes(),
@@ -161,7 +162,7 @@ class EntryEditorViewModel(
                     payerSelected = distinctPayers.toSet(),
                     paid = paid,
                 ).withSplit(existing.split),
-            groupDefault = defaultSplit?.let { DefaultSplit.from(it, allIds.toList()) },
+            groupDefault = normalizedDefault,
             categories = group.categories,
             title = existing.title,
             categoryId = existing.categoryId,

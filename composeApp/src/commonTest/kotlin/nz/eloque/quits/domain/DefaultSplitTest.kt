@@ -3,7 +3,9 @@ package nz.eloque.quits.domain
 import nz.eloque.quits.domain.DefaultSplit.Kind
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class DefaultSplitTest {
     private val a = mid("a")
@@ -41,6 +43,19 @@ class DefaultSplitTest {
         val percent = DefaultSplit(Kind.PERCENTAGE, mapOf(a to 60L, b to 40L))
         assertEquals(Split.Equal(listOf(a, b, c)), percent.splitFor(listOf(a, b, c)))
         assertEquals(Split.Equal(listOf(a)), percent.splitFor(listOf(a)))
+    }
+
+    @Test
+    fun overflowing_shares_fall_back_to_equal() {
+        val shares = DefaultSplit(Kind.SHARES, mapOf(a to Long.MAX_VALUE, b to Long.MAX_VALUE))
+        assertEquals(Split.Equal(listOf(a, b)), shares.splitFor(listOf(a, b)))
+    }
+
+    @Test
+    fun only_an_equal_split_among_everyone_behaves_like_no_default() {
+        assertTrue(DefaultSplit.from(Split.Equal(listOf(a, b)), listOf(a, b))!!.isEveryoneEqual())
+        assertFalse(DefaultSplit.from(Split.Equal(listOf(a)), listOf(a, b))!!.isEveryoneEqual())
+        assertFalse(DefaultSplit.from(Split.Shares(mapOf(a to 1L, b to 1L)), listOf(a, b))!!.isEveryoneEqual())
     }
 
     @Test

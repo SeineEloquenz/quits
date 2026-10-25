@@ -165,7 +165,7 @@ fun EntryEditorScreen(
                                 color = MaterialTheme.colorScheme.outline,
                             )
                         }
-                    } else if (current != null) {
+                    } else if (current != null && (state.groupDefault != null || !current.isEveryoneEqual())) {
                         TextButton(onClick = viewModel::saveAsDefault, contentPadding = PaddingValues(0.dp)) {
                             Text(stringResource(Res.string.editor_save_default), style = MaterialTheme.typography.bodySmall)
                         }
