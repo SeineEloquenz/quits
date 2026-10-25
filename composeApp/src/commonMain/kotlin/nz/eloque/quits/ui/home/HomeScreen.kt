@@ -26,6 +26,7 @@ import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,6 +77,7 @@ fun HomeScreen(
     val viewModel = koinViewModel<GroupsViewModel>()
     val state by viewModel.state.collectAsState()
     val activeGroup by viewModel.activeGroup.collectAsState()
+    LaunchedEffect(viewModel) { viewModel.syncOnce() }
 
     if (state.loaded && state.groups.isEmpty()) {
         OnboardingScreen(

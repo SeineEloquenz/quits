@@ -101,7 +101,12 @@ class GroupsViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    init {
+    private var synced = false
+
+    /** Syncs every shared group, at most once per view model. */
+    fun syncOnce() {
+        if (synced) return
+        synced = true
         viewModelScope.launch {
             engine.syncAll()
         }

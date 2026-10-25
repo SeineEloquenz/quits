@@ -196,8 +196,8 @@ fun GroupDetailScreen(
     onSettleUp: () -> Unit,
     onOpenStats: () -> Unit,
     onGroupCreated: (GroupId) -> Unit,
-    startSharing: Boolean = false,
-    onSharingStarted: () -> Unit = {},
+    startSharing: Boolean,
+    onSharingStarted: () -> Unit,
 ) {
     val viewModel = koinViewModel<GroupDetailViewModel>(key = groupId.value) { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
@@ -240,7 +240,13 @@ fun GroupDetailScreen(
     }
 
     if (showShare) {
-        ShareSheet(state = state, usage = usage, onShare = viewModel::share, onDismiss = { showShare = false })
+        ShareSheet(
+            state = state,
+            usage = usage,
+            sharing = syncStatus == SyncStatus.Syncing,
+            onShare = viewModel::share,
+            onDismiss = { showShare = false },
+        )
     }
 
     if (showLeave) {
@@ -977,6 +983,7 @@ private fun GroupNearlyFullBanner(
 private fun ShareSheet(
     state: GroupDetailUiState,
     usage: GroupUsage?,
+    sharing: Boolean,
     onShare: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -991,7 +998,7 @@ private fun ShareSheet(
             if (code == null) {
                 Text(stringResource(Res.string.detail_local_only))
                 Spacer(Modifier.height(16.dp))
-                Button(onClick = onShare) { Text(stringResource(Res.string.detail_share_group)) }
+                Button(onClick = onShare, enabled = !sharing) { Text(stringResource(Res.string.detail_share_group)) }
             } else {
                 val clipboard = LocalClipboardManager.current
                 val sharer = koinInject<Sharer>()
