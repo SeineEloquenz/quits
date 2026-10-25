@@ -11,6 +11,7 @@ import nz.eloque.quits.data.db.MIGRATION_5_6
 import nz.eloque.quits.data.db.MIGRATION_6_7
 import nz.eloque.quits.data.db.MIGRATION_7_8
 import nz.eloque.quits.data.db.MIGRATION_8_9
+import nz.eloque.quits.data.db.MIGRATION_9_10
 import nz.eloque.quits.data.db.QuitsDatabase
 import org.koin.dsl.module
 
@@ -33,6 +34,7 @@ val databaseModule =
                     MIGRATION_6_7,
                     MIGRATION_7_8,
                     MIGRATION_8_9,
+                    MIGRATION_9_10,
                 )
                 .setQueryCoroutineContext(Dispatchers.Default)
                 .build()

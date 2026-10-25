@@ -1,6 +1,8 @@
 package nz.eloque.quits.data.sync
 
+import kotlinx.serialization.json.Json
 import nz.eloque.quits.data.db.CategoryEntity
+import nz.eloque.quits.data.db.DefaultSplitEntity
 import nz.eloque.quits.data.db.EntryEntity
 import nz.eloque.quits.data.db.EntryItemEntity
 import nz.eloque.quits.data.db.EntryItemParticipantEntity
@@ -20,6 +22,23 @@ import nz.eloque.quits.data.db.SyncMeta
 object RecordMapper {
     /** The singleton group record's id within a container (the group has no row-level id to use). */
     const val GROUP_RECORD_ID = "group"
+
+    const val DEFAULT_SPLIT_RECORD_ID = "default_split"
+
+    fun record(defaultSplit: DefaultSplitEntity): SyncRecord =
+        SyncRecord(
+            id = DEFAULT_SPLIT_RECORD_ID,
+            updatedAt = defaultSplit.sync.updatedAt,
+            deviceId = defaultSplit.sync.deviceId,
+            deleted = defaultSplit.sync.deleted,
+            payload = SyncPayload.DefaultSplit(defaultSplit.kind, Json.decodeFromString(defaultSplit.weights)),
+        )
+
+    fun defaultSplitEntity(
+        payload: SyncPayload.DefaultSplit,
+        groupId: String,
+        meta: SyncMeta,
+    ): DefaultSplitEntity = DefaultSplitEntity(groupId, payload.kind, Json.encodeToString(payload.weights), meta)
 
     fun record(group: GroupEntity): SyncRecord =
         SyncRecord(

@@ -35,6 +35,7 @@ import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.navigation.AboutKey
 import nz.eloque.quits.navigation.AddGroupKey
 import nz.eloque.quits.navigation.CreateGroupKey
+import nz.eloque.quits.navigation.DefaultSplitKey
 import nz.eloque.quits.navigation.EntryDetailKey
 import nz.eloque.quits.navigation.EntryEditorKey
 import nz.eloque.quits.navigation.GroupCreatedKey
@@ -54,6 +55,7 @@ import nz.eloque.quits.ui.about.AboutScreen
 import nz.eloque.quits.ui.about.LibrariesScreen
 import nz.eloque.quits.ui.entry.EntryDetailScreen
 import nz.eloque.quits.ui.entry.EntryEditorScreen
+import nz.eloque.quits.ui.group.DefaultSplitScreen
 import nz.eloque.quits.ui.group.MemberDetailScreen
 import nz.eloque.quits.ui.group.SettleUpScreen
 import nz.eloque.quits.ui.group.SettlementEditorScreen
@@ -84,6 +86,7 @@ private val navSavedStateConfiguration =
                     subclass(SettleUpKey::class)
                     subclass(SettlementEditorKey::class)
                     subclass(StatsKey::class)
+                    subclass(DefaultSplitKey::class)
                     subclass(EntryEditorKey::class)
                     subclass(SettingsKey::class)
                     subclass(RelayInfoKey::class)
@@ -158,6 +161,7 @@ fun App() {
                                 onOpenStats = { groupId -> backStack.add(StatsKey(groupId.value)) },
                                 shareOnOpen = shareOnOpen,
                                 onSharingStarted = { shareOnOpen = null },
+                                onOpenDefaultSplit = { groupId -> backStack.add(DefaultSplitKey(groupId.value)) },
                             )
                         }
                         entry<AddGroupKey> {
@@ -228,6 +232,12 @@ fun App() {
                         }
                         entry<StatsKey> { key ->
                             StatsScreen(
+                                groupId = GroupId(key.groupId),
+                                onBack = { backStack.removeLastOrNull() },
+                            )
+                        }
+                        entry<DefaultSplitKey> { key ->
+                            DefaultSplitScreen(
                                 groupId = GroupId(key.groupId),
                                 onBack = { backStack.removeLastOrNull() },
                             )

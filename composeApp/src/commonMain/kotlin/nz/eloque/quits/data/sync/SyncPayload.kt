@@ -69,6 +69,13 @@ sealed interface SyncPayload {
     ) : SyncPayload
 
     @Serializable
+    @SerialName("default_split")
+    data class DefaultSplit(
+        val kind: String,
+        val weights: Map<String, Long>,
+    ) : SyncPayload
+
+    @Serializable
     data class Payer(
         val id: String,
         val memberId: String,

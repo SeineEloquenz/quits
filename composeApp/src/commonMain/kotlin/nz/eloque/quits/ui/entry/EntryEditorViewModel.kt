@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -19,6 +20,7 @@ import nz.eloque.quits.data.sync.syncQuietly
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.DefaultSplit
 import nz.eloque.quits.domain.Entry
 import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.EntryKind
@@ -65,6 +67,8 @@ data class EntryEditorUiState(
     val spentAt: Long = 0L,
     /** UTC offset the date was entered in. Captured on create, preserved on edit. */
     val tzOffsetMinutes: Int = 0,
+    /** The group default as it applies to the current members, for comparing against [form]. */
+    val groupDefault: DefaultSplit? = null,
 ) {
     val kind: EntryKind get() = form.kind
 }
@@ -88,30 +92,44 @@ class EntryEditorViewModel(
         viewModelScope.launch {
             val group = repo.load(groupId) ?: return@launch
             val existing = entryId?.let { id -> group.entries.firstOrNull { it.id.value == id } }
-            _state.value = initialState(group, existing)
+            _state.value = initialState(group, existing, repo.defaultSplitFlow(groupId).first())
         }
     }
 
     override fun updateForm(transform: (EntryFormState) -> EntryFormState) = _state.update { it.copy(form = transform(it.form)) }
 
+    /** Saves the current split as the group default. */
+    fun saveAsDefault() {
+        val defaultSplit = _state.value.form.toDefaultSplit() ?: return
+        _state.update { it.copy(groupDefault = defaultSplit) }
+        viewModelScope.launch {
+            repo.setDefaultSplit(groupId, defaultSplit)
+            engine.syncQuietly(groupId)
+        }
+    }
+
     private fun initialState(
         group: Group,
         existing: Entry?,
+        groupDefault: DefaultSplit?,
     ): EntryEditorUiState {
         val members = group.members.map { MemberInput(it.id, it.name) }
         val allIds = members.map { it.id }.toSet()
+        val defaultSplit = groupDefault?.takeIf { allIds.isNotEmpty() }?.splitFor(allIds.toList())
         if (existing == null) {
+            val form =
+                EntryFormState(
+                    kind = kind,
+                    baseCurrency = group.baseCurrency,
+                    members = members,
+                    currency = group.baseCurrency,
+                    equalSelected = allIds,
+                )
             return EntryEditorUiState(
                 loaded = true,
                 editing = false,
-                form =
-                    EntryFormState(
-                        kind = kind,
-                        baseCurrency = group.baseCurrency,
-                        members = members,
-                        currency = group.baseCurrency,
-                        equalSelected = allIds,
-                    ),
+                form = if (defaultSplit != null && kind == EntryKind.EXPENSE) form.withSplit(defaultSplit) else form,
+                groupDefault = defaultSplit?.let { DefaultSplit.from(it, allIds.toList()) },
                 categories = group.categories,
                 spentAt = nowMillis(),
                 tzOffsetMinutes = currentOffsetMinutes(),
@@ -128,7 +146,6 @@ class EntryEditorViewModel(
                 } catch (_: IllegalArgumentException) {
                     false
                 }
-        val split = existing.split
         return EntryEditorUiState(
             loaded = true,
             editing = true,
@@ -143,23 +160,8 @@ class EntryEditorViewModel(
                     payerMode = if (isEvenSplit) PayerMode.EQUAL else PayerMode.CUSTOM,
                     payerSelected = distinctPayers.toSet(),
                     paid = paid,
-                    splitKind = split.kind(),
-                    equalSelected = if (split is Split.Equal) split.participants.toSet() else allIds,
-                    splitInput =
-                        when (split) {
-                            is Split.Shares -> split.shares.entries.associate { it.key to it.value.toString() }
-                            is Split.Percentage -> split.percent.entries.associate { it.key to it.value.toString() }
-                            is Split.Exact -> split.amounts.entries.associate { it.key to it.value.toDecimalString() }
-                            is Split.Equal -> emptyMap()
-                            is Split.Itemized -> emptyMap()
-                        },
-                    items =
-                        if (split is Split.Itemized) {
-                            split.items.map { ItemInput(newId(), it.label, it.amount.toDecimalString(), it.participants) }
-                        } else {
-                            emptyList()
-                        },
-                ),
+                ).withSplit(existing.split),
+            groupDefault = defaultSplit?.let { DefaultSplit.from(it, allIds.toList()) },
             categories = group.categories,
             title = existing.title,
             categoryId = existing.categoryId,

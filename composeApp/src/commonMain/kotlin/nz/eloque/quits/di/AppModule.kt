@@ -11,6 +11,7 @@ import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.ui.entry.EntryDetailViewModel
 import nz.eloque.quits.ui.entry.EntryEditorViewModel
+import nz.eloque.quits.ui.group.DefaultSplitViewModel
 import nz.eloque.quits.ui.group.GroupDetailViewModel
 import nz.eloque.quits.ui.group.MemberDetailViewModel
 import nz.eloque.quits.ui.group.SettlementEditorViewModel
@@ -45,6 +46,7 @@ val appModule =
         viewModel { params -> MemberDetailViewModel(get(), get(), params.get<GroupId>(), params.get<MemberId>()) }
         viewModel { params -> SettlementEditorViewModel(get(), get(), params.get<GroupId>(), params.get<SettlementId>()) }
         viewModel { params -> StatsViewModel(get(), params.get<GroupId>()) }
+        viewModel { params -> DefaultSplitViewModel(get(), get(), params.get<GroupId>()) }
     }
 
 fun initKoin(config: KoinAppDeclaration? = null) {

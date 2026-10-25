@@ -17,6 +17,7 @@ import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.DefaultSplit
 import nz.eloque.quits.domain.Entry
 import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.Group
@@ -340,6 +341,47 @@ class SyncEngineTest {
                 engine2.sync(joined)
 
                 assertEquals(0, repo2.load(joined)!!.entries.size)
+            } finally {
+                db1.close()
+                db2.close()
+            }
+        }
+
+    @Test
+    fun the_default_split_syncs_independently_of_a_rename_and_clears() =
+        runTest {
+            val relay = FakeRelay()
+            var clock = 1000L
+            val db1 = inMemoryDatabase()
+            val repo1 = GroupRepository(db1, deviceId = "dev1", now = { clock })
+            val engine1 = SyncEngine(db1, relay, GroupCrypto(), deviceId = "dev1")
+            val db2 = inMemoryDatabase()
+            val repo2 = GroupRepository(db2, deviceId = "dev2", now = { clock })
+            val engine2 = SyncEngine(db2, relay, GroupCrypto(), deviceId = "dev2")
+
+            try {
+                val g = GroupId("g-local")
+                repo1.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
+                val joined = engine2.join(engine1.share(g))!!
+                val shares = DefaultSplit(DefaultSplit.Kind.SHARES, mapOf(a to 2L, b to 1L))
+
+                clock = 2000L
+                repo1.setDefaultSplit(g, shares)
+                clock = 3000L
+                repo2.renameGroup(joined, "Holiday")
+                engine1.sync(g)
+                engine2.sync(joined)
+                engine1.sync(g)
+
+                assertEquals(shares, repo2.defaultSplitFlow(joined).first())
+                assertEquals("Holiday", repo1.load(g)!!.name)
+
+                clock = 4000L
+                repo2.clearDefaultSplit(joined)
+                engine2.sync(joined)
+                engine1.sync(g)
+
+                assertNull(repo1.defaultSplitFlow(g).first())
             } finally {
                 db1.close()
                 db2.close()

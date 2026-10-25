@@ -73,6 +73,7 @@ fun HomeScreen(
     onOpenStats: (GroupId) -> Unit,
     shareOnOpen: GroupId?,
     onSharingStarted: () -> Unit,
+    onOpenDefaultSplit: (GroupId) -> Unit,
 ) {
     val viewModel = koinViewModel<GroupsViewModel>()
     val state by viewModel.state.collectAsState()
@@ -143,6 +144,7 @@ fun HomeScreen(
             onOpenSettlement = { onOpenSettlement(active, it) },
             onSettleUp = { onSettleUp(active) },
             onOpenStats = { onOpenStats(active) },
+            onOpenDefaultSplit = { onOpenDefaultSplit(active) },
             onGroupCreated = { scope.launch { viewModel.setActiveGroup(it) } },
             startSharing = shareOnOpen == active,
             onSharingStarted = onSharingStarted,

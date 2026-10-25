@@ -348,4 +348,9 @@
     <string name="quick_split_share_total">Receipt total %1$s</string>
     <string name="quick_split_share_transfer">%1$s pays %2$s %3$s</string>
     <string name="quick_split_onboarding_hint">Just one receipt?</string>
+    <string name="default_split_title">Default split</string>
+    <string name="default_split_hint">New expenses in this group start with this split. It applies to everyone in the group.</string>
+    <string name="default_split_clear">Clear default</string>
+    <string name="editor_using_default">Using group default</string>
+    <string name="editor_save_default">Save as group default</string>
 </resources>

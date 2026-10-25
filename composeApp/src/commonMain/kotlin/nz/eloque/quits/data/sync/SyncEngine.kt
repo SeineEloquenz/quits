@@ -13,6 +13,7 @@ import nz.eloque.quits.data.crypto.GroupCrypto
 import nz.eloque.quits.data.crypto.GroupKey
 import nz.eloque.quits.data.crypto.SecretCode
 import nz.eloque.quits.data.db.CategoryEntity
+import nz.eloque.quits.data.db.DefaultSplitEntity
 import nz.eloque.quits.data.db.EntryWithLines
 import nz.eloque.quits.data.db.GroupEntity
 import nz.eloque.quits.data.db.GroupSyncEntity
@@ -189,6 +190,7 @@ class SyncEngine(
         val entries = if (full) db.entryDao().forGroup(gid) else db.entryDao().dirty(gid)
         val settlements = if (full) db.settlementDao().forGroup(gid) else db.settlementDao().dirty(gid)
         val categories = if (full) db.categoryDao().forGroup(gid) else db.categoryDao().dirty(gid)
+        val defaultSplit = db.defaultSplitDao().byGroup(gid)?.takeIf { if (full) !it.sync.deleted else it.sync.dirty }
 
         // Order is relevant. server_seq follows arrival order and a peer pulling between chunks
         // applies a prefix of this list. The group record must lead, since every other entity's
@@ -201,6 +203,7 @@ class SyncEngine(
         // Only these. Leaving one out while keeping what names it costs the peer the whole group,
         // which is not true of a category, where the entry simply reads as uncategorized.
         val referents = records.mapTo(mutableSetOf()) { it.id }
+        if (defaultSplit != null) records += RecordMapper.record(defaultSplit)
         records += categories.map { RecordMapper.record(it) }
         records += entries.map { RecordMapper.record(it) }
         records += settlements.map { RecordMapper.record(it) }
@@ -217,7 +220,7 @@ class SyncEngine(
             // NonCancellable or these DAO calls throw at their first suspension point when the sync
             // is cancelled, leaving records the relay already accepted marked dirty.
             withContext(NonCancellable) {
-                clearDirty(gid, applied, group, members, entries, settlements, categories)
+                clearDirty(gid, applied, group, members, entries, settlements, categories, defaultSplit)
             }
         }
         if (rejected.isNotEmpty()) throw SyncError.RecordTooLarge(rejected)
@@ -273,9 +276,13 @@ class SyncEngine(
         entries: List<EntryWithLines>,
         settlements: List<SettlementEntity>,
         categories: List<CategoryEntity>,
+        defaultSplit: DefaultSplitEntity?,
     ) {
         if (group != null && RecordMapper.GROUP_RECORD_ID in applied) {
             db.groupDao().clearDirty(gid, group.sync.updatedAt, group.sync.deviceId)
+        }
+        if (defaultSplit != null && RecordMapper.DEFAULT_SPLIT_RECORD_ID in applied) {
+            db.defaultSplitDao().clearDirty(gid, defaultSplit.sync.updatedAt, defaultSplit.sync.deviceId)
         }
         members.filter { it.id in applied }.forEach { db.memberDao().clearDirty(it.id, it.sync.updatedAt, it.sync.deviceId) }
         entries.filter { it.entry.id in applied }.forEach {
@@ -387,6 +394,12 @@ class SyncEngine(
             is SyncPayload.Category -> {
                 if (wins(db.categoryDao().byId(payload.id)?.sync, record)) {
                     db.categoryDao().upsert(RecordMapper.categoryEntity(payload, gid, meta))
+                }
+            }
+
+            is SyncPayload.DefaultSplit -> {
+                if (wins(db.defaultSplitDao().byGroup(gid)?.sync, record)) {
+                    db.defaultSplitDao().upsert(RecordMapper.defaultSplitEntity(payload, gid, meta))
                 }
             }
         }

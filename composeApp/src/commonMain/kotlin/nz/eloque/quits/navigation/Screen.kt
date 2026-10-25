@@ -88,3 +88,9 @@ data class JoinInviteKey(
 data class QuickSplitKey(
     val currency: String? = null,
 ) : NavKey
+
+/** Sets the group's default split for new expenses. */
+@Serializable
+data class DefaultSplitKey(
+    val groupId: String,
+) : NavKey

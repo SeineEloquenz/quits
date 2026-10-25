@@ -1,6 +1,8 @@
 package nz.eloque.quits.data.repository
 
+import kotlinx.serialization.json.Json
 import nz.eloque.quits.data.db.CategoryEntity
+import nz.eloque.quits.data.db.DefaultSplitEntity
 import nz.eloque.quits.data.db.EntryEntity
 import nz.eloque.quits.data.db.EntryItemEntity
 import nz.eloque.quits.data.db.EntryItemParticipantEntity
@@ -14,6 +16,7 @@ import nz.eloque.quits.data.db.SyncMeta
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.DefaultSplit
 import nz.eloque.quits.domain.Entry
 import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.EntryKind
@@ -201,3 +204,14 @@ internal fun itemParticipantRows(entry: Entry): List<EntryItemParticipantEntity>
         item.participants.map { EntryItemParticipantEntity(itemId(entry.id.value, i), it.value) }
     }
 }
+
+/** Null for a kind this version doesn't know, so a newer client's default reads as no default. */
+internal fun DefaultSplitEntity.toDomain(): DefaultSplit? {
+    val kind = DefaultSplit.Kind.entries.firstOrNull { it.name == kind } ?: return null
+    return DefaultSplit(kind, Json.decodeFromString<Map<String, Long>>(weights).mapKeys { MemberId(it.key) })
+}
+
+internal fun DefaultSplit.toEntity(
+    groupId: GroupId,
+    sync: SyncMeta,
+): DefaultSplitEntity = DefaultSplitEntity(groupId.value, kind.name, Json.encodeToString(weights.mapKeys { it.key.value }), sync)

@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Search
@@ -119,6 +120,7 @@ import nz.eloque.quits.resources.cd_menu
 import nz.eloque.quits.resources.cd_more
 import nz.eloque.quits.resources.cd_open_menu
 import nz.eloque.quits.resources.cd_search
+import nz.eloque.quits.resources.default_split_title
 import nz.eloque.quits.resources.detail_add_expense
 import nz.eloque.quits.resources.detail_add_income
 import nz.eloque.quits.resources.detail_add_member
@@ -195,6 +197,7 @@ fun GroupDetailScreen(
     onOpenSettlement: (SettlementId) -> Unit,
     onSettleUp: () -> Unit,
     onOpenStats: () -> Unit,
+    onOpenDefaultSplit: () -> Unit,
     onGroupCreated: (GroupId) -> Unit,
     startSharing: Boolean,
     onSharingStarted: () -> Unit,
@@ -362,6 +365,14 @@ fun GroupDetailScreen(
                         onClick = {
                             menuExpanded = false
                             onOpenStats()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.default_split_title)) },
+                        leadingIcon = { Icon(Icons.Default.PieChart, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onOpenDefaultSplit()
                         },
                     )
                     DropdownMenuItem(

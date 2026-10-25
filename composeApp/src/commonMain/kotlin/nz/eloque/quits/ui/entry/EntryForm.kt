@@ -92,14 +92,20 @@ import nz.eloque.quits.ui.components.display
 import nz.eloque.quits.ui.components.isValidAmountInput
 import org.jetbrains.compose.resources.stringResource
 
-/** The rows describing a bill, meant to sit inside a [ListFieldCard]. */
+/** The rows describing a bill, meant to sit inside a [ListFieldCard]. [splitOnly] shows just the split, limited to default-capable kinds. */
 @Composable
 fun EntryForm(
     state: EntryFormState,
     actions: EntryFormViewModel,
+    splitOnly: Boolean = false,
+    belowSplit: @Composable () -> Unit = {},
 ) {
     val splitOptions =
-        if (state.kind.isIncome) SplitKind.entries.filter { it != SplitKind.ITEMIZED } else SplitKind.entries
+        when {
+            splitOnly -> DEFAULT_SPLIT_KINDS
+            state.kind.isIncome -> SplitKind.entries.filter { it != SplitKind.ITEMIZED }
+            else -> SplitKind.entries
+        }
     val splitLabels = splitOptions.associateWith { it.label() }
     Column(Modifier.padding(16.dp)) {
         ChipSelector(
@@ -112,43 +118,45 @@ fun EntryForm(
     }
     ListRowDivider()
 
-    if (state.splitKind != SplitKind.ITEMIZED) {
-        val amountValid = isValidAmountInput(state.amount, state.currency)
-        ListTextRow(
-            icon = Icons.Default.Numbers,
-            label = stringResource(Res.string.editor_label_amount),
-            value = state.amount,
-            onValueChange = actions::setAmount,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            isError = !amountValid,
-            supporting = if (!amountValid) stringResource(Res.string.error_invalid_total) else null,
-        )
-        ListRowDivider()
-    }
+    if (!splitOnly) {
+        if (state.splitKind != SplitKind.ITEMIZED) {
+            val amountValid = isValidAmountInput(state.amount, state.currency)
+            ListTextRow(
+                icon = Icons.Default.Numbers,
+                label = stringResource(Res.string.editor_label_amount),
+                value = state.amount,
+                onValueChange = actions::setAmount,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                isError = !amountValid,
+                supporting = if (!amountValid) stringResource(Res.string.error_invalid_total) else null,
+            )
+            ListRowDivider()
+        }
 
-    CurrencyPickerRow(
-        icon = Icons.Default.Payments,
-        fieldLabel = stringResource(Res.string.editor_label_currency),
-        selected = state.currency,
-        onSelected = actions::setCurrency,
-    )
-    val base = state.baseCurrency
-    if (base != null && state.isForeign) {
-        ListRowDivider()
-        ListTextRow(
-            icon = Icons.Default.CurrencyExchange,
-            label = stringResource(Res.string.editor_label_rate, base.code),
-            value = state.rate,
-            onValueChange = actions::setRate,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            supporting =
-                when {
-                    state.fetchingRate -> stringResource(Res.string.editor_rate_fetching)
-                    else -> state.rateNotice
-                },
+        CurrencyPickerRow(
+            icon = Icons.Default.Payments,
+            fieldLabel = stringResource(Res.string.editor_label_currency),
+            selected = state.currency,
+            onSelected = actions::setCurrency,
         )
+        val base = state.baseCurrency
+        if (base != null && state.isForeign) {
+            ListRowDivider()
+            ListTextRow(
+                icon = Icons.Default.CurrencyExchange,
+                label = stringResource(Res.string.editor_label_rate, base.code),
+                value = state.rate,
+                onValueChange = actions::setRate,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                supporting =
+                    when {
+                        state.fetchingRate -> stringResource(Res.string.editor_rate_fetching)
+                        else -> state.rateNotice
+                    },
+            )
+        }
+        ListRowDivider()
     }
-    ListRowDivider()
     Column(Modifier.padding(16.dp)) {
         when (state.splitKind) {
             SplitKind.EQUAL -> {
@@ -246,7 +254,9 @@ fun EntryForm(
         }
 
         RemainingHint(state)
+        belowSplit()
     }
+    if (splitOnly) return
 
     ListRowDivider()
     Column(Modifier.padding(16.dp)) {

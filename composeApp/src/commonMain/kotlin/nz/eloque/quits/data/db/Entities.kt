@@ -217,3 +217,22 @@ data class FxRateEntity(
     val rate: Double,
     val asOf: Long,
 )
+
+/** A group's default split. [weights] is a JSON object of member id to weight. */
+@Entity(
+    tableName = "default_split",
+    foreignKeys = [
+        ForeignKey(
+            entity = GroupEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["groupId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class DefaultSplitEntity(
+    @PrimaryKey val groupId: String,
+    val kind: String,
+    val weights: String,
+    @Embedded val sync: SyncMeta,
+)
