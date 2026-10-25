@@ -46,6 +46,11 @@ To verify the authenticity of a Quits APK, use the following SHA-256 fingerprint
 > Prefer using builds from GitHub or F-Droid if possible.
 -->
 
+## Translations
+Quits can be translated via [Weblate](https://hosted.weblate.org/projects/quits/app/).
+
+[![Translation status](https://hosted.weblate.org/widget/quits/app/multi-auto.svg)](https://hosted.weblate.org/engage/quits/)
+
 ## Backend
 The quits relay is a Rust server that you can either self-host directly by building a binary via cargo, or install via the provided nix module.
 The web frontend is continuously built by CI onto the `web` branch.
