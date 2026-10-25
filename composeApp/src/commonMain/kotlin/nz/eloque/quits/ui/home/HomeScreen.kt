@@ -26,6 +26,7 @@ import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +61,8 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
     onAddGroup: () -> Unit,
+    onStartGroup: () -> Unit,
+    onJoinGroup: () -> Unit,
     onQuickSplit: (Currency?) -> Unit,
     onAddExpense: (GroupId) -> Unit,
     onAddIncome: (GroupId) -> Unit,
@@ -68,21 +71,18 @@ fun HomeScreen(
     onOpenSettlement: (GroupId, SettlementId) -> Unit,
     onSettleUp: (GroupId) -> Unit,
     onOpenStats: (GroupId) -> Unit,
+    shareOnOpen: GroupId?,
+    onSharingStarted: () -> Unit,
 ) {
     val viewModel = koinViewModel<GroupsViewModel>()
     val state by viewModel.state.collectAsState()
     val activeGroup by viewModel.activeGroup.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val importError by viewModel.importError.collectAsState()
+    LaunchedEffect(viewModel) { viewModel.syncOnce() }
 
     if (state.loaded && state.groups.isEmpty()) {
         OnboardingScreen(
-            onCreate = viewModel::createGroup,
-            onJoin = viewModel::join,
-            error = error,
-            onJoinInput = viewModel::clearError,
-            onImport = viewModel::importFile,
-            importError = importError,
+            onStartGroup = onStartGroup,
+            onJoinGroup = onJoinGroup,
             onQuickSplit = { onQuickSplit(null) },
         )
         return
@@ -144,6 +144,8 @@ fun HomeScreen(
             onSettleUp = { onSettleUp(active) },
             onOpenStats = { onOpenStats(active) },
             onGroupCreated = { scope.launch { viewModel.setActiveGroup(it) } },
+            startSharing = shareOnOpen == active,
+            onSharingStarted = onSharingStarted,
         )
     }
 }

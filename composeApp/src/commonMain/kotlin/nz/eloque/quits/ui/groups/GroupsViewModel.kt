@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import nz.eloque.quits.application.transfer.ImportGroup
 import nz.eloque.quits.application.transfer.ImportResult
+import nz.eloque.quits.data.invite.InviteLink
 import nz.eloque.quits.data.repository.GroupRepository
 import nz.eloque.quits.data.repository.GroupSummary
 import nz.eloque.quits.data.sync.SyncEngine
@@ -49,7 +50,9 @@ data class GroupHomeRow(
 )
 
 sealed interface GroupsEvent {
-    data object GroupReady : GroupsEvent
+    data class GroupReady(
+        val id: GroupId,
+    ) : GroupsEvent
 }
 
 class GroupsViewModel(
@@ -98,7 +101,12 @@ class GroupsViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    init {
+    private var synced = false
+
+    /** Syncs every shared group, at most once per view model. */
+    fun syncOnce() {
+        if (synced) return
+        synced = true
         viewModelScope.launch {
             engine.syncAll()
         }
@@ -106,7 +114,7 @@ class GroupsViewModel(
 
     suspend fun setActiveGroup(id: GroupId) {
         settings.activeGroupId = id.value
-        _events.emit(GroupsEvent.GroupReady)
+        _events.emit(GroupsEvent.GroupReady(id))
     }
 
     fun createGroup(
@@ -123,7 +131,7 @@ class GroupsViewModel(
     }
 
     fun join(code: String) {
-        val trimmed = code.trim()
+        val trimmed = code.trim().let { InviteLink.parse(it) ?: it }
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
             try {

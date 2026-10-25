@@ -46,14 +46,30 @@
 
     <!-- Add group screen -->
     <string name="add_group_title">Gruppe hinzufügen</string>
-    <string name="add_group_tagline">Rechnungen mit Freunden teilen, synchronisiert</string>
-    <string name="add_group_join_hint">Bitte die Person, die die Gruppe erstellt hat, um den Freigabecode</string>
-    <string name="add_group_new_here">Neu hier?</string>
-    <string name="add_group_create_link">Gruppe erstellen ›</string>
-    <string name="add_group_or">oder</string>
     <string name="add_group_import_link">Gruppe aus Datei importieren</string>
     <string name="add_group_import_failed">Datei konnte nicht importiert werden: %1$s</string>
-    <string name="add_group_no_account">Kein Konto nötig</string>
+    <string name="add_group_no_account">Kein Konto und keine Anmeldung nötig</string>
+    <string name="onboarding_tagline">Gemeinsame Ausgaben festhalten und sehen, wer wem was schuldet.</string>
+    <string name="onboarding_step_create">Eine Gruppe für Reise, WG oder Event erstellen</string>
+    <string name="onboarding_step_expenses">Ausgaben eintragen und sehen, wer wem was schuldet</string>
+    <string name="onboarding_step_share">Teilen, wenn andere auch Ausgaben eintragen sollen</string>
+    <string name="start_group_title">Neue Gruppe starten</string>
+    <string name="start_group_body">Liegt erst auf diesem Gerät, jederzeit teilbar</string>
+    <string name="have_invite_title">Ich habe eine Einladung</string>
+    <string name="have_invite_body">Code oder Link eingeben, den du bekommen hast</string>
+    <string name="create_group_intro">Gib deiner Gruppe einen Namen. Mitglieder und Einstellungen kannst du später ändern.</string>
+    <string name="create_group_footer">Sie bleibt auf diesem Gerät, bis du sie teilst</string>
+    <string name="join_group_title">Gruppe beitreten</string>
+    <string name="join_group_intro">Wer die Gruppe erstellt hat, kann dir einen Freigabecode oder Einladungslink schicken.</string>
+    <string name="label_share_code_or_link">Freigabecode oder Einladungslink</string>
+    <string name="join_group_no_invite">Keine Einladung?</string>
+    <string name="group_created_title">%1$s ist bereit</string>
+    <string name="group_created_question">Wer nutzt die Gruppe noch?</string>
+    <string name="group_created_solo_title">Nur ich</string>
+    <string name="group_created_solo_body">Ich trage alle Ausgaben selbst ein. Bleibt auf diesem Gerät.</string>
+    <string name="group_created_share_title">Mit anderen teilen</string>
+    <string name="group_created_share_body">Alle tragen Ausgaben auf ihrem eigenen Handy ein. Ende-zu-Ende-verschlüsselt synchronisiert.</string>
+    <string name="group_created_later">Du kannst eine Gruppe später über ihr Menü teilen.</string>
 
     <!-- Group detail -->
     <string name="group_fallback_name">Gruppe</string>
@@ -329,5 +345,5 @@
     <string name="quick_split_share">Aufteilung teilen</string>
     <string name="quick_split_share_total">Rechnungsbetrag %1$s</string>
     <string name="quick_split_share_transfer">%1$s zahlt %2$s %3$s</string>
-    <string name="quick_split_onboarding_hint">Nur eine Rechnung aufteilen?</string>
+    <string name="quick_split_onboarding_hint">Nur eine Rechnung?</string>
 </resources>

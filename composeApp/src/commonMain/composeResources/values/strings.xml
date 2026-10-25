@@ -46,16 +46,32 @@
     <string name="groups_member_count">%1$d members · %2$s</string>
     <string name="cd_add_group">Add a group</string>
 
-    <!-- Add group screen (join-first, create tucked one tap away) -->
+    <!-- Add group: start a new group or join one -->
     <string name="add_group_title">Add a group</string>
-    <string name="add_group_tagline">Split bills with friends, in sync</string>
-    <string name="add_group_join_hint">Ask whoever set up the group to send you their share code</string>
-    <string name="add_group_new_here">New here?</string>
-    <string name="add_group_create_link">Create a group ›</string>
-    <string name="add_group_or">or</string>
     <string name="add_group_import_link">Import a group from a file</string>
     <string name="add_group_import_failed">Could not import this file: %1$s</string>
-    <string name="add_group_no_account">No account needed</string>
+    <string name="add_group_no_account">No account or sign-up needed</string>
+    <string name="onboarding_tagline">Track shared costs with friends and see who owes whom.</string>
+    <string name="onboarding_step_create">Create a group for a trip, flat or event</string>
+    <string name="onboarding_step_expenses">Add expenses and see who owes whom</string>
+    <string name="onboarding_step_share">Share it if others should add expenses too</string>
+    <string name="start_group_title">Start a new group</string>
+    <string name="start_group_body">Starts on this device, share it any time</string>
+    <string name="have_invite_title">I have an invite</string>
+    <string name="have_invite_body">Enter the code or link someone sent you</string>
+    <string name="create_group_intro">Give your group a name. You can add members and change these later.</string>
+    <string name="create_group_footer">It stays on this device until you choose to share it</string>
+    <string name="join_group_title">Join a group</string>
+    <string name="join_group_intro">Whoever created the group can send you a share code or an invite link.</string>
+    <string name="label_share_code_or_link">Share code or invite link</string>
+    <string name="join_group_no_invite">No invite?</string>
+    <string name="group_created_title">%1$s is ready</string>
+    <string name="group_created_question">Who else will use it?</string>
+    <string name="group_created_solo_title">Just me</string>
+    <string name="group_created_solo_body">I'll track everyone's expenses myself. Stays on this device.</string>
+    <string name="group_created_share_title">Share with others</string>
+    <string name="group_created_share_body">Everyone adds expenses on their own phone. Synced end-to-end encrypted.</string>
+    <string name="group_created_later">You can share a group later from its menu.</string>
 
     <!-- Invite link -->
     <string name="invite_join_title">Join group</string>
@@ -331,5 +347,5 @@
     <string name="quick_split_share">Share split</string>
     <string name="quick_split_share_total">Receipt total %1$s</string>
     <string name="quick_split_share_transfer">%1$s pays %2$s %3$s</string>
-    <string name="quick_split_onboarding_hint">Only need to split one receipt?</string>
+    <string name="quick_split_onboarding_hint">Just one receipt?</string>
 </resources>

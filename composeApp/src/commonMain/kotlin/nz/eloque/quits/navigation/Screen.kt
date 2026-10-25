@@ -7,9 +7,23 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object GroupsHomeKey : NavKey
 
-/** Join-or-create a group; used both as inline onboarding (via [GroupsHomeKey]) and as its own drawer destination. */
+/** The drawer's start-or-join choice for adding another group. */
 @Serializable
 data object AddGroupKey : NavKey
+
+@Serializable
+data object CreateGroupKey : NavKey
+
+/** Join a group by share code or pasted invite link. */
+@Serializable
+data object JoinGroupKey : NavKey
+
+/** Shown once after creating a group, asking whether to share it. */
+@Serializable
+data class GroupCreatedKey(
+    val groupId: String,
+    val name: String,
+) : NavKey
 
 /** Read-only breakdown of one entry (who paid, who owes what) before dropping into edit. */
 @Serializable
