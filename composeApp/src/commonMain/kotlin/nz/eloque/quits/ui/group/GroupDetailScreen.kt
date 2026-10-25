@@ -196,6 +196,8 @@ fun GroupDetailScreen(
     onSettleUp: () -> Unit,
     onOpenStats: () -> Unit,
     onGroupCreated: (GroupId) -> Unit,
+    startSharing: Boolean = false,
+    onSharingStarted: () -> Unit = {},
 ) {
     val viewModel = koinViewModel<GroupDetailViewModel>(key = groupId.value) { parametersOf(groupId) }
     val state by viewModel.state.collectAsState()
@@ -227,6 +229,14 @@ fun GroupDetailScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.createdGroups.collect(onGroupCreated)
+    }
+
+    LaunchedEffect(startSharing) {
+        if (startSharing) {
+            showShare = true
+            viewModel.share()
+            onSharingStarted()
+        }
     }
 
     if (showShare) {

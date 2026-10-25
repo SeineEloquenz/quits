@@ -19,12 +19,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.deviceCurrency
 import nz.eloque.quits.resources.Res
 import nz.eloque.quits.resources.action_create
 import nz.eloque.quits.resources.action_join
 import nz.eloque.quits.resources.groups_base_currency
 import nz.eloque.quits.resources.label_name
-import nz.eloque.quits.resources.label_share_code
+import nz.eloque.quits.resources.label_share_code_or_link
 import nz.eloque.quits.ui.components.CurrencyPickerRow
 import nz.eloque.quits.ui.components.ListFieldCard
 import nz.eloque.quits.ui.components.ListRowDivider
@@ -38,7 +39,7 @@ fun CreateGroupForm(
     modifier: Modifier = Modifier,
 ) {
     var name by remember { mutableStateOf("") }
-    var currency by remember { mutableStateOf(Currency.of("USD")) }
+    var currency by remember { mutableStateOf(deviceCurrency()) }
 
     Column(modifier.padding(horizontal = 16.dp)) {
         ListFieldCard {
@@ -70,7 +71,7 @@ fun CreateGroupForm(
     }
 }
 
-/** Share-code field + Join, with an inline error message. */
+/** Share-code or invite-link field + Join, with an inline error message. */
 @Composable
 fun JoinGroupForm(
     onJoin: (code: String) -> Unit,
@@ -84,10 +85,10 @@ fun JoinGroupForm(
         ListFieldCard {
             ListTextRow(
                 icon = Icons.Default.Key,
-                label = stringResource(Res.string.label_share_code),
+                label = stringResource(Res.string.label_share_code_or_link),
                 value = joinCode,
                 onValueChange = {
-                    joinCode = it.uppercase()
+                    joinCode = it
                     onInput()
                 },
                 isError = error != null,

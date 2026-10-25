@@ -6,6 +6,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -30,9 +34,12 @@ import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.SettlementId
 import nz.eloque.quits.navigation.AboutKey
 import nz.eloque.quits.navigation.AddGroupKey
+import nz.eloque.quits.navigation.CreateGroupKey
 import nz.eloque.quits.navigation.EntryDetailKey
 import nz.eloque.quits.navigation.EntryEditorKey
+import nz.eloque.quits.navigation.GroupCreatedKey
 import nz.eloque.quits.navigation.GroupsHomeKey
+import nz.eloque.quits.navigation.JoinGroupKey
 import nz.eloque.quits.navigation.JoinInviteKey
 import nz.eloque.quits.navigation.LibrariesKey
 import nz.eloque.quits.navigation.MemberDetailKey
@@ -51,6 +58,9 @@ import nz.eloque.quits.ui.group.MemberDetailScreen
 import nz.eloque.quits.ui.group.SettleUpScreen
 import nz.eloque.quits.ui.group.SettlementEditorScreen
 import nz.eloque.quits.ui.groups.AddGroupScreen
+import nz.eloque.quits.ui.groups.CreateGroupScreen
+import nz.eloque.quits.ui.groups.GroupCreatedScreen
+import nz.eloque.quits.ui.groups.JoinGroupScreen
 import nz.eloque.quits.ui.groups.JoinInviteScreen
 import nz.eloque.quits.ui.home.HomeScreen
 import nz.eloque.quits.ui.quicksplit.QuickSplitScreen
@@ -66,6 +76,9 @@ private val navSavedStateConfiguration =
                 polymorphic(NavKey::class) {
                     subclass(GroupsHomeKey::class)
                     subclass(AddGroupKey::class)
+                    subclass(CreateGroupKey::class)
+                    subclass(JoinGroupKey::class)
+                    subclass(GroupCreatedKey::class)
                     subclass(EntryDetailKey::class)
                     subclass(MemberDetailKey::class)
                     subclass(SettleUpKey::class)
@@ -93,6 +106,8 @@ fun App() {
             val pendingInvite = koinInject<PendingInvite>()
             val inviteResolver = koinInject<InviteResolver>()
             val settings = koinInject<SyncSettings>()
+            var shareOnOpen by remember { mutableStateOf<GroupId?>(null) }
+            val popToHome = { while (backStack.size > 1) backStack.removeLastOrNull() }
 
             LaunchedEffect(Unit) {
                 inviteResolver.resolution.collect { resolution ->
@@ -129,6 +144,8 @@ fun App() {
                                 onOpenSettings = { backStack.add(SettingsKey) },
                                 onOpenAbout = { backStack.add(AboutKey) },
                                 onAddGroup = { backStack.add(AddGroupKey) },
+                                onStartGroup = { backStack.add(CreateGroupKey) },
+                                onJoinGroup = { backStack.add(JoinGroupKey) },
                                 onQuickSplit = { currency -> backStack.add(QuickSplitKey(currency?.code)) },
                                 onAddExpense = { groupId -> backStack.add(EntryEditorKey(groupId.value, kind = EntryKind.EXPENSE.name)) },
                                 onAddIncome = { groupId -> backStack.add(EntryEditorKey(groupId.value, kind = EntryKind.INCOME.name)) },
@@ -139,12 +156,45 @@ fun App() {
                                 },
                                 onSettleUp = { groupId -> backStack.add(SettleUpKey(groupId.value)) },
                                 onOpenStats = { groupId -> backStack.add(StatsKey(groupId.value)) },
+                                shareOnOpen = shareOnOpen,
+                                onSharingStarted = { shareOnOpen = null },
                             )
                         }
                         entry<AddGroupKey> {
                             AddGroupScreen(
                                 onBack = { backStack.removeLastOrNull() },
+                                onStartGroup = { backStack.add(CreateGroupKey) },
+                                onJoinGroup = { backStack.add(JoinGroupKey) },
                                 onDone = { backStack.removeLastOrNull() },
+                            )
+                        }
+                        entry<CreateGroupKey> {
+                            CreateGroupScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                                onCreated = { id, name ->
+                                    popToHome()
+                                    backStack.add(GroupCreatedKey(id.value, name))
+                                },
+                            )
+                        }
+                        entry<JoinGroupKey> {
+                            JoinGroupScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                                onJoined = popToHome,
+                                onStartGroup = {
+                                    backStack.removeLastOrNull()
+                                    backStack.add(CreateGroupKey)
+                                },
+                            )
+                        }
+                        entry<GroupCreatedKey> { key ->
+                            GroupCreatedScreen(
+                                name = key.name,
+                                onSolo = { backStack.removeLastOrNull() },
+                                onShare = {
+                                    shareOnOpen = GroupId(key.groupId)
+                                    backStack.removeLastOrNull()
+                                },
                             )
                         }
                         entry<EntryDetailKey> { key ->

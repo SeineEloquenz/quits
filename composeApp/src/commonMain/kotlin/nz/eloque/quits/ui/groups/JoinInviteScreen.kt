@@ -47,7 +47,7 @@ fun JoinInviteScreen(
     androidx.compose.runtime.LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                GroupsEvent.GroupReady -> onJoined()
+                is GroupsEvent.GroupReady -> onJoined()
             }
         }
     }
