@@ -1,0 +1,3 @@
+* Redesign initial onboarding flow
+* Allow storing a default split type per group
+* Replace partial csv export with full, roundtrippable json export + import
