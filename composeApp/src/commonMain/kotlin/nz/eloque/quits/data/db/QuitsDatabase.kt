@@ -18,9 +18,10 @@ import androidx.room3.RoomDatabaseConstructor
         EntryItemParticipantEntity::class,
         SettlementEntity::class,
         CategoryEntity::class,
+        DefaultSplitEntity::class,
         FxRateEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 @ConstructedBy(QuitsDatabaseConstructor::class)
@@ -38,6 +39,8 @@ abstract class QuitsDatabase : RoomDatabase() {
     abstract fun settlementDao(): SettlementDao
 
     abstract fun categoryDao(): CategoryDao
+
+    abstract fun defaultSplitDao(): DefaultSplitDao
 
     abstract fun fxRateDao(): FxRateDao
 }

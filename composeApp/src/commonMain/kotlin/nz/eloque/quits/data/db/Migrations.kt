@@ -161,3 +161,17 @@ val MIGRATION_8_9 =
             )
         }
     }
+
+/** Adds the synced default split. Resets sync positions so devices re-pull default records an older version skipped. */
+val MIGRATION_9_10 =
+    object : Migration(9, 10) {
+        override suspend fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
+                "CREATE TABLE IF NOT EXISTS `default_split` (`groupId` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
+                    "`weights` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, `deviceId` TEXT NOT NULL, " +
+                    "`deleted` INTEGER NOT NULL, `dirty` INTEGER NOT NULL, PRIMARY KEY(`groupId`), " +
+                    "FOREIGN KEY(`groupId`) REFERENCES `groups`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)",
+            )
+            connection.execSQL("UPDATE group_sync SET lastSeq = 0")
+        }
+    }

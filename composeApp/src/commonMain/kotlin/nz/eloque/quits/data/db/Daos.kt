@@ -50,7 +50,8 @@ interface GroupDao {
             "+ (SELECT COUNT(*) FROM member WHERE groupId = :groupId) " +
             "+ (SELECT COUNT(*) FROM category WHERE groupId = :groupId) " +
             "+ (SELECT COUNT(*) FROM entry WHERE groupId = :groupId) " +
-            "+ (SELECT COUNT(*) FROM settlement WHERE groupId = :groupId)",
+            "+ (SELECT COUNT(*) FROM settlement WHERE groupId = :groupId) " +
+            "+ (SELECT COUNT(*) FROM default_split WHERE groupId = :groupId)",
     )
     fun countSyncedRecordsFlow(groupId: String): Flow<Int>
 
@@ -305,4 +306,31 @@ interface FxRateDao {
         base: String,
         quote: String,
     ): FxRateEntity?
+}
+
+@Dao
+interface DefaultSplitDao {
+    @Upsert
+    suspend fun upsert(defaultSplit: DefaultSplitEntity)
+
+    @Query("SELECT * FROM default_split WHERE groupId = :groupId")
+    suspend fun byGroup(groupId: String): DefaultSplitEntity?
+
+    @Query("SELECT * FROM default_split WHERE groupId = :groupId AND deleted = 0")
+    fun liveFlow(groupId: String): Flow<DefaultSplitEntity?>
+
+    /** Clears dirty only if the row is unchanged since it was pushed, so a concurrent edit survives. */
+    @Query("UPDATE default_split SET dirty = 0 WHERE groupId = :groupId AND updatedAt = :updatedAt AND deviceId = :deviceId")
+    suspend fun clearDirty(
+        groupId: String,
+        updatedAt: Long,
+        deviceId: String,
+    )
+
+    @Query("UPDATE default_split SET deleted = 1, dirty = 1, updatedAt = :updatedAt, deviceId = :deviceId WHERE groupId = :groupId")
+    suspend fun tombstone(
+        groupId: String,
+        updatedAt: Long,
+        deviceId: String,
+    )
 }

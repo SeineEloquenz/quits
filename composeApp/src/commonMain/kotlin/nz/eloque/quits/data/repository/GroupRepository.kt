@@ -14,6 +14,7 @@ import nz.eloque.quits.data.db.SyncMeta
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.DefaultSplit
 import nz.eloque.quits.domain.Entry
 import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.Group
@@ -150,6 +151,19 @@ class GroupRepository(
             settlements,
             categoryEntities.map { it.toDomain() },
         )
+    }
+
+    fun defaultSplitFlow(groupId: GroupId): Flow<DefaultSplit?> = db.defaultSplitDao().liveFlow(groupId.value).map { it?.toDomain() }
+
+    suspend fun setDefaultSplit(
+        groupId: GroupId,
+        defaultSplit: DefaultSplit,
+    ) {
+        db.defaultSplitDao().upsert(defaultSplit.toEntity(groupId, meta()))
+    }
+
+    suspend fun clearDefaultSplit(groupId: GroupId) {
+        db.defaultSplitDao().tombstone(groupId.value, now(), deviceId)
     }
 
     suspend fun addMember(

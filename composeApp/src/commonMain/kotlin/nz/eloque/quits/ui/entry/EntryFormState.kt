@@ -2,6 +2,7 @@ package nz.eloque.quits.ui.entry
 
 import nz.eloque.quits.domain.Bill
 import nz.eloque.quits.domain.Currency
+import nz.eloque.quits.domain.DefaultSplit
 import nz.eloque.quits.domain.EntryKind
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
@@ -97,6 +98,38 @@ fun EntryFormState.withSplitKind(kind: SplitKind): EntryFormState {
     val next = copy(splitKind = kind, splitInput = emptyMap())
     return if (kind == SplitKind.ITEMIZED) next.withItemizedTotal() else next
 }
+
+/** Loads [split] into the split inputs. */
+fun EntryFormState.withSplit(split: Split): EntryFormState =
+    copy(
+        splitKind = split.kind(),
+        equalSelected = if (split is Split.Equal) split.participants.toSet() else members.map { it.id }.toSet(),
+        splitInput =
+            when (split) {
+                is Split.Shares -> split.shares.entries.associate { it.key to it.value.toString() }
+                is Split.Percentage -> split.percent.entries.associate { it.key to it.value.toString() }
+                is Split.Exact -> split.amounts.entries.associate { it.key to it.value.toDecimalString() }
+                is Split.Equal, is Split.Itemized -> emptyMap()
+            },
+        items =
+            if (split is Split.Itemized) {
+                split.items.map {
+                    ItemInput(newId(), it.label, it.amount.toDecimalString(), it.participants)
+                }
+            } else {
+                emptyList()
+            },
+    )
+
+/** The group default these split inputs describe, or null if they're invalid or of a kind that can't be a default. */
+fun EntryFormState.toDefaultSplit(): DefaultSplit? {
+    if (splitKind !in DEFAULT_SPLIT_KINDS) return null
+    val split = (buildSplit(Money.zero(currency)) as? SplitOutcome.Valid)?.split ?: return null
+    return DefaultSplit.from(split, members.map { it.id })
+}
+
+/** Split kinds a group default can use. */
+val DEFAULT_SPLIT_KINDS = listOf(SplitKind.EQUAL, SplitKind.SHARES, SplitKind.PERCENTAGE)
 
 fun EntryFormState.withEqualToggled(member: MemberId): EntryFormState =
     copy(equalSelected = if (member in equalSelected) equalSelected - member else equalSelected + member)

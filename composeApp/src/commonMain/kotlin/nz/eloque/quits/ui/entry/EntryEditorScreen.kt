@@ -9,6 +9,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -77,6 +78,8 @@ import nz.eloque.quits.resources.editor_category_new_title
 import nz.eloque.quits.resources.editor_label_category
 import nz.eloque.quits.resources.editor_label_note
 import nz.eloque.quits.resources.editor_label_title
+import nz.eloque.quits.resources.editor_save_default
+import nz.eloque.quits.resources.editor_using_default
 import nz.eloque.quits.ui.category.CATEGORY_COLORS
 import nz.eloque.quits.ui.category.CATEGORY_ICON_KEYS
 import nz.eloque.quits.ui.category.CategoryDisplay
@@ -152,7 +155,22 @@ fun EntryEditorScreen(
                     fieldModifier = Modifier.focusRequester(titleFocus),
                 )
                 ListRowDivider()
-                EntryForm(state.form, viewModel)
+                EntryForm(state.form, viewModel) {
+                    val current = if (state.kind == EntryKind.EXPENSE) state.form.toDefaultSplit() else null
+                    if (current != null && current == state.groupDefault) {
+                        if (!state.editing) {
+                            Text(
+                                stringResource(Res.string.editor_using_default),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                    } else if (current != null && (state.groupDefault != null || !current.isEveryoneEqual())) {
+                        TextButton(onClick = viewModel::saveAsDefault, contentPadding = PaddingValues(0.dp)) {
+                            Text(stringResource(Res.string.editor_save_default), style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
             }
 
             SectionCard {

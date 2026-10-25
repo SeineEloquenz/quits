@@ -346,4 +346,9 @@
     <string name="quick_split_share_total">Rechnungsbetrag %1$s</string>
     <string name="quick_split_share_transfer">%1$s zahlt %2$s %3$s</string>
     <string name="quick_split_onboarding_hint">Nur eine Rechnung?</string>
+    <string name="default_split_title">Standardaufteilung</string>
+    <string name="default_split_hint">Neue Ausgaben in dieser Gruppe beginnen mit dieser Aufteilung. Sie gilt für alle in der Gruppe.</string>
+    <string name="default_split_clear">Standard entfernen</string>
+    <string name="editor_using_default">Standardaufteilung der Gruppe</string>
+    <string name="editor_save_default">Als Gruppenstandard speichern</string>
 </resources>
