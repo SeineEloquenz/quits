@@ -45,6 +45,8 @@ data class EntryFormState(
     val splitKind: SplitKind = SplitKind.EQUAL,
     val equalSelected: Set<MemberId> = emptySet(),
     val splitInput: Map<MemberId, String> = emptyMap(),
+    /** Inputs of split kinds switched away from, restored when switching back. */
+    val stashedInputs: Map<SplitKind, Map<MemberId, String>> = emptyMap(),
     /** Committed (read-only) line items, used only when [splitKind] is [SplitKind.ITEMIZED]. */
     val items: List<ItemInput> = emptyList(),
     /** The in-progress line: filled in, then committed to [items] via submit. */
@@ -95,8 +97,39 @@ fun EntryFormState.withPayerMode(mode: PayerMode): EntryFormState =
 
 fun EntryFormState.withSplitKind(kind: SplitKind): EntryFormState {
     if (kind == splitKind) return this
-    val next = copy(splitKind = kind, splitInput = emptyMap())
-    return if (kind == SplitKind.ITEMIZED) next.withItemizedTotal() else next
+    val stash = if (splitInput == seedInputs(splitKind)) stashedInputs - splitKind else stashedInputs + (splitKind to splitInput)
+    val next =
+        copy(
+            splitKind = kind,
+            splitInput = stash[kind]?.takeIf { it.isNotEmpty() } ?: seedInputs(kind),
+            stashedInputs = stash,
+        )
+    return if (kind == SplitKind.ITEMIZED) {
+        next.copy(draftParticipants = draftParticipants.ifEmpty { equalSelected }).withItemizedTotal()
+    } else {
+        next
+    }
+}
+
+/** Starting inputs for [kind] that reproduce the current equal selection. */
+private fun EntryFormState.seedInputs(kind: SplitKind): Map<MemberId, String> {
+    val selected = members.filter { it.id in equalSelected }.map { it.id }
+    if (selected.isEmpty()) return emptyMap()
+    return when (kind) {
+        SplitKind.SHARES -> {
+            selected.associateWith { "1" }
+        }
+
+        SplitKind.PERCENTAGE -> {
+            val base = 100 / selected.size
+            val extra = 100 % selected.size
+            selected.withIndex().associate { (i, id) -> id to (base + if (i < extra) 1 else 0).toString() }
+        }
+
+        else -> {
+            emptyMap()
+        }
+    }
 }
 
 /** Loads [split] into the split inputs. */
@@ -152,8 +185,38 @@ fun EntryFormState.withDraftSubmitted(): EntryFormState {
         items = items + ItemInput(newId(), draftLabel.trim(), draftAmount.trim(), draftParticipants),
         draftLabel = "",
         draftAmount = "",
-        draftParticipants = emptySet(),
     ).withItemizedTotal()
+}
+
+/** Moves a committed line back into the draft, committing a valid draft first. A no-op while an unfinished draft is pending. */
+fun EntryFormState.withItemEdited(id: String): EntryFormState {
+    val draftBlank = draftLabel.isBlank() && draftAmount.isBlank()
+    if (!draftBlank && !isDraftValid()) return this
+    val base = if (draftBlank) this else withDraftSubmitted()
+    val item = base.items.firstOrNull { it.id == id } ?: return this
+    return base
+        .copy(
+            items = base.items - item,
+            draftLabel = item.label,
+            draftAmount = item.amount,
+            draftParticipants = item.participants,
+        ).withItemizedTotal()
+}
+
+/** Splits what is left of the total evenly across the members whose exact amount is still empty. */
+fun EntryFormState.withExactRemainderFilled(): EntryFormState {
+    val remaining = remaining(splitInput) ?: return this
+    val empty = members.filter { splitInput[it.id].isNullOrBlank() }.map { it.id }
+    if (empty.isEmpty() || !remaining.isPositive) return this
+    val filled = Split.Equal(empty).divide(remaining).mapValues { it.value.toDecimalString() }
+    return copy(splitInput = splitInput + filled)
+}
+
+/** The total minus every per-member amount in [inputs], or null without a valid total. */
+fun EntryFormState.remaining(inputs: Map<MemberId, String>): Money? {
+    val total = Money.parse(amount.trim(), currency) ?: return null
+    val assigned = members.sumOf { Money.parse(inputs[it.id].orEmpty().trim(), currency)?.minorUnits ?: 0L }
+    return Money(total.minorUnits - assigned, currency)
 }
 
 /** Adds [member] and includes them in the equal split. */
@@ -179,6 +242,7 @@ fun EntryFormState.withoutMember(id: MemberId): EntryFormState {
         paid = if (payerMode == PayerMode.EQUAL) equalDistribution(amount, currency, payers, remaining) else paid - id,
         equalSelected = equalSelected - id,
         splitInput = splitInput - id,
+        stashedInputs = stashedInputs.mapValues { it.value - id },
         items = items.map { it.copy(participants = it.participants - id) }.filter { it.participants.isNotEmpty() },
         draftParticipants = draftParticipants - id,
     ).withItemizedTotal()
@@ -291,9 +355,6 @@ fun EntryFormState.validate(): EntryValidation {
 
     return EntryValidation.Valid(bill, rate)
 }
-
-/** True once [validate] would succeed. */
-fun EntryFormState.isValid(): Boolean = validate() is EntryValidation.Valid
 
 /** Parses one editor line into a domain item, or null if it isn't a complete, valid line yet. */
 private fun ItemInput.toItem(currency: Currency): Split.Itemized.Item? {

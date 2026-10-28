@@ -75,6 +75,63 @@ class EntryFormStateTest {
     }
 
     @Test
+    fun switching_kind_seeds_from_the_equal_selection() {
+        val base = form().withEqualToggled(c)
+        assertEquals(mapOf(a to "1", b to "1"), base.withSplitKind(SplitKind.SHARES).splitInput)
+        val thirds = form().withSplitKind(SplitKind.PERCENTAGE).splitInput
+        assertEquals(mapOf(a to "34", b to "33", c to "33"), thirds)
+        assertEquals(setOf(a, b), base.withSplitKind(SplitKind.ITEMIZED).draftParticipants)
+    }
+
+    @Test
+    fun switching_back_restores_entered_inputs() {
+        val state =
+            form()
+                .withSplitKind(SplitKind.SHARES)
+                .copy(splitInput = mapOf(a to "3", b to "1"))
+                .withSplitKind(SplitKind.EXACT)
+                .withSplitKind(SplitKind.SHARES)
+        assertEquals(mapOf(a to "3", b to "1"), state.splitInput)
+    }
+
+    @Test
+    fun filling_the_exact_remainder_splits_it_across_empty_fields() {
+        val state =
+            form()
+                .withAmount("1000")
+                .withSplitKind(SplitKind.EXACT)
+                .copy(splitInput = mapOf(a to "400"))
+                .withExactRemainderFilled()
+        assertEquals(mapOf(a to "400", b to "300", c to "300"), state.splitInput)
+        assertTrue(state.remaining(state.splitInput)!!.isZero)
+    }
+
+    @Test
+    fun untouched_seeds_follow_a_changed_equal_selection() {
+        val state =
+            form()
+                .withSplitKind(SplitKind.SHARES)
+                .withSplitKind(SplitKind.EQUAL)
+                .withEqualToggled(c)
+                .withSplitKind(SplitKind.SHARES)
+        assertEquals(mapOf(a to "1", b to "1"), state.splitInput)
+    }
+
+    @Test
+    fun editing_an_item_moves_it_back_into_the_draft() {
+        val state =
+            form()
+                .withSplitKind(SplitKind.ITEMIZED)
+                .copy(draftLabel = "Beer", draftAmount = "100", draftParticipants = setOf(b))
+                .withDraftSubmitted()
+        assertEquals(setOf(b), state.draftParticipants)
+        val edited = state.withItemEdited(state.items.single().id)
+        assertEquals(emptyList(), edited.items)
+        assertEquals("Beer", edited.draftLabel)
+        assertEquals("", edited.amount)
+    }
+
+    @Test
     fun renaming_keeps_the_member_id() {
         val state = form().withMemberRenamed(b, "Bea")
         assertEquals(MemberInput(b, "Bea"), state.members[1])

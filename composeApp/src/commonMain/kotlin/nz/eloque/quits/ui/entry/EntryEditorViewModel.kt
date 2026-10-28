@@ -96,7 +96,10 @@ class EntryEditorViewModel(
         }
     }
 
-    override fun updateForm(transform: (EntryFormState) -> EntryFormState) = _state.update { it.copy(form = transform(it.form)) }
+    override fun updateForm(transform: (EntryFormState) -> EntryFormState) =
+        _state.update {
+            it.copy(form = transform(it.form), error = null)
+        }
 
     /** Saves the current split as the group default. */
     fun saveAsDefault() {
