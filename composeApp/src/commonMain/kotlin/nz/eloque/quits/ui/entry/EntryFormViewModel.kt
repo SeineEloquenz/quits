@@ -43,4 +43,8 @@ abstract class EntryFormViewModel : ViewModel() {
     fun toggleAllDraftParticipants() = updateForm { it.withAllDraftParticipantsToggled() }
 
     fun submitDraft() = updateForm { it.withDraftSubmitted() }
+
+    fun editItem(id: String) = updateForm { it.withItemEdited(id) }
+
+    fun fillExactRemainder() = updateForm { it.withExactRemainderFilled() }
 }

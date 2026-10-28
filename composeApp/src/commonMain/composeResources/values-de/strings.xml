@@ -238,6 +238,13 @@
     <string name="editor_income_fallback_title">Einnahme</string>
     <string name="editor_remaining">Noch zuzuordnen: %1$s</string>
     <string name="editor_remaining_done">Alles zugeordnet</string>
+    <string name="editor_over_assigned">%1$s zu viel</string>
+    <string name="editor_fill_remaining">Rest auf leere verteilen</string>
+    <string name="editor_split_desc_equal">Gleicher Teil für alle Ausgewählten</string>
+    <string name="editor_split_desc_shares">Mehr Anteile bedeuten einen größeren Teil</string>
+    <string name="editor_split_desc_percentage">Die Prozente müssen zusammen 100% ergeben</string>
+    <string name="editor_split_desc_exact">Gib den Betrag jeder Person ein</string>
+    <string name="editor_split_desc_itemized">Füge jede Position der Rechnung hinzu und wer sie geteilt hat. Tippe auf eine Position, um sie zu bearbeiten.</string>
 
     <!-- Settings -->
     <string name="settings_title">Einstellungen</string>

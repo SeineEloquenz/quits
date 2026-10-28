@@ -240,6 +240,13 @@
     <string name="editor_income_fallback_title">Income</string>
     <string name="editor_remaining">Remaining to assign: %1$s</string>
     <string name="editor_remaining_done">All assigned</string>
+    <string name="editor_over_assigned">Over by %1$s</string>
+    <string name="editor_fill_remaining">Split rest among empty</string>
+    <string name="editor_split_desc_equal">Everyone selected gets the same part</string>
+    <string name="editor_split_desc_shares">More shares means a bigger part</string>
+    <string name="editor_split_desc_percentage">Percentages must add up to 100%</string>
+    <string name="editor_split_desc_exact">Enter each person's amount</string>
+    <string name="editor_split_desc_itemized">Add each receipt line and who shared it. Tap a line to edit it.</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

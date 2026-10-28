@@ -61,6 +61,7 @@ import nz.eloque.compose_kit.input.AbbreviatingText
 import nz.eloque.compose_kit.scaffold.AppScaffold
 import nz.eloque.quits.domain.Category
 import nz.eloque.quits.domain.CategoryId
+import nz.eloque.quits.domain.DefaultSplit
 import nz.eloque.quits.domain.EntryKind
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.resources.Res
@@ -165,7 +166,9 @@ fun EntryEditorScreen(
                                 color = MaterialTheme.colorScheme.outline,
                             )
                         }
-                    } else if (current != null && (state.groupDefault != null || !current.isEveryoneEqual())) {
+                    } else if (current != null &&
+                        (current.kind != DefaultSplit.Kind.EQUAL || (state.groupDefault != null && current.isEveryoneEqual()))
+                    ) {
                         TextButton(onClick = viewModel::saveAsDefault, contentPadding = PaddingValues(0.dp)) {
                             Text(stringResource(Res.string.editor_save_default), style = MaterialTheme.typography.bodySmall)
                         }
@@ -210,7 +213,7 @@ fun EntryEditorScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            Button(onClick = viewModel::save, enabled = state.form.isValid(), modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = viewModel::save, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(state.kind.saveActionRes(state.editing)))
             }
             Spacer(Modifier.height(24.dp))
