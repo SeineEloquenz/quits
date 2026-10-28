@@ -1,0 +1,2 @@
+* Rework split selection in the expense editor: clearer layout, method descriptions and inputs that carry over when switching
+* Fill the remaining amount in exact splits and edit receipt lines by tapping them
