@@ -119,6 +119,7 @@ string|editor_equal_count|JTEkZCBwZW9wbGU=
 string|editor_equal_hint|JTEkZCBwZW9wbGUgwrcgJTIkcyBlYWNo
 string|editor_equal_paid_link|4oC5IFNwbGl0IGV2ZW5seQ==
 string|editor_expense_fallback_title|RXhwZW5zZQ==
+string|editor_fill_remaining|U3BsaXQgcmVzdCBhbW9uZyBlbXB0eQ==
 string|editor_income_fallback_title|SW5jb21l
 string|editor_item_deselect_all|RGVzZWxlY3QgYWxs
 string|editor_item_label|SXRlbQ==
@@ -133,6 +134,7 @@ string|editor_label_note|Tm90ZSAob3B0aW9uYWwp
 string|editor_label_rate|UmF0ZSDihpIgJTEkcw==
 string|editor_label_time|VGltZQ==
 string|editor_label_title|VGl0bGU=
+string|editor_over_assigned|T3ZlciBieSAlMSRz
 string|editor_paid_by_hint|JTEkcyBwYWlkICUyJHM=
 string|editor_paid_by_prompt|VGFwIHdobyBwYWlk
 string|editor_paid_by|UGFpZCBieQ==
@@ -154,6 +156,11 @@ string|editor_save_income|U2F2ZSBpbmNvbWU=
 string|editor_shares_decrease|RGVjcmVhc2Ugc2hhcmVz
 string|editor_shares_increase|SW5jcmVhc2Ugc2hhcmVz
 string|editor_shares_suffix|w5c=
+string|editor_split_desc_equal|RXZlcnlvbmUgc2VsZWN0ZWQgZ2V0cyB0aGUgc2FtZSBwYXJ0
+string|editor_split_desc_exact|RW50ZXIgZWFjaCBwZXJzb24ncyBhbW91bnQ=
+string|editor_split_desc_itemized|QWRkIGVhY2ggcmVjZWlwdCBsaW5lIGFuZCB3aG8gc2hhcmVkIGl0LiBUYXAgYSBsaW5lIHRvIGVkaXQgaXQu
+string|editor_split_desc_percentage|UGVyY2VudGFnZXMgbXVzdCBhZGQgdXAgdG8gMTAwJQ==
+string|editor_split_desc_shares|TW9yZSBzaGFyZXMgbWVhbnMgYSBiaWdnZXIgcGFydA==
 string|editor_split_equal|RXF1YWw=
 string|editor_split_exact|RXhhY3Q=
 string|editor_split_itemized|SXRlbXM=
