@@ -26,13 +26,7 @@ in
     serverName = lib.mkOption {
       type = lib.types.str;
       example = "app.quits.eloque.nz";
-      description = "Virtual host name for the web app.";
-    };
-
-    enableACME = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to obtain a TLS certificate via ACME and force HTTPS.";
+      description = "Virtual host name for the web app. TLS is configured on its `services.nginx.virtualHosts` entry.";
     };
   };
 
@@ -45,8 +39,6 @@ in
       recommendedTlsSettings = lib.mkDefault true;
 
       virtualHosts.${cfg.serverName} = {
-        forceSSL = cfg.enableACME;
-        enableACME = cfg.enableACME;
         root = "${cfg.package}";
 
         locations."/" = {
