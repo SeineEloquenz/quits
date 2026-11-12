@@ -1,5 +1,7 @@
 package nz.eloque.quits.data.sync
 
+import androidx.room3.executeSQL
+import androidx.room3.withWriteTransaction
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
@@ -296,8 +298,8 @@ class SyncEngine(
         val handle = db.groupSyncDao().byGroup(gid) ?: return
         val key = keyFor(handle)
         val result = relay.pull(handle.remoteId, handle.token, handle.lastSeq)
-        for (record in result.records) {
-            val opened =
+        val opened =
+            result.records.mapNotNull { record ->
                 try {
                     open(key, record)
                 } catch (e: CancellationException) {
@@ -305,9 +307,16 @@ class SyncEngine(
                 } catch (_: Exception) {
                     null // undecryptable (corrupt/tampered) record: skip rather than abort the pull.
                 }
-            if (opened != null) apply(gid, opened)
+            }
+        // The relay orders records by last edit, not by what they reference, so foreign keys are only
+        // checked once the whole pull is applied.
+        db.withWriteTransaction {
+            executeSQL("PRAGMA defer_foreign_keys = ON")
+            opened.forEach { apply(gid, it) }
+            // Must fail here, not at COMMIT. Room leaves the connection stuck in a transaction when COMMIT fails.
+            check(usePrepared("PRAGMA foreign_key_check") { !it.step() }) { "pull of $gid references records it does not contain" }
+            if (result.seq > handle.lastSeq) db.groupSyncDao().setLastSeq(gid, result.seq)
         }
-        if (result.seq > handle.lastSeq) db.groupSyncDao().setLastSeq(gid, result.seq)
     }
 
     private suspend fun keyFor(handle: GroupSyncEntity): GroupKey =
