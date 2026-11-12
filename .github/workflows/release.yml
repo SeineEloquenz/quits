@@ -22,7 +22,7 @@ jobs:
       bundle-path: androidApp/build/outputs/bundle/release
       publish-play: true
       play-package-name: nz.eloque.quits
-      play-track: alpha
+      play-track: production
     secrets:
       KEYSTORE: ${{ secrets.KEYSTORE }}
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
