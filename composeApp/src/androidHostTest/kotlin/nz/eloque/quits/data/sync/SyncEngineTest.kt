@@ -70,6 +70,9 @@ private class FakeRelay(
 
     override suspend fun info(): RelayInfo = limits
 
+    /** Loses [recordId] from every group, as if it had never been pushed. */
+    fun drop(recordId: String) = containers.values.forEach { it.remove(recordId) }
+
     override suspend fun createGroup(lookupId: String): GroupHandle {
         val remoteId = newId()
         containers[remoteId] = mutableMapOf()
@@ -382,6 +385,67 @@ class SyncEngineTest {
                 engine1.sync(g)
 
                 assertNull(repo1.defaultSplitFlow(g).first())
+            } finally {
+                db1.close()
+                db2.close()
+            }
+        }
+
+    @Test
+    fun a_joiner_receives_a_group_renamed_after_its_members() =
+        runTest {
+            val relay = FakeRelay()
+            var clock = 1000L
+            val db1 = inMemoryDatabase()
+            val repo1 = GroupRepository(db1, deviceId = "dev1", now = { clock })
+            val engine1 = SyncEngine(db1, relay, GroupCrypto(), deviceId = "dev1")
+            val db2 = inMemoryDatabase()
+            val repo2 = GroupRepository(db2, deviceId = "dev2", now = { clock })
+            val engine2 = SyncEngine(db2, relay, GroupCrypto(), deviceId = "dev2")
+
+            try {
+                val g = GroupId("g-local")
+                repo1.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
+                val code = engine1.share(g)
+                clock = 2000L
+                repo1.renameGroup(g, "Holiday")
+                engine1.sync(g)
+
+                val joined = engine2.join(code)!!
+
+                val group = repo2.load(joined)!!
+                assertEquals("Holiday", group.name)
+                assertEquals(2, group.members.size)
+            } finally {
+                db1.close()
+                db2.close()
+            }
+        }
+
+    @Test
+    fun a_pull_missing_its_group_rolls_back_and_leaves_the_database_writable() =
+        runTest {
+            val relay = FakeRelay()
+            val clock = 1000L
+            val db1 = inMemoryDatabase()
+            val repo1 = GroupRepository(db1, deviceId = "dev1", now = { clock })
+            val engine1 = SyncEngine(db1, relay, GroupCrypto(), deviceId = "dev1")
+            val db2 = inMemoryDatabase()
+            val repo2 = GroupRepository(db2, deviceId = "dev2", now = { clock })
+            val engine2 = SyncEngine(db2, relay, GroupCrypto(), deviceId = "dev2")
+
+            try {
+                val g = GroupId("g-local")
+                repo1.saveGroup(Group(g, "Trip", usd, listOf(Member(a, "Alice"), Member(b, "Bob"))))
+                val code = engine1.share(g)
+                relay.drop(RecordMapper.GROUP_RECORD_ID)
+
+                assertFailsWith<IllegalStateException> { engine2.join(code) }
+
+                assertNull(db2.memberDao().byId(a.value))
+                val other = GroupId("other")
+                repo2.saveGroup(Group(other, "Other", usd, listOf(Member(MemberId("c"), "Carol"))))
+                assertEquals("Other", repo2.load(other)!!.name)
             } finally {
                 db1.close()
                 db2.close()
