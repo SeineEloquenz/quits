@@ -1,6 +1,7 @@
 {
   lib,
   rustPlatform,
+  sqlite,
   ...
 }:
 
@@ -22,6 +23,8 @@ rustPlatform.buildRustPackage {
   };
 
   cargoLock.lockFile = ../Cargo.lock;
+
+  buildInputs = [ sqlite ];
 
   meta = {
     description = "Quits sync relay";
