@@ -55,4 +55,8 @@ class Entry(
     fun paymentsBy(member: MemberId): Money = bill.paymentsBy(member)
 
     fun shareOf(member: MemberId): Money = bill.shareOf(member)
+
+    fun rateTo(base: Currency): ExchangeRate = ExchangeRate(currency, base, rateToBase)
+
+    fun totalIn(base: Currency): Money = rateTo(base).convert(total)
 }

@@ -18,6 +18,7 @@ import nz.eloque.quits.domain.CategoryId
 import nz.eloque.quits.domain.Currency
 import nz.eloque.quits.domain.EntryId
 import nz.eloque.quits.domain.EntryKind
+import nz.eloque.quits.domain.ExchangeRate
 import nz.eloque.quits.domain.GroupId
 import nz.eloque.quits.domain.MemberId
 import nz.eloque.quits.domain.Money
@@ -46,7 +47,11 @@ data class EntryDetailUiState(
     /** The group's custom categories, for resolving the category's name/icon/color. */
     val categories: List<Category> = emptyList(),
     val note: String? = null,
+    /** The total in the group's base currency. */
     val total: Money = Money.zero(Currency.of("USD")),
+    val originalTotal: Money = total,
+    /** Conversion into the group's base currency, null when the entry is already in it. */
+    val rate: ExchangeRate? = null,
     val splitKind: SplitKind = SplitKind.EQUAL,
     val participantCount: Int = 0,
     val spentAt: Long = 0L,
@@ -82,7 +87,9 @@ class EntryDetailViewModel(
                         categoryId = entry.categoryId,
                         categories = group.categories,
                         note = entry.note,
-                        total = entry.total,
+                        total = entry.totalIn(group.baseCurrency),
+                        originalTotal = entry.total,
+                        rate = entry.rateTo(group.baseCurrency).takeIf { entry.currency != group.baseCurrency },
                         splitKind = entry.split.kind(),
                         participantCount = entry.shares.size,
                         spentAt = entry.spentAt,

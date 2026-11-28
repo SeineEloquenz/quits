@@ -1,5 +1,7 @@
 package nz.eloque.quits.domain
 
+import kotlin.math.floor
+import kotlin.math.log10
 import kotlin.math.roundToLong
 
 /**
@@ -18,6 +20,14 @@ data class ExchangeRate(
         if (from == to && rate == 1.0) return money
         val value = money.minorUnits.toDouble() / pow10(from.decimalDigits)
         return Money((value * rate * pow10(to.decimalDigits)).roundToLong(), to)
+    }
+
+    /** Label like "1 JPY = 0.006268 USD", with four significant digits. */
+    fun label(format: NumberFormatSymbols = LocaleNumberFormat): String {
+        val digits = (3 - floor(log10(rate)).toInt()).coerceIn(0, 12)
+        var value = formatScaled((rate * pow10(digits)).roundToLong(), digits, format)
+        if (digits > 0) value = value.trimEnd('0').trimEnd(format.decimalSeparator())
+        return "1 ${from.code} = $value ${to.code}"
     }
 
     companion object {

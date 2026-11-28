@@ -19,4 +19,6 @@ class Settlement(
         require(from != to) { "a settlement must be between two different members" }
         require(amount.isPositive) { "a settlement amount must be positive" }
     }
+
+    fun amountIn(base: Currency): Money = ExchangeRate(amount.currency, base, rateToBase).convert(amount)
 }

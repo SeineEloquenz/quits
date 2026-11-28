@@ -69,7 +69,7 @@ class Group(
         }
 
         for (entry in entries) {
-            val baseTotal = ExchangeRate(entry.currency, baseCurrency, entry.rateToBase).convert(entry.total)
+            val baseTotal = entry.totalIn(baseCurrency)
             if (!baseTotal.isPositive) continue
             val sign = entry.kind.balanceSign
             val paymentsByMember = entry.payments.groupBy { it.member }.mapValues { (_, ps) -> ps.sumOf { it.amount.minorUnits } }
@@ -81,10 +81,7 @@ class Group(
                 .forEach { (member, share) -> credit(member, -sign * share.minorUnits) }
         }
         for (settlement in settlements) {
-            val converted =
-                ExchangeRate(settlement.amount.currency, baseCurrency, settlement.rateToBase)
-                    .convert(settlement.amount)
-                    .minorUnits
+            val converted = settlement.amountIn(baseCurrency).minorUnits
             credit(settlement.from, converted)
             credit(settlement.to, -converted)
         }

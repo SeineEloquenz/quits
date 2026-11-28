@@ -43,20 +43,19 @@ data class Spending(
  */
 fun Group.spending(): Spending {
     val spendingEntries = entries.filter { it.kind.isExpense }
-
-    fun baseTotal(entry: Entry): Money = ExchangeRate(entry.currency, baseCurrency, entry.rateToBase).convert(entry.total)
-
-    val total = spendingEntries.fold(Money.zero(baseCurrency)) { acc, e -> acc + baseTotal(e) }
+    val total = spendingEntries.fold(Money.zero(baseCurrency)) { acc, e -> acc + e.totalIn(baseCurrency) }
 
     val byCategory =
         spendingEntries
             .groupBy { it.categoryId }
-            .map { (categoryId, es) -> CategoryTotal(categoryId, es.fold(Money.zero(baseCurrency)) { a, e -> a + baseTotal(e) }) }
+            .map { (categoryId, es) ->
+                CategoryTotal(categoryId, es.fold(Money.zero(baseCurrency)) { a, e -> a + e.totalIn(baseCurrency) })
+            }
             .sortedByDescending { it.amount.minorUnits }
 
     val perMember = members.associate { it.id to 0L }.toMutableMap()
     for (entry in spendingEntries) {
-        val baseAmount = baseTotal(entry)
+        val baseAmount = entry.totalIn(baseCurrency)
         if (!baseAmount.isPositive) continue
         val owers = entry.shares.keys.toList()
         distribute(baseAmount, owers, owers.map { entry.shares.getValue(it).minorUnits })
@@ -103,7 +102,7 @@ fun Group.spendOverTime(period: SpendPeriod): List<PeriodTotal> {
     val totals = HashMap<LocalDate, Long>()
     for (entry in entries) {
         if (!entry.kind.isExpense) continue
-        val base = ExchangeRate(entry.currency, baseCurrency, entry.rateToBase).convert(entry.total)
+        val base = entry.totalIn(baseCurrency)
         if (!base.isPositive) continue
         val date =
             Instant.fromEpochMilliseconds(entry.spentAt)
