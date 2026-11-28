@@ -47,6 +47,7 @@ import nz.eloque.quits.resources.cd_back
 import nz.eloque.quits.resources.detail_expense_not_found
 import nz.eloque.quits.resources.detail_items
 import nz.eloque.quits.resources.detail_note
+import nz.eloque.quits.resources.detail_original_amount
 import nz.eloque.quits.resources.detail_split_summary_dated
 import nz.eloque.quits.resources.detail_split_unsupported
 import nz.eloque.quits.resources.editor_item_label
@@ -59,6 +60,7 @@ import nz.eloque.quits.ui.components.LoadingBox
 import nz.eloque.quits.ui.components.MemberAvatar
 import nz.eloque.quits.ui.components.MoneyText
 import nz.eloque.quits.ui.components.dayGroupLabel
+import nz.eloque.quits.ui.components.display
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -162,6 +164,14 @@ fun EntryDetailScreen(
             Spacer(Modifier.height(8.dp))
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 EntryAmountText(state.total, income, style = MaterialTheme.typography.headlineLarge)
+                state.rate?.let { rate ->
+                    Text(
+                        stringResource(Res.string.detail_original_amount, state.originalTotal.display(), rate.label()),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 Text(
                     stringResource(
                         Res.string.detail_split_summary_dated,

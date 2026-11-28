@@ -37,6 +37,21 @@ internal fun pow10(n: Int): Long {
     return result
 }
 
+/** Formats [units] as a decimal with [digits] fractional digits, e.g. (1999, 2) -> "19.99". */
+internal fun formatScaled(
+    units: Long,
+    digits: Int,
+    format: NumberFormatSymbols,
+): String {
+    val scale = pow10(digits)
+    val sign = if (units < 0) "-" else ""
+    val absUnits = abs(units)
+    val whole = absUnits / scale
+    if (digits == 0) return "$sign$whole"
+    val frac = (absUnits % scale).toString().padStart(digits, '0')
+    return "$sign$whole${format.decimalSeparator()}$frac"
+}
+
 /** A monetary amount stored as integer minor units of a [currency] — never a float. */
 data class Money(
     val minorUnits: Long,
@@ -64,15 +79,7 @@ data class Money(
     }
 
     /** Decimal representation, e.g. 1999 USD -> "19.99", 100 JPY -> "100". */
-    fun toDecimalString(format: NumberFormatSymbols = LocaleNumberFormat): String {
-        val scale = pow10(currency.decimalDigits)
-        val sign = if (minorUnits < 0) "-" else ""
-        val absUnits = abs(minorUnits)
-        val whole = absUnits / scale
-        if (currency.decimalDigits == 0) return "$sign$whole"
-        val frac = (absUnits % scale).toString().padStart(currency.decimalDigits, '0')
-        return "$sign$whole${format.decimalSeparator()}$frac"
-    }
+    fun toDecimalString(format: NumberFormatSymbols = LocaleNumberFormat): String = formatScaled(minorUnits, currency.decimalDigits, format)
 
     private fun requireSameCurrency(other: Money) {
         require(currency == other.currency) {

@@ -82,7 +82,7 @@ class MemberDetailViewModel(
                                 MemberEntryRow(
                                     entry.id,
                                     entry.title,
-                                    entry.total,
+                                    entry.totalIn(group.baseCurrency),
                                     entry.paymentsBy(memberId),
                                     entry.shareOf(memberId),
                                     entry.spentAt,

@@ -317,7 +317,7 @@ private fun Group.toUiState(filter: ActivityFilter): GroupDetailUiState {
                 EntryRow(
                     entry.id,
                     entry.title,
-                    entry.total,
+                    entry.totalIn(baseCurrency),
                     paidBy,
                     entry.spentAt,
                     entry.tzOffsetMinutes,
@@ -336,7 +336,7 @@ private fun Group.toUiState(filter: ActivityFilter): GroupDetailUiState {
                     settlement.id,
                     names[settlement.from] ?: "?",
                     names[settlement.to] ?: "?",
-                    settlement.amount,
+                    settlement.amountIn(baseCurrency),
                     settlement.paidAt,
                     settlement.tzOffsetMinutes,
                     settlement.from,
